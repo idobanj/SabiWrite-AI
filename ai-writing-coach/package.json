@@ -1,19 +1,23 @@
 {
   "name": "ai-writing-coach",
   "private": true,
-  "version": "0.1.0",
-  "description": "AI-Powered English Writing Coach with Memory — Phase 0 setup",
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "cd client && npm run dev",
-    "build": "cd client && npm run build",
-    "preview": "cd client && npm run preview",
-    "typecheck": "cd client && npx tsc --noEmit",
-    "db:start": "supabase start",
-    "db:stop": "supabase stop",
-    "db:reset": "supabase db reset",
-    "db:status": "supabase status"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
   },
-  "engines": {
-    "node": ">=20"
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "oxlint": "^1.69.0",
+    "vite": "^8.1.0"
   }
 }
