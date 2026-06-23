@@ -1,0 +1,19 @@
+{
+  "name": "ai-writing-coach",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI-Powered English Writing Coach with Memory — Phase 0 setup",
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "preview": "cd client && npm run preview",
+    "typecheck": "cd client && npx tsc --noEmit",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
