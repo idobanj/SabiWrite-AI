@@ -1,49 +1,290 @@
 // ============================================================================
-// analyze-text — Phase 2 stub
+// analyze-text — Phase 2
 // ============================================================================
-// Phase 2 will verify the user is authenticated, call Gemini with the
-// structured prompt, validate the response, and return AnalysisResponse.
+// Server-side wrapper around the Gemini API. Receives { text } from the
+// authenticated client, asks Gemini for a structured AnalysisResponse,
+// validates it, and returns JSON. The GEMINI_API_KEY never leaves this
+// function.
+//
+// Model: gemini-2.5-flash — fast and cheap, fine for sentence-level analysis.
 // ============================================================================
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+/**
+ * The prompt Gemini sees. We force a JSON response that matches our
+ * AnalysisResponse shape exactly. Anything off-shape gets rejected so we
+ * never show the user a malformed UI state.
+ */
+function buildPrompt(text: string): string {
+  return `You are an English writing coach for non-native speakers (often Yoruba, Hausa, Igbo, or French first-language). Analyse the text the user submits and respond ONLY with a JSON object that matches this exact shape — no markdown fences, no commentary.
+
+{
+  "corrected_sentence": "<the full corrected version of the input, preserving its original meaning and tone>",
+  "mistakes": [
+    {
+      "type": "<one of: subject_verb_agreement | tense | article | preposition | word_choice | spelling | punctuation | sentence_structure | other>",
+      "wrong_text": "<the exact substring from the original>",
+      "correct_text": "<the replacement substring>",
+      "explanation": "<one short sentence explaining the rule, in plain English>",
+      "tip": "<one short, actionable tip — what to do next time, optional>"
+    }
+  ],
+  "explanation": "<one sentence overall coaching note for the writer>",
+  "accuracyScore": <integer 0-100, where 100 is perfect>,
+  "focusArea": "<one short phrase naming the dominant theme, e.g. 'Subject-Verb Agreement', 'Articles', 'Tense Consistency'>"
+}
+
+Rules:
+- If the text is already correct, return an empty mistakes array, accuracyScore 100, and a positive coaching note.
+- Every wrong_text must appear verbatim in the user's input.
+- Keep explanations short (≤ 18 words) and concrete.
+- Keep tip concrete and short (≤ 12 words). Omit the field if there's no useful tip.
+- focusArea should be the single biggest theme, not a list.
+
+User's text to analyse:
+"""
+${text}
+"""`;
+}
+
+interface GeminiRequest {
+  contents: { parts: { text: string }[] }[];
+  generationConfig: { temperature: number; responseMimeType: string };
+}
+
+interface GeminiResponse {
+  candidates?: {
+    content?: { parts?: { text?: string }[] };
+  }[];
+  error?: { message: string };
+}
+
+interface Mistake {
+  type: string;
+  wrong_text: string;
+  correct_text: string;
+  explanation: string;
+  tip?: string;
+}
+
+interface AnalysisResponse {
+  corrected_sentence: string;
+  mistakes: Mistake[];
+  explanation: string;
+  accuracyScore: number;
+  focusArea: string;
+}
+
+const VALID_TYPES = new Set([
+  "subject_verb_agreement",
+  "tense",
+  "article",
+  "preposition",
+  "word_choice",
+  "spelling",
+  "punctuation",
+  "sentence_structure",
+  "other",
+]);
+
+function normaliseMistake(raw: any): Mistake | null {
+  if (!raw || typeof raw !== "object") return null;
+  const { type, wrong_text, correct_text, explanation, tip } = raw;
+  if (typeof wrong_text !== "string" || typeof correct_text !== "string") {
+    return null;
+  }
+  if (typeof explanation !== "string") return null;
+  if (!VALID_TYPES.has(type)) return null;
+  const out: Mistake = {
+    type,
+    wrong_text,
+    correct_text,
+    explanation: explanation.slice(0, 300),
+  };
+  if (typeof tip === "string" && tip.trim()) {
+    out.tip = tip.slice(0, 200);
+  }
+  return out;
+}
+
+function normaliseResponse(raw: any): AnalysisResponse | null {
+  if (!raw || typeof raw !== "object") return null;
+  const mistakes = Array.isArray(raw.mistakes)
+    ? raw.mistakes.map(normaliseMistake).filter((m): m is Mistake => m !== null)
+    : [];
+  const accuracy = Number(raw.accuracyScore);
+  return {
+    corrected_sentence:
+      typeof raw.corrected_sentence === "string"
+        ? raw.corrected_sentence
+        : "",
+    mistakes,
+    explanation:
+      typeof raw.explanation === "string" ? raw.explanation : "",
+    accuracyScore: Number.isFinite(accuracy)
+      ? Math.max(0, Math.min(100, Math.round(accuracy)))
+      : 100 - mistakes.length * 10,
+    focusArea:
+      typeof raw.focusArea === "string" && raw.focusArea.trim()
+        ? raw.focusArea
+        : "General",
+  };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { text } = await req.json();
-
-    if (!text || typeof text !== "string") {
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid 'text' field" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "GEMINI_API_KEY is not configured on the server. Set it in your Edge Function secrets.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    const mockResponse = {
-      corrected_sentence: text,
-      mistakes: [],
-      explanation: "Phase 0 stub: real Gemini integration arrives in Phase 2.",
-      accuracyScore: 100,
-      focusArea: "Grammar Mechanics",
+    let body: { text?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const text = typeof body.text === "string" ? body.text.trim() : "";
+    if (!text) {
+      return new Response(
+        JSON.stringify({ error: "Missing or empty 'text' field" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (text.length > 4000) {
+      return new Response(
+        JSON.stringify({
+          error: "Text is too long. Keep submissions under 4000 characters.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const geminiReq: GeminiRequest = {
+      contents: [{ parts: [{ text: buildPrompt(text) }] }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+      },
     };
 
-    return new Response(JSON.stringify(mockResponse), {
+    const geminiRes = await fetch(GEMINI_URL, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "x-goog-api-key": apiKey,
       },
+      body: JSON.stringify(geminiReq),
+    });
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      return new Response(
+        JSON.stringify({
+          error: `Gemini API error (${geminiRes.status}): ${errText.slice(0, 300)}`,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const geminiBody = (await geminiRes.json()) as GeminiResponse;
+    if (geminiBody.error) {
+      return new Response(
+        JSON.stringify({ error: geminiBody.error.message }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const rawText = geminiBody.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) {
+      return new Response(
+        JSON.stringify({ error: "Empty response from Gemini" }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      return new Response(
+        JSON.stringify({
+          error: "Gemini returned malformed JSON",
+          raw: rawText.slice(0, 500),
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const analysis = normaliseResponse(parsed);
+    if (!analysis) {
+      return new Response(
+        JSON.stringify({ error: "Gemini response did not match expected shape" }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify(analysis), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     return new Response(
       JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });

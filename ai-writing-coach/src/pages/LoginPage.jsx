@@ -81,6 +81,14 @@ export function LoginPage() {
               onChange={setPassword}
               placeholder="Your password"
               icon={<Lock className="w-4 h-4" />}
+              footer={
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-medium text-slate-400 hover:text-brand-500 transition-colors"
+                >
+                  Forgot it?
+                </Link>
+              }
             />
 
             <Button
@@ -136,15 +144,18 @@ export function LoginPage() {
   );
 }
 
-function Field({ id, label, type, value, onChange, placeholder, icon, autoComplete }) {
+function Field({ id, label, type, value, onChange, placeholder, icon, autoComplete, footer }) {
   return (
     <div className="space-y-1.5">
-      <label
-        htmlFor={id}
-        className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
-      >
-        {label}
-      </label>
+      <div className="flex items-center justify-between">
+        <label
+          htmlFor={id}
+          className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+        >
+          {label}
+        </label>
+        {footer}
+      </div>
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
           {icon}

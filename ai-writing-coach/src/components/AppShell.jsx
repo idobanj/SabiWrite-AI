@@ -4,7 +4,13 @@ import { Sidebar } from "./Sidebar";
 import { TopHeader } from "./TopHeader";
 
 // Routes that should be full-bleed (no sidebar, no top header).
-const FULL_BLEED_PATHS = new Set(["/", "/login", "/signup"]);
+const FULL_BLEED_PATHS = new Set([
+  "/",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+]);
 
 /**
  * Two-pane shell: sidebar on the left, main content on the right.

@@ -118,6 +118,27 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  // Send a password reset email. The link in that email redirects to
+  // /reset-password, where the user lands with a recovery session.
+  const resetPassword = useCallback(async (email) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  // Update the password for the currently-authed user (recovery flow).
+  const updatePassword = useCallback(async (newPassword) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
   const signOut = useCallback(async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -136,10 +157,23 @@ export function AuthProvider({ children }) {
       signIn,
       signUp,
       signInWithGoogle,
+      resetPassword,
+      updatePassword,
       signOut,
       refreshProfile,
     }),
-    [session, profile, loading, signIn, signUp, signInWithGoogle, signOut, refreshProfile]
+    [
+      session,
+      profile,
+      loading,
+      signIn,
+      signUp,
+      signInWithGoogle,
+      resetPassword,
+      updatePassword,
+      signOut,
+      refreshProfile,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

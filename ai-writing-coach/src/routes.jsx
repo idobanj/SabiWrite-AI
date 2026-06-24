@@ -8,6 +8,8 @@ import {ProtectedRoute} from './components/ProtectedRoute';
 import {LandingPage} from './pages/LandingPage';
 import {LoginPage} from './pages/LoginPage';
 import {SignupPage} from './pages/SignupPage';
+import {ForgotPasswordPage} from './pages/ForgotPasswordPage';
+import {ResetPasswordPage} from './pages/ResetPasswordPage';
 import {WritingDesk} from './pages/WritingDesk';
 import {ProgressDashboard} from './pages/ProgressDashboard';
 import {PracticeModule} from './pages/PracticeModule';
@@ -17,7 +19,7 @@ import {ProfilePage} from './pages/ProfilePage';
 /**
  * Top-level route map.
  * - "/" is public (landing)
- * - "/login" and "/signup" are public (auth flow, Phase 1)
+ * - "/login", "/signup", "/forgot-password", "/reset-password" are public (auth flow)
  * - "/app/*" is gated by ProtectedRoute
  */
 export function AppRoutes() {
@@ -45,6 +47,22 @@ export function AppRoutes() {
                     element={
                         <PageTransition>
                             <SignupPage />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path='forgot-password'
+                    element={
+                        <PageTransition>
+                            <ForgotPasswordPage />
+                        </PageTransition>
+                    }
+                />
+                <Route
+                    path='reset-password'
+                    element={
+                        <PageTransition>
+                            <ResetPasswordPage />
                         </PageTransition>
                     }
                 />
