@@ -1,9 +1,7 @@
-import { useLocation, Link, useNavigate } from "react-router-dom";
-import { Menu, Settings, Moon, Sun, LogOut } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Menu, Moon, Sun } from "lucide-react";
 import { Button } from "./Button";
 import { useTheme } from "../hooks/useTheme";
-import { useAuth } from "../hooks/useAuth";
-import { useToast } from "./Toast";
 
 const titleMap = {
   "/app/workspace": {
@@ -28,55 +26,39 @@ const titleMap = {
   },
 };
 
-/** Top header. Faithful port of HTML #topHeader with theme toggle + auth user. */
-export function TopHeader() {
+/**
+ * Top header. Page title on the left, theme toggle on the right.
+ * Auth/identity controls live in the sidebar, not here.
+ */
+export function TopHeader({ onOpenMenu }) {
   const { pathname } = useLocation();
   const { theme, toggle } = useTheme();
-  const { profile, session, signOut } = useAuth();
-  const { show } = useToast();
-  const navigate = useNavigate();
 
   const config = titleMap[pathname] ?? { title: "Dashboard", subtitle: "" };
 
-  const displayName =
-    profile?.full_name ||
-    session?.user?.user_metadata?.full_name ||
-    session?.user?.email?.split("@")[0] ||
-    "You";
-  const initials = displayName.slice(0, 1).toUpperCase();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      show("Signed out. See you soon!");
-      navigate("/", { replace: true });
-    } catch (err) {
-      show(err?.message ?? "Sign-out failed.");
-    }
-  };
-
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10 select-none">
-      <div className="flex items-center gap-4">
+    <header className="flex items-center justify-between gap-4 px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10 select-none">
+      <div className="flex items-center gap-3 min-w-0">
         <Button
           variant="ghost"
           size="sm"
           className="md:hidden p-2 rounded-xl"
           aria-label="Open menu"
+          onClick={onOpenMenu}
         >
           <Menu className="w-6 h-6" />
         </Button>
-        <div className="flex flex-col">
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+        <div className="flex flex-col min-w-0">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
             {config.title}
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {config.subtitle}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Button
           variant="secondary"
           size="sm"
@@ -90,43 +72,6 @@ export function TopHeader() {
             <Moon className="w-4 h-4" />
           )}
         </Button>
-
-        <Link to="/app/profile">
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<Settings className="w-3.5 h-3.5" />}
-          >
-            <span className="hidden sm:inline">Settings</span>
-          </Button>
-        </Link>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSignOut}
-          aria-label="Sign out"
-          leftIcon={<LogOut className="w-3.5 h-3.5" />}
-          className="hidden md:inline-flex"
-        >
-          <span className="hidden lg:inline">Sign out</span>
-        </Button>
-
-        <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700" />
-
-        <Link to="/app/profile" className="flex items-center gap-2">
-          <div className="hidden sm:flex flex-col text-right">
-            <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[10rem]">
-              {displayName}
-            </span>
-            <span className="text-[10px] font-semibold text-brand-500 uppercase tracking-wider">
-              My account
-            </span>
-          </div>
-          <div className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-brand-500 flex items-center justify-center text-white text-xs font-bold">
-            {initials}
-          </div>
-        </Link>
       </div>
     </header>
   );
