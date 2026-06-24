@@ -103,7 +103,7 @@ function NotFound() {
                 404
             </h1>
             <p className='text-sm text-slate-500 dark:text-slate-400'>
-                We couldn't find that page. It may be coming in a later phase.
+                We couldn't find that page. It may be coming...
             </p>
         </div>
     );
