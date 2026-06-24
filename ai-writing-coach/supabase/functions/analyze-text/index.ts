@@ -16,8 +16,56 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// Two models in priority order. If the primary is overloaded (503), the
+// Edge Function falls back to the lite variant before giving up.
+const GEMINI_MODELS = [
+  { name: "gemini-2.5-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" },
+  { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
+];
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function callGemini(apiKey: string, body: GeminiRequest) {
+  let lastErr: string | null = null;
+  for (const model of GEMINI_MODELS) {
+    // Two attempts per model: one immediate, one after a 700ms backoff.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch(model.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        return await res.json() as GeminiResponse;
+      }
+
+      const errText = await res.text();
+      lastErr = `${model.name} (${res.status}): ${errText.slice(0, 200)}`;
+
+      // 503 = overloaded. Retry the same model once, then move on.
+      // 429 = rate-limited. Same treatment.
+      if (res.status === 503 || res.status === 429) {
+        if (attempt === 0) {
+          await sleep(700);
+          continue;
+        }
+        // exhausted this model, try the next one
+        break;
+      }
+
+      // Anything else (400, 401, 403, 500…) is a hard failure — don't retry,
+      // don't fall back, surface immediately.
+      throw new Error(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`);
+    }
+  }
+  throw new Error(`Gemini unavailable: ${lastErr}`);
+}
 
 /**
  * The prompt Gemini sees. We force a JSON response that matches our
@@ -204,29 +252,8 @@ Deno.serve(async (req: Request) => {
       },
     };
 
-    const geminiRes = await fetch(GEMINI_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify(geminiReq),
-    });
+    const geminiBody = await callGemini(apiKey, geminiReq);
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      return new Response(
-        JSON.stringify({
-          error: `Gemini API error (${geminiRes.status}): ${errText.slice(0, 300)}`,
-        }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const geminiBody = (await geminiRes.json()) as GeminiResponse;
     if (geminiBody.error) {
       return new Response(
         JSON.stringify({ error: geminiBody.error.message }),
