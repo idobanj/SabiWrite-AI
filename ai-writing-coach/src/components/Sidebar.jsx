@@ -96,10 +96,10 @@ export function Sidebar({ mobileOpen = false, onNavigate }) {
           </div>
           <div>
             <h1 className="font-extrabold text-white text-base tracking-tight leading-tight group-hover:text-brand-100 transition-colors">
-              Error Coach
+              SabiWrite AI
             </h1>
             <span className="text-xs text-slate-500 font-medium">
-              AI Writing MVP
+              AI Writing Coach
             </span>
           </div>
         </NavLink>
