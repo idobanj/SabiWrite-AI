@@ -41,50 +41,49 @@ export function LandingPage() {
   };
 
   return (
-    <section className="px-6 sm:px-12 max-w-6xl mx-auto pt-10 pb-20 space-y-24">
+    <section className="px-4  sm:px-12 max-w-7xl mx-auto my-auto pt-20 pb-10 space-y-24">
       {/* Hero */}
       <div className="grid lg:grid-cols-12 gap-12 items-center">
-        <div className="lg:col-span-7 space-y-7">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white tracking-tight leading-[1.05]">
-            The writing coach that{" "}
-            <span className="text-brand-500">remembers your mistakes.</span>
+        <div className="lg:col-span-7 space-y-7 pt-10 px-10 lg:px-0">
+          <h1 className="text-6xl sm:text-5xl lg:text-6xl pt-6 font-bold text-slate-900 dark:text-white tracking-tight leading-[1.05] text-center lg:text-left">
+            Your AI-Powered{" "}
+            <span className="text-brand-500">English Writting Coach</span>
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
-            Paste a sentence, get a correction, and the next time you make the
-            same slip we'll bring it up. No more starting from zero every
-            lesson.
+          <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed sm:px-12 lg:px-0 mt-0 text-center lg:text-left">
+            Stop using software as a crutch. English Error Coach doesn't just fix your typos-it acts as an elite personal tutor, analyzing your weakness and generating dynamic lessons to elevate your communication
           </p>
-          <div className="flex flex-col sm:flex-row items-start gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 pt-2 ">
             <Link to="/signup">
-              <Button size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
-                Get started
+              <Button className="w-full" size="lg" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                Start Improving Now
               </Button>
             </Link>
             <a href="#demo">
-              <Button variant="ghost" size="lg">
-                Or try it first ↓
+              <Button className
+              ="border dark:border-gray-700 border-gray-200  text-gray-700 dark:text-gray-300 w-full" variant="ghost" size="lg">
+                Try the Interactive Demo ↓
               </Button>
             </a>
           </div>
-          <p className="text-xs text-slate-400">
+          {/* <p className="text-xs text-slate-400">
             Free while in beta. Sign in with email or Google.
-          </p>
+          </p> */}
         </div>
 
         {/* Hero illustration card */}
         <div className="lg:col-span-5">
           <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-1.5 py-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-600 "/>
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-600 "/>
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500 "/>
               </div>
               <span className="text-[11px] font-medium text-slate-400">
-                Sample analysis
+                Writting Analysis Mock
               </span>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 py-7">
               <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   You wrote
@@ -128,11 +127,14 @@ export function LandingPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5">
                     "They" is plural — it takes "have", not "has".
                   </p>
+                 
                 </div>
               </div>
             </div>
           </div>
+          
         </div>
+        <div className="w-full h-px bg-slate-200 dark:bg-slate-700 lg:bg-transparent " ></div>
       </div>
 
       {/* Interactive Demo */}
@@ -186,32 +188,32 @@ export function LandingPage() {
         <ValueProp
           icon={<PenTool className="w-5 h-5" />}
           tone="brand"
-          title="It explains, not just corrects"
-          body="Every fix comes with a one-line reason. You'll know why it's wrong, not just that it is."
+          title="Teacher's Desk"
+          body="Rather than silently correcting, the platform breaks down each correction in simple, understandable, localized mechanics.."
         />
         <ValueProp
           icon={<BarChart2 className="w-5 h-5" />}
           tone="indigo"
-          title="It tracks your patterns"
-          body="If you keep mixing up tenses, that becomes a streak in your profile — not a one-off correction."
+          title="Weakness Profiler"
+          body="We record patterns in your typing errors to isolate exactly where your logical understanding is failing.."
         />
         <ValueProp
           icon={<GraduationCap className="w-5 h-5" />}
           tone="emerald"
-          title="It turns weaknesses into lessons"
-          body="Your top three recurring mistakes get auto-generated into short quizzes to drill them out."
+          title="Interactive Micro-Lessons"
+          body="Instantly convert detected weaknesses into specialized modules with quizzes to practice what you got wrong."
         />
         <ValueProp
           icon={<Award className="w-5 h-5" />}
           tone="amber"
-          title="It's built for non-native writers"
-          body="Explanations lean toward the kind of errors speakers of Yoruba, Hausa, Igbo, and French tend to make."
+          title="Competition Ready"
+          body="Built using advanced Gemini API reasoning for robust processing and customized EdTech execution workflows."
         />
       </div>
 
-      <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-        <p>Error Coach. A writing tool that remembers.</p>
-        <p>Built with Supabase + Gemini.</p>
+      <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p>© {new Date().getFullYear()} English Error Coach. Designed for the OPay Innovation Challenge.</p>
+        
       </footer>
     </section>
   );
