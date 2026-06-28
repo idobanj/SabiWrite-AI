@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "../components/Button";
 import { useToast } from "../components/Toast";
+import { useTheme } from "../hooks/useTheme";
+import { Menu, Moon, Sun } from "lucide-react";
 
 const templates = {
   pitch:
@@ -26,6 +28,7 @@ const templates = {
 export function LandingPage() {
   const [draft, setDraft] = useState("");
   const { show } = useToast();
+  const { theme, toggle } = useTheme();
 
   const handleTemplateClick = (key) => {
     setDraft(templates[key]);
@@ -43,8 +46,25 @@ export function LandingPage() {
   return (
     <section className="px-4  sm:px-12 max-w-7xl mx-auto my-auto pt-20 pb-10 space-y-24">
       {/* Hero */}
+
+ <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={toggle}
+          aria-label="Toggle theme"
+          className="px-2"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4" />
+          ) : (
+            <Moon className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
+
       <div className="grid lg:grid-cols-12 gap-12 items-center">
-        <div className="lg:col-span-7 space-y-7 pt-10 px-10 lg:px-0">
+        <div className="lg:col-span-7 space-y-6 pt-10 px-10 lg:px-0">
           <h1 className="text-6xl sm:text-5xl lg:text-6xl pt-6 font-bold text-slate-900 dark:text-white tracking-tight leading-[1.05] text-center lg:text-left">
             Your AI-Powered{" "}
             <span className="text-brand-500">English Writting Coach</span>
@@ -177,7 +197,7 @@ export function LandingPage() {
               onClick={handleCheckClick}
               leftIcon={<Sparkles className="w-3.5 h-3.5" />}
             >
-              Check it
+              Check in Writing Desk
             </Button>
           </div>
         </div>
@@ -211,7 +231,7 @@ export function LandingPage() {
         />
       </div>
 
-      <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 flex flex-col items-center justify-between gap-2">
         <p>© {new Date().getFullYear()} English Error Coach. Designed for the OPay Innovation Challenge.</p>
         
       </footer>
