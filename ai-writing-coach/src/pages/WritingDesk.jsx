@@ -7,6 +7,7 @@ import {
   Lightbulb,
   RefreshCcw,
   ArrowRight,
+  Repeat,
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
@@ -14,6 +15,7 @@ import { Pill } from "../components/Pill";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../components/Toast";
 import { analyzeText, logAnalysis } from "../lib/analysis";
+import { logMistakes } from "../lib/mistakes";
 
 /**
  * Phase 2 Writing Desk. The user types or pastes text, hits "Check it",
@@ -49,12 +51,35 @@ export function WritingDesk() {
     try {
       const result = await analyzeText(trimmed);
       setAnalysis(result);
+
+      // Fire-and-forget: the analysis is already on screen, the user shouldn't
+      // have to wait for background logging. Failures get logged to the console
+      // and surfaced as a non-blocking toast.
       try {
         await logAnalysis(session.user.id, trimmed, result);
       } catch (logErr) {
-        // Non-fatal: the analysis still shows, we just couldn't save it.
         // eslint-disable-next-line no-console
         console.warn("[writing-desk] failed to log analysis:", logErr);
+      }
+
+      // Phase 3: persist mistakes to memory and tag the result with
+      // frequency / is_repeat so we can render "seen before" pills.
+      if (result.mistakes && result.mistakes.length > 0) {
+        try {
+          const { tagged, summary } = await logMistakes(result.mistakes);
+          setAnalysis({ ...result, mistakes: tagged });
+          if (summary.repeat_count > 0) {
+            show(
+              summary.new_count > 0
+                ? `Saved ${summary.new_count} new mistake${summary.new_count === 1 ? "" : "s"}, ${summary.repeat_count} you've made before.`
+                : `All ${summary.repeat_count} mistake${summary.repeat_count === 1 ? " is" : "s are"} repeats. We're watching the pattern.`
+            );
+          }
+        } catch (memErr) {
+          // eslint-disable-next-line no-console
+          console.warn("[writing-desk] log-mistake failed:", memErr);
+          show("Couldn't save to your mistake memory this time.");
+        }
       }
     } catch (err) {
       show(err?.message ?? "Analysis failed. Try again in a moment.");
@@ -69,10 +94,10 @@ export function WritingDesk() {
   };
 
   return (
-    <div className="py-6 px-6 max-w-[1400px] mx-auto space-y-6">
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
+    <div className="py-6 px-4 sm:px-6 max-w-[95rem] mx-auto space-y-6">
+      <div className="grid lg:grid-cols-12 gap-6 lg:items-stretch">
         {/* Editor */}
-        <Card className="lg:col-span-5 space-y-4">
+        <Card className="lg:col-span-5 flex flex-col space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-brand-50 text-brand-500 rounded-xl dark:bg-brand-500/10">
               <PenTool className="w-4 h-4" />
@@ -82,20 +107,23 @@ export function WritingDesk() {
                 Your draft
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Paste a sentence, a paragraph, or a whole message.
+                Draft, correct and master grammatical mechanics instantly.
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form
+            onSubmit={handleSubmit}
+            className="flex-1 flex flex-col gap-3 min-h-96"
+          >
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={loading}
-              rows={10}
+              rows={6}
               maxLength={4000}
               placeholder="e.g. The team of developers does tried to fix the API modules, but they has failed continuously."
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40 resize-y disabled:opacity-60"
+              className="w-full flex-1 lg:min-h-[40rem] min-h-72 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40 resize-none disabled:opacity-60"
             />
 
             <div className="flex items-center justify-between text-xs text-slate-400">
@@ -186,6 +214,10 @@ function ResultsPanel({ analysis, originalText }) {
   const { corrected_sentence, mistakes, explanation, accuracyScore, focusArea } =
     analysis;
   const noMistakes = !mistakes || mistakes.length === 0;
+  const repeatCount = noMistakes
+    ? 0
+    : mistakes.filter((m) => m.is_repeat).length;
+  const allRepeats = !noMistakes && repeatCount === mistakes.length;
 
   return (
     <>
@@ -214,6 +246,17 @@ function ResultsPanel({ analysis, originalText }) {
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-3">
             {explanation}
           </p>
+        ) : null}
+
+        {allRepeats ? (
+          <div className="flex items-start gap-2 text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/30 rounded-xl p-2.5">
+            <Repeat className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              <span className="font-semibold">All repeats.</span> This draft
+              re-uses mistakes you've already made — focus on these before
+              moving on.
+            </p>
+          </div>
         ) : null}
       </Card>
 
@@ -384,6 +427,8 @@ const MISTAKE_TYPE_LABELS = {
 };
 
 function MistakeCard({ index, mistake }) {
+  const isRepeat = !!mistake.is_repeat;
+  const count = mistake.frequency_count ?? 1;
   return (
     <div className="p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 space-y-2.5">
       <div className="flex items-center gap-2 flex-wrap">
@@ -393,6 +438,14 @@ function MistakeCard({ index, mistake }) {
         <Pill color="amber">
           {MISTAKE_TYPE_LABELS[mistake.type] ?? mistake.type}
         </Pill>
+        {isRepeat ? (
+          <Pill color="indigo">
+            <span className="inline-flex items-center gap-1">
+              <Repeat className="w-3 h-3" />
+              ×{count} · seen before
+            </span>
+          </Pill>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2 text-sm flex-wrap">

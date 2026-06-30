@@ -19,6 +19,7 @@ const navEntries = [
   { to: "/app/analytics", label: "Progress", icon: BarChart3 },
   { to: "/app/focus", label: "Practice", icon: BookOpen },
   { to: "/app/history", label: "History", icon: History },
+  { to: "/app/profile", label: "Settings", icon: Settings },
 ];
 
 const baseItem =
@@ -144,15 +145,6 @@ export function Sidebar({ mobileOpen = false, onNavigate }) {
                 {email || "Signed in"}
               </p>
             </div>
-          </NavLink>
-          <NavLink
-            to="/app/profile"
-            onClick={onNavigate}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors flex-shrink-0"
-            title="Account settings"
-            aria-label="Account settings"
-          >
-            <Settings className="w-4 h-4" />
           </NavLink>
         </div>
         <button
