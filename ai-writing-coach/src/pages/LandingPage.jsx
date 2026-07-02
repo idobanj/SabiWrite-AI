@@ -73,7 +73,7 @@ export function LandingPage() {
                     </h1>
                     <p className='text-xl text-slate-600 dark:text-slate-300 leading-relaxed lg:pr-2  mt-0 text-center lg:text-left md:px-10 lg:px-0'>
                         Stop using software as a crutch. English Error Coach
-                        doesn't just fix your typos—iit acts as an elite
+                        doesn't just fix your typos—it acts as an elite
                         personal tutor, analyzing your weakness and generating
                         dynamic lessons to elevate your communication
                     </p>
