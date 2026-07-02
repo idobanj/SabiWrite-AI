@@ -94,16 +94,16 @@ export function WritingDesk() {
   };
 
   return (
-    <div className="py-6 px-4 sm:px-6 max-w-[95rem] mx-auto space-y-6">
-      <div className="grid lg:grid-cols-12 gap-6 lg:items-stretch">
+    <div className="py-5 sm:py-6 px-3 sm:px-4 md:px-6 max-w-[95rem] mx-auto lg:h-full lg:flex lg:flex-col">
+      <div className="grid lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6 lg:items-stretch lg:flex-1 lg:min-h-0">
         {/* Editor */}
-        <Card className="lg:col-span-5 flex flex-col space-y-4">
+        <Card className="p-4 sm:p-5 lg:p-6 lg:col-span-5 lg:flex lg:flex-col lg:space-y-4 space-y-4 lg:h-full lg:min-h-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-brand-50 text-brand-500 rounded-xl dark:bg-brand-500/10">
               <PenTool className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
                 Your draft
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -114,20 +114,20 @@ export function WritingDesk() {
 
           <form
             onSubmit={handleSubmit}
-            className="flex-1 flex flex-col gap-3 min-h-96"
+            className="space-y-3 lg:flex-1 lg:flex lg:flex-col lg:gap-3 lg:min-h-0"
           >
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={loading}
-              rows={6}
+              rows={5}
               maxLength={4000}
               placeholder="e.g. The team of developers does tried to fix the API modules, but they has failed continuously."
-              className="w-full flex-1 lg:min-h-[40rem] min-h-72 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40 resize-none disabled:opacity-60"
+              className="w-full min-h-44 sm:min-h-56 lg:flex-1 lg:min-h-72 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 sm:p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40 resize-none disabled:opacity-60"
             />
 
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span>
+            <div className="flex items-center justify-between text-xs text-slate-400 gap-2">
+              <span className="truncate">
                 {wordCount} {wordCount === 1 ? "word" : "words"} ·{" "}
                 {text.length}/4000
               </span>
@@ -135,10 +135,10 @@ export function WritingDesk() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors flex-shrink-0"
                 >
                   <RefreshCcw className="w-3 h-3" />
-                  Start over
+                  <span className="hidden xs:inline sm:inline">Start over</span>
                 </button>
               ) : null}
             </div>
@@ -162,7 +162,7 @@ export function WritingDesk() {
         </Card>
 
         {/* Results */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-7 space-y-4 lg:overflow-y-auto lg:pr-1 custom-scrollbar min-h-0">
           {loading ? <LoadingPanel /> : null}
           {!loading && analysis ? (
             <ResultsPanel analysis={analysis} originalText={text} />
@@ -221,8 +221,8 @@ function ResultsPanel({ analysis, originalText }) {
 
   return (
     <>
-      <Card className="space-y-4">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+      <Card className="p-4 sm:p-5 lg:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 flex-wrap">
           <div className="space-y-1">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Score
@@ -232,7 +232,7 @@ function ResultsPanel({ analysis, originalText }) {
               <span className="text-base font-semibold text-slate-400">/100</span>
             </p>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-wrap items-start gap-2 sm:flex-col sm:items-end">
             <Pill color={noMistakes ? "emerald" : "amber"}>
               {noMistakes ? "No mistakes found" : `${mistakes.length} ${mistakes.length === 1 ? "mistake" : "mistakes"}`}
             </Pill>
@@ -260,7 +260,7 @@ function ResultsPanel({ analysis, originalText }) {
         ) : null}
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         <DiffPanel
           label="What you wrote"
           tone="red"
@@ -276,10 +276,10 @@ function ResultsPanel({ analysis, originalText }) {
       </div>
 
       {noMistakes ? null : (
-        <Card className="space-y-3">
+        <Card className="p-4 sm:p-5 lg:p-6 space-y-3">
           <div className="flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-amber-500" />
-            <h4 className="font-bold text-slate-900 dark:text-white">
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
               What to fix
             </h4>
           </div>
@@ -298,7 +298,7 @@ function DiffPanel({ label, tone, text, mistakes }) {
   const isError = tone === "red";
   return (
     <div
-      className={`rounded-2xl border p-4 space-y-2 ${
+      className={`rounded-2xl border p-3.5 sm:p-4 space-y-2 ${
         isError
           ? "border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5"
           : "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
@@ -311,7 +311,7 @@ function DiffPanel({ label, tone, text, mistakes }) {
       >
         {label}
       </p>
-      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere">
         {isError
           ? renderWithMarks(text, mistakes, "red")
           : renderCorrected(text, mistakes)}
@@ -430,7 +430,7 @@ function MistakeCard({ index, mistake }) {
   const isRepeat = !!mistake.is_repeat;
   const count = mistake.frequency_count ?? 1;
   return (
-    <div className="p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 space-y-2.5">
+    <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 space-y-2.5">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           #{index + 1}
@@ -448,26 +448,26 @@ function MistakeCard({ index, mistake }) {
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 text-sm flex-wrap">
-        <span className="inline-flex items-center gap-1.5 line-through text-red-500 decoration-wavy">
-          <XCircle className="w-3.5 h-3.5" />
-          {mistake.wrong_text}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
+        <span className="inline-flex items-center gap-1.5 line-through text-red-500 decoration-wavy break-words max-w-full">
+          <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{mistake.wrong_text}</span>
         </span>
-        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          {mistake.correct_text}
+        <ArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+        <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold break-words max-w-full">
+          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>{mistake.correct_text}</span>
         </span>
       </div>
 
-      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed break-words overflow-wrap-anywhere">
         {mistake.explanation}
       </p>
 
       {mistake.tip ? (
         <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 rounded-xl p-2.5">
           <Lightbulb className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
+          <p className="leading-relaxed break-words overflow-wrap-anywhere">
             <span className="font-semibold text-amber-700 dark:text-amber-400">
               Tip:{" "}
             </span>
