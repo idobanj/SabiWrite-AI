@@ -63,11 +63,12 @@ async function rest<T>(
   init: RequestInit,
   prefer?: string
 ): Promise<T> {
+  const initHeaders = (init?.headers as Record<string, string> | undefined) ?? {};
   const headers: Record<string, string> = {
     Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
     apikey: SERVICE_ROLE_KEY,
     "Content-Type": "application/json",
-    ...(init.headers as Record<string, string> | undefined),
+    ...initHeaders,
   };
   if (prefer) headers["Prefer"] = prefer;
 
@@ -118,7 +119,7 @@ async function findExisting(
       type
     )}&wrong_text=eq.${encodeURIComponent(wrongText)}&select=id,frequency_count&limit=1`
   );
-  return rows[0] ?? null;
+  return rows?.[0] ?? null;
 }
 
 /**
@@ -144,20 +145,22 @@ async function upsertMistake(
   if (before) {
     // Bump frequency_count atomically. Use an explicit UPDATE rather than
     // an ON CONFLICT upsert so the new frequency_count = old + 1 is unambiguous
-    // even under concurrent writes.
+    // even under concurrent writes. PATCH defaults to 204 No Content, so we
+    // ask for `return=representation` to get the merged row back.
     const updated = await rest<
       { id: string; frequency_count: number }[]
     >(
       `/mistakes?id=eq.${before.id}&select=id,frequency_count`,
       {
         method: "PATCH",
+        headers: { Prefer: "return=representation" },
         body: JSON.stringify({
           ...payload,
           frequency_count: before.frequency_count + 1,
         }),
       }
     );
-    const row = updated[0];
+    const row = updated?.[0];
     return {
       mistake_type: m.type,
       wrong_text: m.wrong_text,
@@ -168,18 +171,21 @@ async function upsertMistake(
   }
 
   // New row. Use upsert via POST + Prefer: resolution=merge-duplicates so
-  // a parallel write from another tab doesn't double-insert.
+  // a parallel write from another tab doesn't double-insert. PostgREST's
+  // on_conflict param takes the *column names* of the unique constraint,
+  // not the constraint name itself — see
+  // https://docs.postgrest.org/en/v12/references/api/resource_upsert.html
   const inserted = await rest<
     { id: string; frequency_count: number }[]
   >(
-    `/mistakes?on_conflict=mistakes_user_type_wrong_unique&select=id,frequency_count`,
+    `/mistakes?on_conflict=user_id,mistake_type,wrong_text&select=id,frequency_count`,
     {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify({ ...payload, frequency_count: 1 }),
     }
   );
-  const row = inserted[0];
+  const row = inserted?.[0];
   return {
     mistake_type: m.type,
     wrong_text: m.wrong_text,
@@ -248,13 +254,18 @@ Deno.serve(async (req: Request) => {
     }
 
     const results: UpsertResult[] = [];
+    const failures: Array<{ type: string; wrong_text: string; error: string }> = [];
     for (const m of mistakes) {
       try {
         results.push(await upsertMistake(user.id, m));
       } catch (err) {
-        // One failed row shouldn't kill the batch. Log and move on.
+        // One failed row shouldn't kill the batch. Log and move on,
+        // but surface the failure in the response so the client (and
+        // the Supabase function logs) can see systemic issues.
+        const msg = err instanceof Error ? err.message : String(err);
         // eslint-disable-next-line no-console
-        console.error("[log-mistake] upsert failed:", err, m);
+        console.error("[log-mistake] upsert failed:", msg, m);
+        failures.push({ type: m.type, wrong_text: m.wrong_text, error: msg });
       }
     }
 
@@ -266,6 +277,7 @@ Deno.serve(async (req: Request) => {
         new_count: newCount,
         repeat_count: repeatCount,
         upserted: results,
+        failures,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
