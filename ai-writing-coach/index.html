@@ -2,19 +2,65 @@
 <html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SabiWrite AI — Your English Writing Coach</title>
 
-    <!-- Inter font preconnect -->
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary SEO -->
+    <title>SabiWrite AI — Your AI English Writing Coach</title>
+
+    <meta
+      name="description"
+      content="Improve your English writing with SabiWrite AI. Detect grammar mistakes, understand your weaknesses, and receive personalized AI-powered lessons to become a better writer."
+    />
+
+    <meta
+      name="keywords"
+      content="SabiWrite AI, AI writing coach, English writing coach, grammar checker, AI tutor, writing assistant, improve English writing, grammar correction, essay writing, email writing"
+    />
+
+    <meta name="author" content="SabiWrite AI" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://sabiwrite.ai/" />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#2563eb" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SabiWrite AI — Your AI English Writing Coach" />
+    <meta
+      property="og:description"
+      content="An AI-powered writing coach that identifies recurring mistakes, explains them clearly, and helps you improve through personalized lessons."
+    />
+    <meta property="og:url" content="https://sabiwrite.ai/" />
+    <meta property="og:image" content="https://sabiwrite.ai/og-image.png" />
+    <meta property="og:site_name" content="SabiWrite AI" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SabiWrite AI" />
+    <meta
+      name="twitter:description"
+      content="Improve your English writing with your personal AI writing coach."
+    />
+    <meta name="twitter:image" content="https://sabiwrite.ai/og-image.png" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
 
-    <!-- Dark mode flash prevention — runs before React mounts -->
+    <!-- Dark mode flash prevention -->
     <script>
       (function () {
         try {
@@ -23,13 +69,20 @@
             "(prefers-color-scheme: dark)"
           ).matches;
           var dark = stored ? stored === "dark" : prefersDark;
-          if (dark) document.documentElement.classList.add("dark");
+
+          if (dark) {
+            document.documentElement.classList.add("dark");
+          }
         } catch (_) {}
       })();
     </script>
   </head>
-  <body class="h-full text-slate-800 antialiased font-sans bg-slate-50 dark:bg-slate-950 dark:text-slate-200">
+
+  <body
+    class="h-full text-slate-800 antialiased font-sans bg-slate-50 dark:bg-slate-950 dark:text-slate-200"
+  >
     <div id="root" class="h-full"></div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
