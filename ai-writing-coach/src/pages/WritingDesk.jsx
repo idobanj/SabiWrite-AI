@@ -57,9 +57,15 @@ export function WritingDesk() {
       // and surfaced as a non-blocking toast.
       try {
         await logAnalysis(session.user.id, trimmed, result);
+        show("Progress saved.");
       } catch (logErr) {
         // eslint-disable-next-line no-console
         console.warn("[writing-desk] failed to log analysis:", logErr);
+        show(
+          `Analysis worked, but progress was not saved: ${
+            logErr?.message ?? "database write failed"
+          }`
+        );
       }
 
       // Phase 3: persist mistakes to memory and tag the result with

@@ -76,7 +76,7 @@ export async function analyzeText(text) {
  * @param {string} userId
  * @param {string} originalText
  * @param {AnalysisResponse} analysis
- * @returns {Promise<void>}
+ * @returns {Promise<HistoryLog>}
  */
 export async function logAnalysis(userId, originalText, analysis) {
   if (!supabase) throw new Error("Supabase is not configured.");
@@ -88,8 +88,13 @@ export async function logAnalysis(userId, originalText, analysis) {
     accuracy_score: analysis.accuracyScore ?? 0,
     focus_area: analysis.focusArea ?? null,
   };
-  const { error } = await supabase.from("analysis_logs").insert(row);
+  const { data, error } = await supabase
+    .from("analysis_logs")
+    .insert(row)
+    .select()
+    .single();
   if (error) throw error;
+  return /** @type {HistoryLog} */ (data);
 }
 
 export {};
