@@ -1,0 +1,5 @@
+User-agent: *
+
+Allow: /
+
+Sitemap: https://ai-writing-coach-seven.vercel.app/sitemap.xml
