@@ -87,6 +87,9 @@ export async function logAnalysis(userId, originalText, analysis) {
     mistake_count: analysis.mistakes?.length ?? 0,
     accuracy_score: analysis.accuracyScore ?? 0,
     focus_area: analysis.focusArea ?? null,
+    // Persist the per-mistake array so the History page's "Review Session"
+    // button can fully re-render the past analysis without re-calling Gemini.
+    mistakes: analysis.mistakes ?? [],
   };
   const { data, error } = await supabase
     .from("analysis_logs")

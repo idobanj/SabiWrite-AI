@@ -15,6 +15,7 @@ import {
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { IconBadge } from "../components/IconBadge";
+import { MetricCardSkeleton } from "../components/Skeleton";
 import { getUserStats } from "../lib/stats";
 
 const TIMEFRAMES = [
@@ -153,33 +154,44 @@ export function ProgressDashboard() {
       ) : null}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        <MetricCard
-          label="Drafts Polished"
-          value={loading ? "..." : stats?.total_submissions ?? 0}
-          icon={<PenTool className="w-6 h-6" />}
-          tone="brand"
-        />
-        <MetricCard
-          label="Average Mistakes"
-          value={loading ? "..." : avgMistakes}
-          sublabel="/ draft"
-          icon={<Activity className="w-6 h-6" />}
-          tone="red"
-        />
-        <MetricCard
-          label="Global Accuracy Score"
-          value={loading ? "..." : `${stats?.accuracy ?? 0}%`}
-          sublabel={!loading && trend.delta ? trend.short : ""}
-          icon={<TrendingUp className="w-6 h-6" />}
-          tone="emerald"
-        />
-        <MetricCard
-          label="Current Streak"
-          value={loading ? "..." : stats?.streak_days ?? 0}
-          sublabel={stats?.streak_days === 1 ? "day" : "days"}
-          icon={<Flame className="w-6 h-6" />}
-          tone="amber"
-        />
+        {loading ? (
+          <>
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
+            <MetricCardSkeleton />
+          </>
+        ) : (
+          <>
+            <MetricCard
+              label="Drafts Polished"
+              value={stats?.total_submissions ?? 0}
+              icon={<PenTool className="w-6 h-6" />}
+              tone="brand"
+            />
+            <MetricCard
+              label="Average Mistakes"
+              value={avgMistakes}
+              sublabel="/ draft"
+              icon={<Activity className="w-6 h-6" />}
+              tone="red"
+            />
+            <MetricCard
+              label="Global Accuracy Score"
+              value={`${stats?.accuracy ?? 0}%`}
+              sublabel={trend.delta ? trend.short : ""}
+              icon={<TrendingUp className="w-6 h-6" />}
+              tone="emerald"
+            />
+            <MetricCard
+              label="Current Streak"
+              value={stats?.streak_days ?? 0}
+              sublabel={stats?.streak_days === 1 ? "day" : "days"}
+              icon={<Flame className="w-6 h-6" />}
+              tone="amber"
+            />
+          </>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-12 gap-4 sm:gap-6 items-start">

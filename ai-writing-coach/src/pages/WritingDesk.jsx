@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   PenTool,
   Sparkles,
@@ -8,32 +9,91 @@ import {
   RefreshCcw,
   ArrowRight,
   Repeat,
+  History,
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Pill } from "../components/Pill";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../components/Toast";
+import { Skeleton } from "../components/Skeleton";
 import { analyzeText, logAnalysis } from "../lib/analysis";
 import { logMistakes } from "../lib/mistakes";
+import { getHistoryEntry } from "../lib/history";
 
 /**
  * Phase 2 Writing Desk. The user types or pastes text, hits "Check it",
  * we call the analyze-text Edge Function, render the corrected version
  * and per-mistake explanations, then persist the result to analysis_logs.
+ *
+ * If the user lands here from the History page's "Review session" button
+ * (location.state.reviewLogId), we fetch the saved row and re-render its
+ * analysis without re-calling Gemini.
  */
 export function WritingDesk() {
   const { session } = useAuth();
   const { show } = useToast();
+  const location = useLocation();
 
   const [text, setText] = useState("");
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [reviewMeta, setReviewMeta] = useState(null); // { createdAt, id } when reviewing
 
   const wordCount = useMemo(
     () => (text.trim() ? text.trim().split(/\s+/).length : 0),
     [text]
   );
+
+  // Review Session: if we arrived from /app/history with a row id in router
+  // state, fetch the saved analysis and re-render it without re-calling
+  // Gemini. We replace (don't merge) router state once consumed so a refresh
+  // doesn't re-trigger the review.
+  useEffect(() => {
+    const reviewLogId = location.state?.reviewLogId;
+    if (!reviewLogId || !session?.user?.id) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const entry = await getHistoryEntry(reviewLogId);
+        if (cancelled) return;
+        if (!entry) {
+          show("Couldn't find that past submission.");
+          return;
+        }
+        setText(entry.original_text);
+        // Reconstruct the AnalysisResponse shape the ResultsPanel expects.
+        // Old rows (pre-mistakes-column) won't have per-mistake detail; we
+        // fall back to a "compare original vs corrected" view.
+        const mistakes = Array.isArray(entry.mistakes) ? entry.mistakes : [];
+        setAnalysis({
+          corrected_sentence: entry.corrected_text,
+          mistakes,
+          explanation: entry.focus_area
+            ? `Reviewed from your history. Focus: ${entry.focus_area}.`
+            : "Reviewed from your history.",
+          accuracyScore: entry.accuracy_score,
+          focusArea: entry.focus_area ?? "",
+        });
+        setReviewMeta({ id: entry.id, createdAt: entry.created_at });
+        show("Reloaded past submission.");
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[writing-desk] review load failed:", err);
+        show(err?.message ?? "Couldn't load that past submission.");
+      } finally {
+        if (!cancelled) setLoading(false);
+        // Replace router state so a refresh doesn't re-fire the review.
+        if (!cancelled && typeof window !== "undefined") {
+          window.history.replaceState({}, "");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, session, show]);
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
@@ -48,6 +108,7 @@ export function WritingDesk() {
     }
     setLoading(true);
     setAnalysis(null);
+    setReviewMeta(null);
     try {
       const result = await analyzeText(trimmed);
       setAnalysis(result);
@@ -97,10 +158,30 @@ export function WritingDesk() {
   const handleReset = () => {
     setText("");
     setAnalysis(null);
+    setReviewMeta(null);
   };
 
   return (
     <div className="py-5 sm:py-6 px-3 sm:px-4 md:px-6 max-w-[95rem] mx-auto lg:h-full lg:flex lg:flex-col">
+      {reviewMeta ? (
+        <div className="mb-4 sm:mb-5 flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border border-indigo-100 dark:border-indigo-500/30 bg-indigo-50/60 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
+          <History className="w-4 h-4 flex-shrink-0" />
+          <p className="text-xs font-semibold flex-1 min-w-0">
+            Reviewing past submission from{" "}
+            <span className="font-bold">
+              {new Date(reviewMeta.createdAt).toLocaleString()}
+            </span>
+            . Hit <em>Check it</em> to re-analyse with the latest model.
+          </p>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-[10px] font-bold uppercase tracking-widest hover:underline flex-shrink-0"
+          >
+            Close review
+          </button>
+        </div>
+      ) : null}
       <div className="grid lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6 lg:items-stretch lg:flex-1 lg:min-h-0">
         {/* Editor */}
         <Card className="p-4 sm:p-5 lg:p-6 lg:col-span-5 lg:flex lg:flex-col lg:space-y-4 space-y-4 lg:h-full lg:min-h-0">

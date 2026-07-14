@@ -15,14 +15,24 @@ import { supabase } from "./supabase";
  * @property {number} accuracy_score
  * @property {string|null} focus_area
  * @property {string} created_at
+ * @property {Array<{type: string, wrong_text: string, correct_text: string, explanation?: string, tip?: string}>|null} mistakes
  */
 
 const PAGE_SIZE = 25;
+
+const COLUMNS_FULL =
+  "id,user_id,original_text,corrected_text,mistake_count,accuracy_score,focus_area,created_at,mistakes";
+const COLUMNS_LEGACY =
+  "id,user_id,original_text,corrected_text,mistake_count,accuracy_score,focus_area,created_at";
 
 /**
  * Fetch one page of history for the current user, newest first. `cursor` is
  * the created_at of the last row on the previous page; we return rows whose
  * created_at is strictly older than it.
+ *
+ * Tries to select the `mistakes` jsonb column; on a 400 (column not in
+ * schema — happens if migration 0005 hasn't been applied yet), falls back
+ * to the legacy column set so the page still renders.
  *
  * @param {{ cursor?: string, pageSize?: number }} [opts]
  * @returns {Promise<{ entries: HistoryEntry[], nextCursor: string | null }>}
@@ -35,20 +45,26 @@ export async function getHistoryPage({ cursor, pageSize = PAGE_SIZE } = {}) {
   } = await supabase.auth.getUser();
   if (!user?.id) throw new Error("Sign in again to load your history.");
 
-  let query = supabase
-    .from("analysis_logs")
-    .select(
-      "id,user_id,original_text,corrected_text,mistake_count,accuracy_score,focus_area,created_at"
-    )
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(pageSize + 1); // +1 to know if there's another page
+  const run = async (columns) => {
+    let query = supabase
+      .from("analysis_logs")
+      .select(columns)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(pageSize + 1);
+    if (cursor) query = query.lt("created_at", cursor);
+    return await query;
+  };
 
-  if (cursor) {
-    query = query.lt("created_at", cursor);
+  let { data, error } = await run(COLUMNS_FULL);
+  if (error && /column .*mistakes/i.test(error.message ?? "")) {
+    // Schema not yet migrated — fall back to the legacy select.
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[history] analysis_logs.mistakes column missing; falling back."
+    );
+    ({ data, error } = await run(COLUMNS_LEGACY));
   }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   const rows = data ?? [];
@@ -57,6 +73,37 @@ export async function getHistoryPage({ cursor, pageSize = PAGE_SIZE } = {}) {
   const nextCursor = hasMore ? entries[entries.length - 1].created_at : null;
 
   return { entries, nextCursor };
+}
+
+/**
+ * Fetch a single history entry by id. Used by WritingDesk when the user
+ * clicks "Review Session" — it pre-loads the saved analysis without
+ * re-calling Gemini.
+ *
+ * Falls back to the legacy column set on a 400.
+ *
+ * @param {string} id
+ * @returns {Promise<HistoryEntry | null>}
+ */
+export async function getHistoryEntry(id) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  if (!id) return null;
+
+  let { data, error } = await supabase
+    .from("analysis_logs")
+    .select(COLUMNS_FULL)
+    .eq("id", id)
+    .maybeSingle();
+  if (error && /column .*mistakes/i.test(error.message ?? "")) {
+    ({ data, error } = await supabase
+      .from("analysis_logs")
+      .select(COLUMNS_LEGACY)
+      .eq("id", id)
+      .maybeSingle());
+  }
+  if (error) throw error;
+  // Older rows won't have mistakes — default to null so callers can decide.
+  return data ?? null;
 }
 
 /**

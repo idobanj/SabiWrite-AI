@@ -1,27 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  ChevronDown,
-  ChevronRight,
   Filter,
   History,
   Loader2,
+  RotateCcw,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Pill } from "../components/Pill";
 import { IconBadge } from "../components/IconBadge";
+import { Skeleton, TableBodySkeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import { getHistoryPage, getHistoryTopics } from "../lib/history";
 
 const PAGE_SIZE = 25;
-
-function accuracyTone(score) {
-  if (score >= 80) return "emerald";
-  if (score >= 50) return "amber";
-  return "red";
-}
 
 function accuracyPillColor(score) {
   if (score >= 80) return "emerald";
@@ -30,12 +26,15 @@ function accuracyPillColor(score) {
 }
 
 /**
- * Phase 4: History page. Lists every analysis_logs row for the current user
- * with a search filter, topic filter, infinite-scroll "Load more", and an
- * expandable detail row showing the original vs corrected text.
+ * Phase 4: History page. Mirrors the reference design — a 5-column table
+ * (Date · Snippet · Mistakes · Score · Actions) on tablet/desktop and a
+ * stacked-card list on mobile. Each row has a "Review Session" button
+ * that re-opens the saved analysis in the Writing Desk without re-calling
+ * Gemini.
  */
 export function HistoryPage() {
   const { show } = useToast();
+  const navigate = useNavigate();
 
   const [entries, setEntries] = useState([]);
   const [cursor, setCursor] = useState(null);
@@ -47,8 +46,6 @@ export function HistoryPage() {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("all");
   const [topics, setTopics] = useState([]);
-
-  const [expanded, setExpanded] = useState(null); // id of currently expanded row
 
   // First load: history + topic list
   useEffect(() => {
@@ -112,35 +109,49 @@ export function HistoryPage() {
 
   const stats = useMemo(() => summarize(entries), [entries]);
 
+  const handleReview = (row) => {
+    navigate("/app/workspace", { state: { reviewLogId: row.id } });
+  };
+
   return (
     <div className="py-5 sm:py-6 px-3 sm:px-4 md:px-6 max-w-6xl mx-auto space-y-5 sm:space-y-6">
-      {/* Header card with stats + filter controls */}
+      {/* Header card with summary + filter controls */}
       <Card className="p-4 sm:p-5 lg:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <IconBadge tone="brand">
               <History className="w-5 h-5" />
             </IconBadge>
             <div className="min-w-0">
               <h3 className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg">
-                Submission history
+                Writing history logs
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {loading
-                  ? "Loading..."
-                  : `${stats.total} ${stats.total === 1 ? "draft" : "drafts"} · avg ${stats.avgAccuracy}% accuracy`}
-              </p>
+              <div className="text-xs text-slate-500 dark:text-slate-400 min-h-[1.25rem]">
+                {loading ? (
+                  <Skeleton w="w-56" h="h-2.5" />
+                ) : (
+                  <>
+                    {stats.total} {stats.total === 1 ? "draft" : "drafts"} ·
+                    avg {stats.avgAccuracy}% accuracy
+                  </>
+                )}
+              </div>
             </div>
           </div>
+          <Button
+            variant="secondary"
+            size="md"
+            leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+            disabled
+            title="Coming soon"
+          >
+            Clear all history
+          </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5">
           <SearchBox value={query} onChange={setQuery} />
-          <TopicFilter
-            value={topic}
-            onChange={setTopic}
-            topics={topics}
-          />
+          <TopicFilter value={topic} onChange={setTopic} topics={topics} />
         </div>
       </Card>
 
@@ -151,26 +162,50 @@ export function HistoryPage() {
       ) : null}
 
       {loading ? (
-        <HistorySkeleton />
+        <HistoryTableSkeleton />
       ) : visible.length === 0 ? (
-        <EmptyState
-          hasAny={entries.length > 0}
-          query={query}
-          topic={topic}
-        />
+        <EmptyState hasAny={entries.length > 0} query={query} topic={topic} />
       ) : (
-        <div className="space-y-2">
-          {visible.map((row) => (
-            <HistoryRow
-              key={row.id}
-              row={row}
-              isOpen={expanded === row.id}
-              onToggle={() =>
-                setExpanded((cur) => (cur === row.id ? null : row.id))
-              }
-            />
-          ))}
-        </div>
+        <>
+          {/* Desktop / tablet: classic table matching the reference */}
+          <div className="hidden md:block">
+            <Card padded={false} className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
+                      <th className="p-4">Submission date</th>
+                      <th className="p-4">Text snippet preview</th>
+                      <th className="p-4">Mistakes identified</th>
+                      <th className="p-4">Accuracy score</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200 font-medium">
+                    {visible.map((row) => (
+                      <HistoryTableRow
+                        key={row.id}
+                        row={row}
+                        onReview={() => handleReview(row)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+
+          {/* Mobile: stacked cards, same data, same Review button */}
+          <div className="md:hidden space-y-2">
+            {visible.map((row) => (
+              <HistoryMobileRow
+                key={row.id}
+                row={row}
+                onReview={() => handleReview(row)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {!loading && !done && cursor ? (
@@ -184,7 +219,7 @@ export function HistoryPage() {
               loadingMore ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5" />
               )
             }
           >
@@ -197,108 +232,83 @@ export function HistoryPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Row                                                                */
+/*  Rows                                                              */
 /* ------------------------------------------------------------------ */
 
-function HistoryRow({ row, isOpen, onToggle }) {
-  const date = new Date(row.created_at);
-  const tone = accuracyTone(row.accuracy_score);
-
+function HistoryTableRow({ row, onReview }) {
   return (
-    <Card
-      padded={false}
-      className={`overflow-hidden transition-colors ${
-        isOpen
-          ? "border-brand-300 dark:border-brand-500/40"
-          : "hover:border-slate-300 dark:hover:border-slate-600"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full text-left p-3.5 sm:p-4 flex items-start gap-3"
-      >
-        <div className="flex-shrink-0 pt-0.5">
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2 break-words">
-            {row.original_text}
-          </p>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Pill color={accuracyPillColor(row.accuracy_score)}>
-              {row.accuracy_score}%
-            </Pill>
-            {row.mistake_count > 0 ? (
-              <Pill color="slate">
-                {row.mistake_count} {row.mistake_count === 1 ? "mistake" : "mistakes"}
-              </Pill>
-            ) : (
-              <Pill color="emerald">Clean</Pill>
-            )}
-            {row.focus_area ? (
-              <Pill color="brand">{row.focus_area}</Pill>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex-shrink-0 text-right whitespace-nowrap pt-0.5">
-          {fmtRelative(date)}
-        </div>
-      </button>
-
-      {isOpen ? <RowDetail row={row} tone={tone} date={date} /> : null}
-    </Card>
+    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+      <td className="p-4 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
+        {fmtTableDate(row.created_at)}
+      </td>
+      <td className="p-4 text-slate-800 dark:text-slate-200 font-bold max-w-md">
+        <p className="truncate" title={row.original_text}>
+          {row.original_text}
+        </p>
+        {row.focus_area ? (
+          <Pill color="brand" className="mt-1.5">
+            {row.focus_area}
+          </Pill>
+        ) : null}
+      </td>
+      <td className="p-4">
+        {row.mistake_count > 0 ? (
+          <Pill color="red">{row.mistake_count} errors flagged</Pill>
+        ) : (
+          <Pill color="emerald">No errors</Pill>
+        )}
+      </td>
+      <td className="p-4 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
+        {row.accuracy_score}%
+      </td>
+      <td className="p-4 text-right">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onReview}
+          className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+        >
+          Review session
+        </Button>
+      </td>
+    </tr>
   );
 }
 
-function RowDetail({ row, tone, date }) {
+function HistoryMobileRow({ row, onReview }) {
   return (
-    <div className="px-3.5 sm:px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-700 space-y-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2">
-        <span>{date.toLocaleString()}</span>
-        <span>·</span>
-        <span>ID {row.id.slice(0, 8)}</span>
+    <Card className="p-3.5 space-y-2.5">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2 break-words flex-1 min-w-0">
+          {row.original_text}
+        </p>
+        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest whitespace-nowrap flex-shrink-0">
+          {fmtRelative(new Date(row.created_at))}
+        </span>
       </div>
-
-      <div className="grid md:grid-cols-2 gap-3">
-        <div className="p-3 rounded-2xl border border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5 space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-red-500">
-            What you wrote
-          </p>
-          <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words whitespace-pre-wrap">
-            {row.original_text}
-          </p>
-        </div>
-        <div className="p-3 rounded-2xl border border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5 space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-            Coach correction
-          </p>
-          <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words whitespace-pre-wrap">
-            {row.corrected_text}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <Pill color={tone}>
-          {row.accuracy_score}% accuracy
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Pill color={accuracyPillColor(row.accuracy_score)}>
+          {row.accuracy_score}%
         </Pill>
         {row.mistake_count > 0 ? (
-          <Pill color="slate">
-            {row.mistake_count} {row.mistake_count === 1 ? "mistake" : "mistakes"}
+          <Pill color="red">
+            {row.mistake_count} {row.mistake_count === 1 ? "error" : "errors"}
           </Pill>
         ) : (
-          <Pill color="emerald">No mistakes</Pill>
+          <Pill color="emerald">Clean</Pill>
         )}
         {row.focus_area ? <Pill color="brand">{row.focus_area}</Pill> : null}
       </div>
-    </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={onReview}
+        fullWidth
+        className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+      >
+        Review session
+      </Button>
+    </Card>
   );
 }
 
@@ -347,7 +357,6 @@ function TopicFilter({ value, onChange, topics }) {
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
     </div>
   );
 }
@@ -388,25 +397,24 @@ function EmptyState({ hasAny, query, topic }) {
   );
 }
 
-function HistorySkeleton() {
+function HistoryTableSkeleton() {
   return (
-    <div className="space-y-2">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <Card key={i} padded={false} className="p-4">
-          <div className="flex items-start gap-3 animate-pulse">
-            <div className="w-4 h-4 bg-slate-100 dark:bg-slate-800 rounded mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3 w-3/4 bg-slate-100 dark:bg-slate-800 rounded" />
-              <div className="h-2 w-1/2 bg-slate-100 dark:bg-slate-800 rounded" />
-              <div className="flex gap-1.5">
-                <div className="h-3 w-12 bg-slate-100 dark:bg-slate-800 rounded-full" />
-                <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded-full" />
-              </div>
-            </div>
-          </div>
-        </Card>
-      ))}
-    </div>
+    <Card padded={false} className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
+              <th className="p-4">Submission date</th>
+              <th className="p-4">Text snippet preview</th>
+              <th className="p-4">Mistakes identified</th>
+              <th className="p-4">Accuracy score</th>
+              <th className="p-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <TableBodySkeleton rows={6} columns={5} />
+        </table>
+      </div>
+    </Card>
   );
 }
 
@@ -421,6 +429,12 @@ function summarize(entries) {
     total: entries.length,
     avgAccuracy: Math.round(sum / entries.length),
   };
+}
+
+function fmtTableDate(iso) {
+  if (!iso) return "—";
+  // YYYY-MM-DD HH:MM, matching the reference's dateStr shape
+  return iso.replace("T", " ").slice(0, 16);
 }
 
 function fmtRelative(date) {
