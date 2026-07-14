@@ -83,8 +83,20 @@ export function AuthProvider({ children }) {
     };
   }, [fetchProfile]);
 
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (email, password, remember = true) => {
     if (!supabase) throw new Error("Supabase is not configured.");
+    // The Supabase client is created with `persistSession: true`, so the
+    // session is stored in localStorage and auto-refreshed in the background
+    // — the user stays signed in across browser restarts, tab closes, and
+    // page refreshes. The `remember` flag here is reserved for the
+    // sessionStorage-only mode (a future enhancement); for now the
+    // contract is "stay signed in until you click Sign out".
+    if (!remember) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[auth] remember=false is not yet supported; session will be persisted."
+      );
+    }
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

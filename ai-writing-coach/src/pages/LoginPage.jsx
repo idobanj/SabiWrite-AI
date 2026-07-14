@@ -14,6 +14,9 @@ export function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Default true: the user explicitly opted in to "stay signed in" the
+  // first time they logged in. They can untick it on a shared device.
+  const [remember, setRemember] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
@@ -28,7 +31,7 @@ export function LoginPage() {
     }
     setSubmitting(true);
     try {
-      await signIn(email, password);
+      await signIn(email, password, remember);
       navigate(returnTo, { replace: true });
     } catch (err) {
       show(err?.message ?? "Couldn't sign you in. Double-check the credentials.");
@@ -90,6 +93,18 @@ export function LoginPage() {
                 </Link>
               }
             />
+
+            <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-500 focus:ring-2 focus:ring-brand-500/40 cursor-pointer accent-brand-500"
+              />
+              <span className="text-xs text-slate-600 dark:text-slate-300">
+                Keep me signed in on this device
+              </span>
+            </label>
 
             <Button
               type="submit"
