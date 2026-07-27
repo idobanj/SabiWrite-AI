@@ -82,6 +82,25 @@ async function rest<T>(
   return (await res.json()) as T;
 }
 
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
+function ordinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
 /**
  * Resolve the authenticated user from the request's Authorization header.
  * Supabase verifies the JWT and returns the user object.
@@ -271,6 +290,45 @@ Deno.serve(async (req: Request) => {
 
     const newCount = results.filter((r) => !r.is_repeat).length;
     const repeatCount = results.filter((r) => r.is_repeat).length;
+
+    // Phase 7: fire a "repeat milestone" notification when a mistake
+    // crosses one of the recurring thresholds (3, 5, 10). Best-effort:
+    // a failed notification write must NEVER fail the function — the
+    // user's draft is already saved and the response is already correct.
+    const MILESTONES = new Set([3, 5, 10]);
+    const milestoneHits = results.filter(
+      (r) => r.is_repeat && MILESTONES.has(r.frequency_count)
+    );
+    for (const hit of milestoneHits) {
+      try {
+        const wrongText = mistakes.find(
+          (m) => m.type === hit.mistake_type && m.wrong_text === hit.wrong_text
+        );
+        await rest<unknown>("/notifications", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            user_id: user.id,
+            kind: "repeat_milestone",
+            title: `Recurring slip: "${truncate(hit.wrong_text, 40)}"`,
+            body: `This is the ${ordinal(hit.frequency_count)} time you've made this mistake. Try the focused practice to drill it.`,
+            link: "/app/focus",
+            metadata: {
+              count: hit.frequency_count,
+              mistake_type: hit.mistake_type,
+              wrong_text: hit.wrong_text,
+              correct_text: wrongText?.correct_text ?? null,
+            },
+          }),
+        });
+      } catch (notifErr) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[log-mistake] repeat_milestone notification failed:",
+          notifErr
+        );
+      }
+    }
 
     return new Response(
       JSON.stringify({

@@ -3,6 +3,7 @@
 import { useLocation } from 'react-router-dom';
 import { Menu, Moon, Sun } from 'lucide-react';
 import { Button } from './Button';
+import { NotificationBell } from './NotificationBell';
 import { useTheme } from '../hooks/useTheme';
 
 const titleMap = {
@@ -61,6 +62,7 @@ export function TopHeader ({ onOpenMenu })
       </div>
 
       <div className='flex items-center gap-2'>
+        <NotificationBell />
         <Button
           variant='secondary'
           size='sm'

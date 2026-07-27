@@ -16,6 +16,7 @@ import { IconBadge } from "../components/IconBadge";
 import { Skeleton, TableBodySkeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
 import { getHistoryPage, getHistoryTopics } from "../lib/history";
+import { fmtRelative } from "../lib/format";
 
 const PAGE_SIZE = 25;
 
@@ -435,17 +436,4 @@ function fmtTableDate(iso) {
   if (!iso) return "—";
   // YYYY-MM-DD HH:MM, matching the reference's dateStr shape
   return iso.replace("T", " ").slice(0, 16);
-}
-
-function fmtRelative(date) {
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "now";
-  if (diffMin < 60) return `${diffMin}m`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d`;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

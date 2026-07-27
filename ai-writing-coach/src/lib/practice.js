@@ -102,6 +102,30 @@ export async function saveQuizSession(quiz, answers, result) {
     console.warn("[practice] saveQuizSession failed:", error);
     return null;
   }
+
+  // Phase 7: write a quiz_followup notification when the user beats
+  // (or matches) their previous attempt. We only fire on improvement OR
+  // a perfect score after a non-perfect attempt — silent on regressions
+  // to keep the bell signal-to-noise high. Best-effort: a failed insert
+  // is logged and swallowed; the quiz result itself is already saved.
+  if (data?.created_at) {
+    try {
+      const previous = await getQuizSessionBefore(quiz.topic, data.created_at);
+      if (previous && result.score > previous.score) {
+        await insertQuizFollowup({
+          topic: quiz.topic,
+          topic_label: quiz.topic_label,
+          score: result.score,
+          total: result.total,
+          previous_score: previous.score,
+        });
+      }
+    } catch (notifErr) {
+      // eslint-disable-next-line no-console
+      console.warn("[practice] quiz_followup failed:", notifErr);
+    }
+  }
+
   return data;
 }
 
@@ -131,4 +155,92 @@ export async function getLastQuizSession(topic) {
     return null;
   }
   return data ?? null;
+}
+
+/**
+ * Load the user's *previous* attempt for a topic, given the timestamp of
+ * the attempt that came after it. Used by saveQuizSession to decide
+ * whether to write a quiz_followup notification ("you beat your last
+ * attempt"). Returns null if there's no prior attempt.
+ *
+ * @param {string} topic
+ * @param {string} beforeCreatedAt  ISO timestamp; we want the most recent row strictly older than this
+ * @returns {Promise<{ score: number, total: number, created_at: string } | null>}
+ */
+export async function getQuizSessionBefore(topic, beforeCreatedAt) {
+  if (!supabase || !beforeCreatedAt) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return null;
+
+  const { data, error } = await supabase
+    .from("quiz_sessions")
+    .select("score,total,created_at")
+    .eq("user_id", user.id)
+    .eq("topic", topic)
+    .lt("created_at", beforeCreatedAt)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn("[practice] getQuizSessionBefore failed:", error);
+    return null;
+  }
+  return data ?? null;
+}
+
+/**
+ * Insert a quiz_followup notification for the current user. Called by
+ * saveQuizSession after a successful insert when the user improved on
+ * their previous attempt. RLS gates the insert to the signed-in user.
+ *
+ * Best-effort: failures here are non-fatal (logged and swallowed).
+ *
+ * @param {object} args
+ * @param {string} args.topic
+ * @param {string} args.topic_label
+ * @param {number} args.score
+ * @param {number} args.total
+ * @param {number} args.previous_score
+ * @returns {Promise<void>}
+ */
+async function insertQuizFollowup({
+  topic,
+  topic_label,
+  score,
+  total,
+  previous_score,
+}) {
+  if (!supabase) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return;
+
+  const delta = score - previous_score;
+  const verb = score === total ? "nailed" : "improved on";
+  const body =
+    delta > 0
+      ? `You ${verb} the ${topic_label} quiz (${score}/${total}) — ${delta} ${delta === 1 ? "answer" : "answers"} better than last time.`
+      : `You matched your previous ${topic_label} attempt (${score}/${total}). One more run to beat it.`;
+
+  const { error } = await supabase.from("notifications").insert({
+    user_id: user.id,
+    kind: "quiz_followup",
+    title:
+      score === total
+        ? `Perfect ${topic_label} quiz: ${score}/${total}`
+        : `Up by ${delta} on ${topic_label}`,
+    body,
+    link: "/app/focus",
+    metadata: {
+      topic,
+      topic_label,
+      score,
+      total,
+      previous_score,
+    },
+  });
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn("[practice] insertQuizFollowup failed:", error);
+  }
 }

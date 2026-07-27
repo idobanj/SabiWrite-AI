@@ -131,17 +131,13 @@ export function WritingDesk() {
 
       // Phase 3: persist mistakes to memory and tag the result with
       // frequency / is_repeat so we can render "seen before" pills.
+      // Phase 7: the bell surfaces repeat counts now — we don't toast them
+      // here. log-mistake still writes the underlying rows + writes a
+      // repeat_milestone notification when frequency_count crosses 3/5/10.
       if (result.mistakes && result.mistakes.length > 0) {
         try {
-          const { tagged, summary } = await logMistakes(result.mistakes);
+          const { tagged } = await logMistakes(result.mistakes);
           setAnalysis({ ...result, mistakes: tagged });
-          if (summary.repeat_count > 0) {
-            show(
-              summary.new_count > 0
-                ? `Saved ${summary.new_count} new mistake${summary.new_count === 1 ? "" : "s"}, ${summary.repeat_count} you've made before.`
-                : `All ${summary.repeat_count} mistake${summary.repeat_count === 1 ? " is" : "s are"} repeats. We're watching the pattern.`
-            );
-          }
         } catch (memErr) {
           // eslint-disable-next-line no-console
           console.warn("[writing-desk] log-mistake failed:", memErr);

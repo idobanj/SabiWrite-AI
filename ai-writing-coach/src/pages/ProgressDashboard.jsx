@@ -17,6 +17,7 @@ import { Card } from "../components/Card";
 import { IconBadge } from "../components/IconBadge";
 import { MetricCardSkeleton } from "../components/Skeleton";
 import { getUserStats } from "../lib/stats";
+import { fmtRelative } from "../lib/format";
 
 const TIMEFRAMES = [
   { value: "7d", label: "This Week" },
@@ -441,17 +442,4 @@ function RecentSkeleton() {
       ))}
     </div>
   );
-}
-
-function fmtRelative(date) {
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "now";
-  if (diffMin < 60) return `${diffMin}m`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d`;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
