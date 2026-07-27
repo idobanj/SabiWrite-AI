@@ -73,6 +73,12 @@ export async function analyzeText(text) {
  * Persist one analysis to the analysis_logs table. Phase 2 only writes
  * here; Phase 3 will fold in mistake deduplication.
  *
+ * Tries the full row first (with `mistakes` jsonb so Review Session can
+ * re-render the past analysis without re-calling Gemini). If the column
+ * isn't in the live schema yet (migration 0005 not applied), falls back
+ * to a legacy insert that omits it. Logs a warning when the fallback
+ * fires so the user knows the migration still needs to be applied.
+ *
  * @param {string} userId
  * @param {string} originalText
  * @param {AnalysisResponse} analysis
@@ -80,24 +86,47 @@ export async function analyzeText(text) {
  */
 export async function logAnalysis(userId, originalText, analysis) {
   if (!supabase) throw new Error("Supabase is not configured.");
-  const row = {
+
+  const baseRow = {
     user_id: userId,
     original_text: originalText,
     corrected_text: analysis.corrected_sentence ?? "",
     mistake_count: analysis.mistakes?.length ?? 0,
     accuracy_score: analysis.accuracyScore ?? 0,
     focus_area: analysis.focusArea ?? null,
-    // Persist the per-mistake array so the History page's "Review Session"
-    // button can fully re-render the past analysis without re-calling Gemini.
-    mistakes: analysis.mistakes ?? [],
   };
-  const { data, error } = await supabase
+
+  // Try the full insert first — we want the mistakes jsonb so Review
+  // Session can re-render the past analysis.
+  const fullRow = { ...baseRow, mistakes: analysis.mistakes ?? [] };
+  const first = await supabase
     .from("analysis_logs")
-    .insert(row)
+    .insert(fullRow)
     .select()
     .single();
-  if (error) throw error;
-  return /** @type {HistoryLog} */ (data);
+
+  // Fall back to the legacy shape if the mistakes column doesn't exist
+  // in the live schema yet (migration 0005 not applied).
+  if (
+    first.error &&
+    (first.error.code === "PGRST204" ||
+      /column .*mistakes.* of .*analysis_logs/i.test(first.error.message ?? ""))
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[analysis] analysis_logs.mistakes column missing — saving without per-mistake data. Apply migration 0005_analysis_logs_mistakes.sql in Supabase SQL Editor."
+    );
+    const second = await supabase
+      .from("analysis_logs")
+      .insert(baseRow)
+      .select()
+      .single();
+    if (second.error) throw second.error;
+    return /** @type {HistoryLog} */ (second.data);
+  }
+
+  if (first.error) throw first.error;
+  return /** @type {HistoryLog} */ (first.data);
 }
 
 export {};

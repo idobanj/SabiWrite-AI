@@ -17,7 +17,6 @@ import { Card } from "../components/Card";
 import { IconBadge } from "../components/IconBadge";
 import { MetricCardSkeleton } from "../components/Skeleton";
 import { getUserStats } from "../lib/stats";
-import { fmtRelative } from "../lib/format";
 
 const TIMEFRAMES = [
   { value: "7d", label: "This Week" },
@@ -260,31 +259,6 @@ export function ProgressDashboard() {
           </Link>
         </Card>
       </div>
-
-      <Card className="p-4 sm:p-5 lg:p-6 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
-              Recent drafts
-            </h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              Your last 5 submissions.
-            </p>
-          </div>
-          <PenTool className="w-5 h-5 text-slate-300 dark:text-slate-600 flex-shrink-0" />
-        </div>
-        {loading ? (
-          <RecentSkeleton />
-        ) : (stats?.recent_activity ?? []).length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="space-y-2">
-            {stats.recent_activity.map((row) => (
-              <RecentRow key={row.id} row={row} />
-            ))}
-          </div>
-        )}
-      </Card>
     </div>
   );
 }
@@ -383,63 +357,9 @@ function getTrend(points = []) {
 }
 
 function RecentRow({ row }) {
-  const date = new Date(row.created_at);
-  return (
-    <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-      <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-500 dark:bg-brand-500/10 flex items-center justify-center flex-shrink-0">
-        <PenTool className="w-4 h-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2 break-words">
-          {row.snippet}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-              row.accuracy_score >= 80
-                ? "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
-                : row.accuracy_score >= 50
-                ? "bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
-                : "bg-red-50 text-red-600 border border-red-100 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20"
-            }`}
-          >
-            {row.accuracy_score}%
-          </span>
-          {row.mistake_count > 0 ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
-              {row.mistake_count} {row.mistake_count === 1 ? "mistake" : "mistakes"}
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20">
-              Clean
-            </span>
-          )}
-          {row.focus_area ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-brand-50 text-brand-500 border border-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/20">
-              {row.focus_area}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex-shrink-0 text-right">
-        {fmtRelative(date)}
-      </div>
-    </div>
-  );
+  return null;
 }
 
 function RecentSkeleton() {
-  return (
-    <div className="space-y-2">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex gap-3 p-3 animate-pulse">
-          <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-3/4 bg-slate-100 dark:bg-slate-800 rounded" />
-            <div className="h-2 w-1/2 bg-slate-100 dark:bg-slate-800 rounded" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return null;
 }
