@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Repeat,
   History,
+  Trophy,
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
@@ -20,6 +21,7 @@ import { Skeleton } from "../components/Skeleton";
 import { analyzeText, logAnalysis } from "../lib/analysis";
 import { logMistakes } from "../lib/mistakes";
 import { getHistoryEntry } from "../lib/history";
+import { bumpMastery } from "../lib/mastery";
 
 /**
  * Phase 2 Writing Desk. The user types or pastes text, hits "Check it",
@@ -510,10 +512,64 @@ const MISTAKE_TYPE_LABELS = {
 };
 
 function MistakeCard({ index, mistake }) {
+  const { show } = useToast();
   const isRepeat = !!mistake.is_repeat;
   const count = mistake.frequency_count ?? 1;
+
+  // Phase 8: per-card mastered state. Once the user clicks "Mark as
+  // mastered" and the API call succeeds, we set this locally so the
+  // card visually retires without waiting for the next dashboard
+  // re-fetch. The bell notification (mastery_milestone) will still
+  // appear the next time they open it.
+  const [resolved, setResolved] = useState(!!mistake.resolved);
+  const [bumping, setBumping] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleMarkMastered = async () => {
+    if (!mistake.id) {
+      show(
+        "Couldn't link this mistake to your memory. Try a fresh draft and try again."
+      );
+      setShowConfirm(false);
+      return;
+    }
+    setBumping(true);
+    try {
+      const result = await bumpMastery(mistake.id, "manual");
+      setResolved(result.resolved);
+      setShowConfirm(false);
+      if (result.resolved) {
+        show(
+          `You mastered "${truncate(mistake.wrong_text, 30)}" — five levels cleared.`,
+          {
+            tone: "success",
+            icon: <Trophy className="w-4 h-4" />,
+            duration: 4000,
+          }
+        );
+      } else {
+        show(
+          `Mastery bumped to ${result.new_level}/5. Keep at it.`,
+          { tone: "brand", icon: <Sparkles className="w-4 h-4" /> }
+        );
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[writing-desk] mark-mastered failed:", err);
+      show(err?.message ?? "Couldn't update mastery. Try again.");
+    } finally {
+      setBumping(false);
+    }
+  };
+
   return (
-    <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 space-y-2.5">
+    <div
+      className={`p-3.5 sm:p-4 rounded-2xl border space-y-2.5 transition-colors ${
+        resolved
+          ? "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
+          : "border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50"
+      }`}
+    >
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           #{index + 1}
@@ -521,7 +577,7 @@ function MistakeCard({ index, mistake }) {
         <Pill color="amber">
           {MISTAKE_TYPE_LABELS[mistake.type] ?? mistake.type}
         </Pill>
-        {isRepeat ? (
+        {isRepeat && !resolved ? (
           <Pill color="indigo">
             <span className="inline-flex items-center gap-1">
               <Repeat className="w-3 h-3" />
@@ -529,15 +585,33 @@ function MistakeCard({ index, mistake }) {
             </span>
           </Pill>
         ) : null}
+        {resolved ? (
+          <Pill color="emerald">
+            <span className="inline-flex items-center gap-1">
+              <Trophy className="w-3 h-3" />
+              mastered
+            </span>
+          </Pill>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
-        <span className="inline-flex items-center gap-1.5 line-through text-red-500 decoration-wavy break-words max-w-full">
+        <span
+          className={`inline-flex items-center gap-1.5 line-through decoration-wavy break-words max-w-full ${
+            resolved ? "text-slate-400 dark:text-slate-500" : "text-red-500"
+          }`}
+        >
           <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
           <span>{mistake.wrong_text}</span>
         </span>
         <ArrowRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-        <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold break-words max-w-full">
+        <span
+          className={`inline-flex items-center gap-1.5 font-semibold break-words max-w-full ${
+            resolved
+              ? "text-emerald-700 dark:text-emerald-300"
+              : "text-emerald-600 dark:text-emerald-400"
+          }`}
+        >
           <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
           <span>{mistake.correct_text}</span>
         </span>
@@ -558,6 +632,52 @@ function MistakeCard({ index, mistake }) {
           </p>
         </div>
       ) : null}
+
+      {/* Phase 8: mark as mastered. Hidden once the row is resolved
+          so the card visually retires into the success state. */}
+      {!resolved ? (
+        <div className="pt-1">
+          {showConfirm ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5">
+              <p className="text-xs text-slate-600 dark:text-slate-300 flex-1 min-w-[10rem]">
+                Mark <span className="font-semibold">"{truncate(mistake.wrong_text, 40)}"</span> as mastered? Your mastery will go up by 1.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowConfirm(false)}
+                disabled={bumping}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleMarkMastered}
+                disabled={bumping}
+                leftIcon={<Trophy className="w-3.5 h-3.5" />}
+              >
+                {bumping ? "Marking…" : "Yes, mark mastered"}
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowConfirm(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              I know this now — mark as mastered
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function truncate(s, n) {
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }

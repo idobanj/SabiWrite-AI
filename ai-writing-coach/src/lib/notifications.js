@@ -7,7 +7,7 @@
 import { supabase } from "./supabase";
 
 /**
- * @typedef {"repeat_milestone" | "streak_at_risk" | "quiz_followup"} NotificationKind
+ * @typedef {"repeat_milestone" | "streak_at_risk" | "quiz_followup" | "mastery_milestone"} NotificationKind
  *
  * @typedef {Object} Notification
  * @property {string} id

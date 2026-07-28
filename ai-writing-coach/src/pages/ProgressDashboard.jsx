@@ -184,9 +184,13 @@ export function ProgressDashboard() {
               tone="emerald"
             />
             <MetricCard
-              label="Current Streak"
-              value={stats?.streak_days ?? 0}
-              sublabel={stats?.streak_days === 1 ? "day" : "days"}
+              label="Mastery"
+              value={`${stats?.mastery_score ?? 0}%`}
+              sublabel={
+                (stats?.streak_days ?? 0) > 0
+                  ? `${stats.streak_days}-day streak`
+                  : "no streak yet"
+              }
               icon={<Flame className="w-6 h-6" />}
               tone="amber"
             />

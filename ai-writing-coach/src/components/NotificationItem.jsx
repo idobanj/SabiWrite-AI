@@ -1,4 +1,4 @@
-import { Flame, Repeat, Trophy } from "lucide-react";
+import { Flame, Repeat, Sparkles, Trophy } from "lucide-react";
 import { IconBadge } from "./IconBadge";
 import { fmtRelative } from "../lib/format";
 
@@ -22,6 +22,11 @@ const KIND_VISUALS = {
     icon: Trophy,
     tone: "emerald",
     label: "Practice",
+  },
+  mastery_milestone: {
+    icon: Sparkles,
+    tone: "brand",
+    label: "Mastered",
   },
 };
 

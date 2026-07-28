@@ -4,6 +4,7 @@
  * dashboard / practice page can show a "last attempt" score.
  */
 import { supabase } from "./supabase";
+import { bumpMastery } from "./mastery";
 
 /**
  * @typedef {Object} QuizQuestion
@@ -126,7 +127,60 @@ export async function saveQuizSession(quiz, answers, result) {
     }
   }
 
+  // Phase 8: mastery promotion. Bump mastery_level by +1 on every
+  // active mistake the user has in this topic's mistake_type. The SQL
+  // function caps at 5 and flips resolved at the boundary, so retry
+  // spam can't farm levels.
+  //
+  // Gate on a passing attempt (>= 4/5) so a poor score doesn't promote.
+  // We bump for every active mistake in the topic — even ones the user
+  // didn't see on this quiz — because the quiz is general practice on
+  // the whole topic, not a per-question lesson.
+  if (result.total > 0 && result.score / result.total >= 0.8) {
+    try {
+      const mistakes = await fetchActiveMistakesForTopic(quiz.topic);
+      for (const m of mistakes) {
+        try {
+          await bumpMastery(m.id, "quiz");
+        } catch (bumpErr) {
+          // eslint-disable-next-line no-console
+          console.warn("[practice] bump-mastery failed:", bumpErr);
+        }
+      }
+    } catch (fetchErr) {
+      // eslint-disable-next-line no-console
+      console.warn("[practice] fetchActiveMistakesForTopic failed:", fetchErr);
+    }
+  }
+
   return data;
+}
+
+/**
+ * Fetch the user's active (not-yet-resolved) mistakes for a topic.
+ * Used by saveQuizSession to know which rows to promote after a
+ * passing attempt. Returns an empty array if none.
+ *
+ * @param {string} topic
+ * @returns {Promise<{ id: string }[]>}
+ */
+async function fetchActiveMistakesForTopic(topic) {
+  if (!supabase) return [];
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return [];
+
+  const { data, error } = await supabase
+    .from("mistakes")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("mistake_type", topic)
+    .eq("resolved", false);
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn("[practice] fetchActiveMistakesForTopic error:", error);
+    return [];
+  }
+  return data ?? [];
 }
 
 /**

@@ -1,0 +1,12 @@
+-- ============================================================================
+-- 0009_mastery_grants.sql — grants for the mastery RPC functions (Phase 8)
+-- ============================================================================
+-- bump_mastery and check_drought are defined in 0008_mastery_engine.sql
+-- and already granted there to authenticated + service_role. This file
+-- is intentionally a no-op kept for naming consistency with the prior
+-- phase migrations (0007_notification_grants, etc.). If you ever split
+-- the function definitions off into a separate file, move the grants
+-- here.
+-- ============================================================================
+
+-- intentionally empty

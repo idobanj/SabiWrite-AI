@@ -159,6 +159,57 @@ async function insertStreakAtRisk(userId: string, streakDays: number): Promise<v
   }
 }
 
+interface DroughtRow {
+  mistake_id: string;
+  mistake_type: string;
+  wrong_text: string;
+  correct_text: string;
+  new_level: number;
+}
+
+/**
+ * Phase 8: bump a row that just got promoted via the drought check.
+ * Wraps bump-mastery in try/catch so one failed promotion doesn't kill
+ * the whole drought scan.
+ */
+async function maybeNotifyMastery(
+  userId: string,
+  row: DroughtRow
+): Promise<void> {
+  try {
+    // Re-use the same path the manual + quiz paths take. We deliberately
+    // do NOT call bump-mastery again — check_drought already incremented
+    // mastery_level server-side. We only need the notification payload.
+    if (row.new_level >= 5) {
+      const body = {
+        user_id: userId,
+        kind: "mastery_milestone",
+        title: `You mastered "${truncate(row.wrong_text, 30)}"`,
+        body: `Five levels cleared. "${truncate(row.wrong_text, 60)}" is no longer in your active mistake feed.`,
+        link: "/app/analytics",
+        metadata: {
+          wrong_text: row.wrong_text,
+          correct_text: row.correct_text,
+          mistake_type: row.mistake_type,
+          source: "drought",
+        },
+      };
+      await rest<unknown>("/notifications", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify(body),
+      });
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[get-notifications] mastery notification failed:", err);
+  }
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -196,6 +247,25 @@ Deno.serve(async (req: Request) => {
     } catch (streakErr) {
       // eslint-disable-next-line no-console
       console.warn("[get-notifications] streak check failed:", streakErr);
+    }
+
+    // Phase 8: drought scan. Run as a best-effort follow-up — any
+    // promoted rows get a notification (resolved ones) and the metric
+    // card on the dashboard reflects the bumped mastery_level.
+    try {
+      const promoted = await rest<DroughtRow[]>(
+        `/rpc/check_drought`,
+        {
+          method: "POST",
+          body: JSON.stringify({ p_user_id: userId }),
+        }
+      );
+      for (const row of promoted ?? []) {
+        await maybeNotifyMastery(userId, row);
+      }
+    } catch (droughtErr) {
+      // eslint-disable-next-line no-console
+      console.warn("[get-notifications] drought check failed:", droughtErr);
     }
 
     return new Response(

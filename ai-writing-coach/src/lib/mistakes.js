@@ -95,6 +95,9 @@ export async function logMistakes(mistakes) {
     if (hit) {
       m.is_repeat = hit.is_repeat;
       m.frequency_count = hit.frequency_count;
+      // Attach the mistake row's UUID so Phase 8's "Mark as mastered"
+      // button can target it without a separate fetch.
+      if (hit.id) m.id = hit.id;
     }
   }
 
