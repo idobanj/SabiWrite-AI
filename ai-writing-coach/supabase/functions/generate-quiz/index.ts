@@ -25,8 +25,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_MODELS = [
+  { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
+  { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
+];
 
 // Topics we know how to teach. Anything else gets a generic lesson.
 const TYPE_TO_TOPIC: Record<string, { label: string; guidance: string }> = {
@@ -128,36 +130,38 @@ async function getAuthedUser(req: Request) {
 
 async function callGemini(apiKey: string, prompt: string): Promise<string> {
   let lastErr: string | null = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch(GEMINI_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.4,
-          responseMimeType: "application/json",
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch(model.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-      }),
-    });
-    if (res.ok) {
-      const body = (await res.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
-      };
-      const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Gemini returned an empty response");
-      return text;
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0,
+          },
+        }),
+      });
+      if (res.ok) {
+        const body = (await res.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+        };
+        const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("Gemini returned an empty response");
+        return text;
+      }
+      const errText = await res.text();
+      lastErr = `${model.name} (${res.status}): ${errText.slice(0, 200)}`;
+      if ((res.status === 503 || res.status === 429) && attempt === 0) {
+        await sleep(700);
+        continue;
+      }
+      // Hard error (400, 401, 404…) — skip to next model
+      break;
     }
-    const errText = await res.text();
-    lastErr = `(${res.status}): ${errText.slice(0, 200)}`;
-    if ((res.status === 503 || res.status === 429) && attempt === 0) {
-      await sleep(700);
-      continue;
-    }
-    throw new Error(`Gemini API error ${lastErr}`);
   }
   throw new Error(`Gemini unavailable: ${lastErr}`);
 }
@@ -293,7 +297,9 @@ Deno.serve(async (req: Request) => {
 
     let parsed: any;
     try {
-      parsed = JSON.parse(rawText);
+      // Strip markdown fences in case the model wraps output in ```json ... ```
+      const cleaned = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      parsed = JSON.parse(cleaned);
     } catch {
       return new Response(
         JSON.stringify({

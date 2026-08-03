@@ -16,11 +16,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Two models in priority order. If the primary is overloaded (503), the
-// Edge Function falls back to the lite variant before giving up.
+// Two models in priority order. If the primary is overloaded (503/429) or
+// unavailable (404), callGemini skips it and tries the next one.
+//
+// Primary: `gemini-flash-latest` — an alias that always resolves to the
+// current stable Gemini Flash model. Auto-tracks Google's releases so the
+// next time they retire a versioned model name we won't break.
+//
+// Fallback: `gemini-2.5-flash` — pinned June 2025 stable. If the alias
+// ever points at a model the key doesn't have access to, this is the
+// explicit version that the user confirmed is in their available-models
+// list (response of GET /v1beta/models, 2026-07-28).
 const GEMINI_MODELS = [
+  { name: "gemini-flash-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" },
   { name: "gemini-2.5-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" },
-  { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
 ];
 
 function sleep(ms: number) {
@@ -50,12 +59,18 @@ async function callGemini(apiKey: string, body: GeminiRequest) {
 
       // 503 = overloaded. Retry the same model once, then move on.
       // 429 = rate-limited. Same treatment.
+      // 404 = model not available to this account (common on the free
+      // tier when Google retires a model). Skip immediately to the next.
       if (res.status === 503 || res.status === 429) {
         if (attempt === 0) {
           await sleep(700);
           continue;
         }
         // exhausted this model, try the next one
+        break;
+      }
+      if (res.status === 404) {
+        // Model is not available to this account. Don't retry it — move on.
         break;
       }
 
@@ -106,7 +121,7 @@ ${text}
 
 interface GeminiRequest {
   contents: { parts: { text: string }[] }[];
-  generationConfig: { temperature: number; responseMimeType: string };
+  generationConfig: { temperature: number };
 }
 
 interface GeminiResponse {
@@ -247,8 +262,7 @@ Deno.serve(async (req: Request) => {
     const geminiReq: GeminiRequest = {
       contents: [{ parts: [{ text: buildPrompt(text) }] }],
       generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
+        temperature: 0,
       },
     };
 
@@ -277,7 +291,9 @@ Deno.serve(async (req: Request) => {
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(rawText);
+      // Strip markdown fences in case the model wraps output in ```json ... ```
+      const cleaned = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      parsed = JSON.parse(cleaned);
     } catch {
       return new Response(
         JSON.stringify({
