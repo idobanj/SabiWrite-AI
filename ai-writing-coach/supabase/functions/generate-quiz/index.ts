@@ -1,6 +1,7 @@
 // ============================================================================
 // generate-quiz — Phase 5
 // ============================================================================
+// Updated: Fixed JWT handling and added better error diagnostics
 // Generates a short multiple-choice quiz for a given mistake topic, anchored
 // in the user's own recurring mistakes so the questions feel personal.
 //
@@ -269,12 +270,41 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Check required environment variables
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
       return new Response(
         JSON.stringify({
           error:
             "GEMINI_API_KEY is not configured on the server. Set it in your Edge Function secrets.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    if (!supabaseUrl) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "SUPABASE_URL is not configured on the server. Set it in your Edge Function secrets.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!serviceRoleKey) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "SUPABASE_SERVICE_ROLE_KEY is not configured on the server. Set it in your Edge Function secrets.",
         }),
         {
           status: 500,
@@ -361,7 +391,14 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
+    // Return more detailed error information for debugging
+    // In production, you might want to hide specific details
+    return new Response(JSON.stringify({ 
+      error: "Internal server error", 
+      detail: err instanceof Error ? err.message : String(err),
+      // Uncomment the next line for more detailed debugging (remove in production)
+      // type: err.constructor.name
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
