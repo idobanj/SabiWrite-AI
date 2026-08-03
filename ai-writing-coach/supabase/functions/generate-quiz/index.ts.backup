@@ -116,43 +116,16 @@ async function rest<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 async function getAuthedUser(req: Request) {
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader) throw new Error("Missing Authorization header");
-  
-  // Extract the token from "Bearer <token>"
-  const token = authHeader.startsWith("Bearer ") 
-    ? authHeader.substring(7) 
-    : authHeader;
-  
-  if (!token) throw new Error("Invalid Authorization header format");
-  
-  // Decode JWT to get user ID (no need to verify signature as Supabase already did)
-  try {
-    const payloadBase64 = token.split('.')[1];
-    if (!payloadBase64) throw new Error("Invalid token format");
-    
-    // Add padding if needed for base64 decoding
-    const padded = payloadBase64.padEnd(
-      Math.ceil(payloadBase64.length / 4) * 4, 
-      '='
-    );
-    
-    // Convert base64url to base64
-    const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
-    
-    // Decode and parse
-    const decoded = atob(base64);
-    const payload = JSON.parse(decoded);
-    
-    const userId = payload.sub;
-    if (!userId || typeof userId !== 'string') {
-      throw new Error("Invalid token: missing or invalid 'sub' claim");
-    }
-    
-    return { id: userId };
-  } catch (e) {
-    throw new Error(`Failed to parse token: ${e instanceof Error ? e.message : String(e)}`);
+  const auth = req.headers.get("Authorization") ?? "";
+  if (!auth) throw new Error("Missing Authorization header");
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { Authorization: auth, apikey: SERVICE_ROLE_KEY },
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Auth lookup failed (${res.status}): ${t.slice(0, 200)}`);
   }
+  return (await res.json()) as { id: string; email?: string };
 }
 
 async function callGemini(apiKey: string, prompt: string): Promise<string> {
