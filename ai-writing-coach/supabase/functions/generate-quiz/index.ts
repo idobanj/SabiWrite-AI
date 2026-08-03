@@ -16,8 +16,8 @@
 // never trust a user_id from the body.
 // ============================================================================
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +28,11 @@ const corsHeaders = {
 
 const GEMINI_MODELS = [
   { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
+  // Fallback chain. The bare name `gemini-2.5-pro` is rejected by the API
+  // (per the official 2026-08-01 model list), so we use the -latest alias
+  // which always resolves to the current stable Pro model. The 2.0-flash
+  // fallback is for accounts on the free tier where Pro access is gated.
+  { name: "gemini-2.5-pro-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-latest:generateContent" },
   { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
 ];
 
@@ -119,41 +124,27 @@ async function rest<T>(path: string, init: RequestInit): Promise<T> {
 async function getAuthedUser(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) throw new Error("Missing Authorization header");
-  
-  // Extract the token from "Bearer <token>"
-  const token = authHeader.startsWith("Bearer ") 
-    ? authHeader.substring(7) 
-    : authHeader;
-  
-  if (!token) throw new Error("Invalid Authorization header format");
-  
-  // Decode JWT to get user ID (no need to verify signature as Supabase already did)
-  try {
-    const payloadBase64 = token.split('.')[1];
-    if (!payloadBase64) throw new Error("Invalid token format");
-    
-    // Add padding if needed for base64 decoding
-    const padded = payloadBase64.padEnd(
-      Math.ceil(payloadBase64.length / 4) * 4, 
-      '='
-    );
-    
-    // Convert base64url to base64
-    const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
-    
-    // Decode and parse
-    const decoded = atob(base64);
-    const payload = JSON.parse(decoded);
-    
-    const userId = payload.sub;
-    if (!userId || typeof userId !== 'string') {
-      throw new Error("Invalid token: missing or invalid 'sub' claim");
+
+  // Validate token by calling Supabase auth endpoint (original approach)
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { Authorization: authHeader, apikey: SERVICE_ROLE_KEY },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    // Map common auth errors to appropriate messages
+    if (res.status === 401) {
+      throw new Error("Invalid or expired token");
     }
-    
-    return { id: userId };
-  } catch (e) {
-    throw new Error(`Failed to parse token: ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(`Auth lookup failed: ${res.status} ${errorText}`);
   }
+
+  const userData = await res.json() as { id: string; email?: string };
+  if (!userData.id) {
+    throw new Error("Invalid user data received from auth service");
+  }
+
+  return { id: userData.id };
 }
 
 async function callGemini(apiKey: string, prompt: string): Promise<string> {
@@ -271,22 +262,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     // Check required environment variables
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "GEMINI_API_KEY is not configured on the server. Set it in your Edge Function secrets.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    if (!supabaseUrl) {
+    if (!SUPABASE_URL) {
       return new Response(
         JSON.stringify({
           error:
@@ -299,12 +275,25 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!serviceRoleKey) {
+    if (!SERVICE_ROLE_KEY) {
       return new Response(
         JSON.stringify({
           error:
             "SUPABASE_SERVICE_ROLE_KEY is not configured on the server. Set it in your Edge Function secrets.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "GEMINI_API_KEY is not configured on the server. Set it in your Edge Function secrets.",
         }),
         {
           status: 500,
@@ -325,7 +314,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const topic = typeof body.topic === "string" ? body.topic : "";
+    const rawTopic = typeof body.topic === "string" ? body.topic : "";
+    // Normalise: trim, lowercase, collapse whitespace → underscores. Old
+    // mistakes rows occasionally hold values like "Verb Tense" or "verb
+    // tense" that don't match the canonical snake_case keys; this catches
+    // the obvious drift before we reject the request.
+    const topic = rawTopic.trim().toLowerCase().replace(/\s+/g, "_");
     if (!topic || !TYPE_TO_TOPIC[topic]) {
       return new Response(
         JSON.stringify({
@@ -391,10 +385,13 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    // Log the error for debugging
+    console.error("Error in generate-quiz function:", err);
+
     // Return more detailed error information for debugging
     // In production, you might want to hide specific details
-    return new Response(JSON.stringify({ 
-      error: "Internal server error", 
+    return new Response(JSON.stringify({
+      error: "Internal server error",
       detail: err instanceof Error ? err.message : String(err),
       // Uncomment the next line for more detailed debugging (remove in production)
       // type: err.constructor.name

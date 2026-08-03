@@ -5,6 +5,7 @@
  */
 import { supabase } from "./supabase";
 import { bumpMastery } from "./mastery";
+import { invokeFunction } from "./supabase";
 
 /**
  * @typedef {Object} QuizQuestion
@@ -42,7 +43,7 @@ export async function generateQuiz(topic, count = 5) {
   if (!supabase) throw new Error("Supabase is not configured.");
   if (!topic) throw new Error("Topic is required.");
 
-  const { data, error } = await supabase.functions.invoke("generate-quiz", {
+  const { data, error } = await invokeFunction("generate-quiz", {
     body: { topic, count },
   });
   if (error) throw new Error(error.message ?? "Couldn't generate a quiz.");

@@ -6,6 +6,23 @@
  */
 import { supabase } from "./supabase";
 
+// Canonical mistake_type values — must stay in sync with the VALID_TYPES set
+// in supabase/functions/log-mistake/index.ts and the TYPE_TO_TOPIC keys in
+// supabase/functions/generate-quiz/index.ts. Anything outside this set is
+// junk (old data, schema drift, model hallucination) and should never reach
+// the Practice page, where an unknown topic crashes generate-quiz with 400.
+const VALID_MISTAKE_TYPES = new Set([
+  "subject_verb_agreement",
+  "tense",
+  "article",
+  "preposition",
+  "word_choice",
+  "spelling",
+  "punctuation",
+  "sentence_structure",
+  "other",
+]);
+
 /**
  * @typedef {"7d"|"30d"|"90d"|"all"} Timeframe
  *
@@ -114,6 +131,11 @@ export async function getUserStats(timeframe = "30d") {
 
   const typeTotals = new Map();
   for (const mistake of mistakes) {
+    // Defensive filter: mistake_type is free-form text in the schema, so
+    // old / migrated rows can hold non-canonical values. Skip them so they
+    // never reach the Practice page (where an unknown topic crashes the
+    // generate-quiz Edge Function with HTTP 400).
+    if (!VALID_MISTAKE_TYPES.has(mistake.mistake_type)) continue;
     const current = typeTotals.get(mistake.mistake_type) ?? {
       count: 0,
       last_seen_at: mistake.last_seen_at,
