@@ -59,8 +59,6 @@ async function callGemini(apiKey: string, body: GeminiRequest) {
 
       // 503 = overloaded. Retry the same model once, then move on.
       // 429 = rate-limited. Same treatment.
-      // 404 = model not available to this account (common on the free
-      // tier when Google retires a model). Skip immediately to the next.
       if (res.status === 503 || res.status === 429) {
         if (attempt === 0) {
           await sleep(700);
@@ -69,6 +67,9 @@ async function callGemini(apiKey: string, body: GeminiRequest) {
         // exhausted this model, try the next one
         break;
       }
+
+      // 404 = model not available to this account (common on the free
+      // tier when Google retires a model). Skip immediately to the next.
       if (res.status === 404) {
         // Model is not available to this account. Don't retry it — move on.
         break;
@@ -126,7 +127,7 @@ interface GeminiRequest {
 
 interface GeminiResponse {
   candidates?: {
-    content?: { parts?: { text?: string }[] };
+    content?: { parts?: { text: string }[] };
   }[];
   error?: { message: string };
 }
@@ -135,7 +136,7 @@ interface Mistake {
   type: string;
   wrong_text: string;
   correct_text: string;
-  explanation: string;
+  explanation?: string;
   tip?: string;
 }
 
@@ -184,7 +185,20 @@ function normaliseResponse(raw: any): AnalysisResponse | null {
   const mistakes = Array.isArray(raw.mistakes)
     ? raw.mistakes.map(normaliseMistake).filter((m): m is Mistake => m !== null)
     : [];
-  const accuracy = Number(raw.accuracyScore);
+
+  // CONSISTENT SCORE CALCULATION: Always base score on mistake count
+  // This ensures identical inputs produce identical outputs
+  // Base score: 100 points, deduct 10 points per mistake
+  const mistakeBasedScore = Math.max(0, 100 - (mistakes.length * 10));
+
+  // Try to use Gemini's score if it's a valid number in reasonable range
+  // Otherwise fall back to our consistent calculation
+  const geminiScore = Number(raw.accuracyScore);
+  const useGeminiScore = !isNaN(geminiScore) &&
+                         isFinite(geminiScore) &&
+                         geminiScore >= 0 &&
+                         geminiScore <= 100;
+
   return {
     corrected_sentence:
       typeof raw.corrected_sentence === "string"
@@ -193,9 +207,7 @@ function normaliseResponse(raw: any): AnalysisResponse | null {
     mistakes,
     explanation:
       typeof raw.explanation === "string" ? raw.explanation : "",
-    accuracyScore: Number.isFinite(accuracy)
-      ? Math.max(0, Math.min(100, Math.round(accuracy)))
-      : 100 - mistakes.length * 10,
+    accuracyScore: useGeminiScore ? Math.round(geminiScore) : mistakeBasedScore,
     focusArea:
       typeof raw.focusArea === "string" && raw.focusArea.trim()
         ? raw.focusArea
