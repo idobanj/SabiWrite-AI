@@ -176,7 +176,7 @@ export function LandingPage() {
                         <div className='lg:col-span-7 space-y-7 lg:px-0'>
                             <h1 id="hero-heading" className='text-4xl sm:text-5xl lg:text-[3.9rem] font-bold text-slate-900 dark:text-white tracking-tight leading-[1.05] text-center lg:text-left '>
                                 <div className='flex items-center gap-2 pl-3'>
-                                    <Button type='button'
+                                    {/* <Button type='button'
                                         variant='secondary'
                                         size='sm'
                                         onClick={toggle}
@@ -187,7 +187,7 @@ export function LandingPage() {
                                         ) : (
                                             <Moon className='w-4 h-4' />
                                         )}
-                                    </Button>
+                                    </Button> */}
                                 </div>
                                 Your AI-Powered{' '}
                                 <span className='text-brand-500'>
