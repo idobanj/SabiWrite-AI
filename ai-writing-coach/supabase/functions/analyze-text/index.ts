@@ -6,6 +6,8 @@
 // validates it, and returns JSON. The GEMINI_API_KEY never leaves this
 // function.
 //
+// Now uses the provider-agnostic AI Service Layer.
+//
 // Model: gemini-2.5-flash — fast and cheap, fine for sentence-level analysis.
 // ============================================================================
 
@@ -15,71 +17,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-// Two models in priority order. If the primary is overloaded (503/429) or
-// unavailable (404), callGemini skips it and tries the next one.
-//
-// Primary: `gemini-flash-latest` — an alias that always resolves to the
-// current stable Gemini Flash model. Auto-tracks Google's releases so the
-// next time they retire a versioned model name we won't break.
-//
-// Fallback: `gemini-2.0-flash` — stable Flash model still available on the
-// free tier. `gemini-2.5-flash` returns 404 for new users as of 2026.
-const GEMINI_MODELS = [
-  { name: "gemini-flash-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" },
-  { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
-];
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-async function callGemini(apiKey: string, body: GeminiRequest) {
-  let lastErr: string | null = null;
-  for (const model of GEMINI_MODELS) {
-    // Two attempts per model: one immediate, one after a 700ms backoff.
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const res = await fetch(model.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        return await res.json() as GeminiResponse;
-      }
-
-      const errText = await res.text();
-      lastErr = `${model.name} (${res.status}): ${errText.slice(0, 200)}`;
-
-      // 503 = overloaded. Retry the same model once, then move on.
-      // 429 = rate-limited. Same treatment.
-      if (res.status === 503 || res.status === 429) {
-        if (attempt === 0) {
-          await sleep(700);
-          continue;
-        }
-        // exhausted this model, try the next one
-        break;
-      }
-
-      // 404 = model not available to this account (common on the free
-      // tier when Google retires a model). Skip immediately to the next.
-      if (res.status === 404) {
-        // Model is not available to this account. Don't retry it — move on.
-        break;
-      }
-
-      // Anything else (400, 401, 403, 500…) is a hard failure — don't retry,
-      // don't fall back, surface immediately.
-      throw new Error(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`);
-    }
-  }
-  throw new Error(`Gemini unavailable: ${lastErr}`);
-}
 
 /**
  * The prompt Gemini sees. We force a JSON response that matches our
@@ -101,26 +38,14 @@ Return ONLY valid JSON (no fences, no extra text):
     "tip": "<≤12 words; omit if none>"
   }],
   "explanation": "<one-sentence coaching note>"
-}
 
 Rules: empty mistakes[] if correct (positive note). wrong_text must appear verbatim in input.
 
 Text:
 """
 ${text}
-"""`;
-}
-
-interface GeminiRequest {
-  contents: { parts: { text: string }[] }[];
-  generationConfig: { temperature: number };
-}
-
-interface GeminiResponse {
-  candidates?: {
-    content?: { parts?: { text: string }[] };
-  }[];
-  error?: { message: string };
+"""
+`;
 }
 
 interface Mistake {
@@ -230,19 +155,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "GEMINI_API_KEY is not configured on the server. Set it in your Edge Function secrets.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    // Import the AI service dynamically to avoid circular dependencies
+    const { generate } = await import("../_shared/ai");
 
     let body: { text?: unknown };
     try {
@@ -280,29 +194,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const geminiReq: GeminiRequest = {
-      contents: [{ parts: [{ text: buildPrompt(text) }] }],
-      generationConfig: {
-        temperature: 0,
-      },
+    const geminiReq: { prompt: string; temperature: number } = {
+      prompt: buildPrompt(text),
+      temperature: 0,
     };
 
-    const geminiBody = await callGemini(apiKey, geminiReq);
+    const rawText = await generate(geminiReq);
 
-    if (geminiBody.error) {
-      return new Response(
-        JSON.stringify({ error: geminiBody.error.message }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const rawText = geminiBody.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) {
       return new Response(
-        JSON.stringify({ error: "Empty response from Gemini" }),
+        JSON.stringify({ error: "Empty response from AI service" }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -318,7 +219,7 @@ Deno.serve(async (req: Request) => {
     } catch {
       return new Response(
         JSON.stringify({
-          error: "Gemini returned malformed JSON",
+          error: "AI service returned malformed JSON",
           raw: rawText.slice(0, 500),
         }),
         {
@@ -331,7 +232,7 @@ Deno.serve(async (req: Request) => {
     const analysis = normaliseResponse(parsed, text);
     if (!analysis) {
       return new Response(
-        JSON.stringify({ error: "Gemini response did not match expected shape" }),
+        JSON.stringify({ error: "AI service response did not match expected shape" }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

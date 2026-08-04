@@ -5,6 +5,8 @@
 // Generates a short multiple-choice quiz for a given mistake topic, anchored
 // in the user's own recurring mistakes so the questions feel personal.
 //
+// Now uses the provider-agnostic AI Service Layer.
+//
 // Receives: { topic: MistakeType, count?: number } from the authenticated
 //           client. We pull the user's top 5 wrong_text/correct_text pairs
 //           for the topic and feed them to Gemini as concrete examples, then
@@ -25,16 +27,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-const GEMINI_MODELS = [
-  { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
-  // Fallback chain. The bare name `gemini-2.5-pro` is rejected by the API
-  // (per the official 2026-08-01 model list), so we use the -latest alias
-  // which always resolves to the current stable Pro model. The 2.0-flash
-  // fallback is for accounts on the free tier where Pro access is gated.
-  { name: "gemini-2.5-pro-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-latest:generateContent" },
-  { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
-];
 
 // Topics we know how to teach. Anything else gets a generic lesson.
 const TYPE_TO_TOPIC: Record<string, { label: string; guidance: string }> = {
@@ -100,10 +92,6 @@ interface QuizQuestion {
   explanation: string;
 }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
 async function rest<T>(path: string, init: RequestInit): Promise<T> {
   const initHeaders = (init?.headers as Record<string, string> | undefined) ?? {};
   const headers: Record<string, string> = {
@@ -145,44 +133,6 @@ async function getAuthedUser(req: Request) {
   }
 
   return { id: userData.id };
-}
-
-async function callGemini(apiKey: string, prompt: string): Promise<string> {
-  let lastErr: string | null = null;
-  for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const res = await fetch(model.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0,
-          },
-        }),
-      });
-      if (res.ok) {
-        const body = (await res.json()) as {
-          candidates?: { content?: { parts?: { text?: string }[] } }[];
-        };
-        const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) throw new Error("Gemini returned an empty response");
-        return text;
-      }
-      const errText = await res.text();
-      lastErr = `${model.name} (${res.status}): ${errText.slice(0, 200)}`;
-      if ((res.status === 503 || res.status === 429) && attempt === 0) {
-        await sleep(700);
-        continue;
-      }
-      // Hard error (400, 401, 404…) — skip to next model
-      break;
-    }
-  }
-  throw new Error(`Gemini unavailable: ${lastErr}`);
 }
 
 function buildPrompt(
@@ -288,19 +238,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "GEMINI_API_KEY is not configured on the server. Set it in your Edge Function secrets.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    // Import the AI service dynamically to avoid circular dependencies
+    const { generate } = await import("../_shared/ai");
 
     const user = await getAuthedUser(req);
 
@@ -364,7 +303,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const prompt = buildPrompt(label, guidance, examples ?? [], count);
-    const rawText = await callGemini(apiKey, prompt);
+    const rawText = await generate({ prompt, temperature: 0 });
 
     let parsed: any;
     try {
@@ -374,7 +313,7 @@ Deno.serve(async (req: Request) => {
     } catch {
       return new Response(
         JSON.stringify({
-          error: "Gemini returned malformed JSON",
+          error: "AI service returned malformed JSON",
           raw: rawText.slice(0, 500),
         }),
         {
@@ -392,7 +331,7 @@ Deno.serve(async (req: Request) => {
 
     if (questions.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Gemini response had no valid questions" }),
+        JSON.stringify({ error: "AI service response had no valid questions" }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
