@@ -188,16 +188,9 @@ function normaliseResponse(raw: any): AnalysisResponse | null {
 
   // CONSISTENT SCORE CALCULATION: Always base score on mistake count
   // This ensures identical inputs produce identical outputs
+  // We ignore Gemini's accuracyScore to eliminate non-determinism
   // Base score: 100 points, deduct 10 points per mistake
-  const mistakeBasedScore = Math.max(0, 100 - (mistakes.length * 10));
-
-  // Try to use Gemini's score if it's a valid number in reasonable range
-  // Otherwise fall back to our consistent calculation
-  const geminiScore = Number(raw.accuracyScore);
-  const useGeminiScore = !isNaN(geminiScore) &&
-                         isFinite(geminiScore) &&
-                         geminiScore >= 0 &&
-                         geminiScore <= 100;
+  const accuracyScore = Math.max(0, 100 - (mistakes.length * 10));
 
   return {
     corrected_sentence:
@@ -207,7 +200,7 @@ function normaliseResponse(raw: any): AnalysisResponse | null {
     mistakes,
     explanation:
       typeof raw.explanation === "string" ? raw.explanation : "",
-    accuracyScore: useGeminiScore ? Math.round(geminiScore) : mistakeBasedScore,
+    accuracyScore, // Always use mistake-based score for consistency
     focusArea:
       typeof raw.focusArea === "string" && raw.focusArea.trim()
         ? raw.focusArea
