@@ -23,13 +23,11 @@ const corsHeaders = {
 // current stable Gemini Flash model. Auto-tracks Google's releases so the
 // next time they retire a versioned model name we won't break.
 //
-// Fallback: `gemini-2.5-flash` — pinned June 2025 stable. If the alias
-// ever points at a model the key doesn't have access to, this is the
-// explicit version that the user confirmed is in their available-models
-// list (response of GET /v1beta/models, 2026-07-28).
+// Fallback: `gemini-2.0-flash` — stable Flash model still available on the
+// free tier. `gemini-2.5-flash` returns 404 for new users as of 2026.
 const GEMINI_MODELS = [
   { name: "gemini-flash-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" },
-  { name: "gemini-2.5-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" },
+  { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
 ];
 
 function sleep(ms: number) {
