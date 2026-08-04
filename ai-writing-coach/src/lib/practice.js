@@ -43,11 +43,7 @@ export async function generateQuiz(topic, count = 5) {
   if (!supabase) throw new Error("Supabase is not configured.");
   if (!topic) throw new Error("Topic is required.");
 
-  // eslint-disable-next-line no-console
-  console.log("[practice] generateQuiz called with:", { topic, count, topicType: typeof topic });
-  const { data, error } = await invokeFunction("generate-quiz", {
-    body: { topic, count },
-  });
+  const { data, error } = await invokeFunction("generate-quiz", { topic, count });
   if (error) throw new Error(error.message ?? "Couldn't generate a quiz.");
   if (data && typeof data === "object" && "error" in data) {
     throw new Error(String(data.error));

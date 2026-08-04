@@ -307,6 +307,10 @@ Deno.serve(async (req: Request) => {
     let body: { topic?: string; count?: number };
     try {
       body = await req.json();
+      // Unwrap body if it comes wrapped in a { body: ... } structure
+      if (body && typeof body === "object" && "body" in body && body && typeof body.body === "object") {
+        body = body.body;
+      }
       // eslint-disable-next-line no-console
       console.log("[generate-quiz] parsed body:", JSON.stringify(body), "keys:", Object.keys(body ?? {}));
     } catch {

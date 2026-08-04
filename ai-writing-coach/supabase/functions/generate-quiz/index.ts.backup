@@ -1,6 +1,7 @@
 // ============================================================================
 // generate-quiz — Phase 5
 // ============================================================================
+// Updated: Fixed JWT handling and added better error diagnostics
 // Generates a short multiple-choice quiz for a given mistake topic, anchored
 // in the user's own recurring mistakes so the questions feel personal.
 //
@@ -15,8 +16,8 @@
 // never trust a user_id from the body.
 // ============================================================================
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +28,11 @@ const corsHeaders = {
 
 const GEMINI_MODELS = [
   { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
+  // Fallback chain. The bare name `gemini-2.5-pro` is rejected by the API
+  // (per the official 2026-08-01 model list), so we use the -latest alias
+  // which always resolves to the current stable Pro model. The 2.0-flash
+  // fallback is for accounts on the free tier where Pro access is gated.
+  { name: "gemini-2.5-pro-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-latest:generateContent" },
   { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
 ];
 
@@ -116,16 +122,29 @@ async function rest<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 async function getAuthedUser(req: Request) {
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth) throw new Error("Missing Authorization header");
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader) throw new Error("Missing Authorization header");
+
+  // Validate token by calling Supabase auth endpoint (original approach)
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: auth, apikey: SERVICE_ROLE_KEY },
+    headers: { Authorization: authHeader, apikey: SERVICE_ROLE_KEY },
   });
+
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Auth lookup failed (${res.status}): ${t.slice(0, 200)}`);
+    const errorText = await res.text();
+    // Map common auth errors to appropriate messages
+    if (res.status === 401) {
+      throw new Error("Invalid or expired token");
+    }
+    throw new Error(`Auth lookup failed: ${res.status} ${errorText}`);
   }
-  return (await res.json()) as { id: string; email?: string };
+
+  const userData = await res.json() as { id: string; email?: string };
+  if (!userData.id) {
+    throw new Error("Invalid user data received from auth service");
+  }
+
+  return { id: userData.id };
 }
 
 async function callGemini(apiKey: string, prompt: string): Promise<string> {
@@ -242,6 +261,33 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Check required environment variables
+    if (!SUPABASE_URL) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "SUPABASE_URL is not configured on the server. Set it in your Edge Function secrets.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!SERVICE_ROLE_KEY) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "SUPABASE_SERVICE_ROLE_KEY is not configured on the server. Set it in your Edge Function secrets.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
       return new Response(
@@ -261,6 +307,8 @@ Deno.serve(async (req: Request) => {
     let body: { topic?: string; count?: number };
     try {
       body = await req.json();
+      // eslint-disable-next-line no-console
+      console.log("[generate-quiz] parsed body:", JSON.stringify(body), "keys:", Object.keys(body ?? {}));
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
@@ -268,11 +316,30 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const topic = typeof body.topic === "string" ? body.topic : "";
+    const rawTopic = typeof body.topic === "string" ? body.topic : "";
+    // eslint-disable-next-line no-console
+    console.log("[generate-quiz] topic check:", { rawTopic, bodyType: typeof body.topic, bodyKeys: body ? Object.keys(body) : null });
+    // Normalise: trim, lowercase, collapse whitespace → underscores. Old
+    // mistakes rows occasionally hold values like "Verb Tense" or "verb
+    // tense" that don't match the canonical snake_case keys; this catches
+    // the obvious drift before we reject the request.
+    const topic = rawTopic.trim().toLowerCase().replace(/\s+/g, "_");
     if (!topic || !TYPE_TO_TOPIC[topic]) {
+      // Log the actual incoming value so the Supabase function logs tell
+      // us exactly what the client sent, even when the response is just a
+      // terse 400 to the user.
+      // eslint-disable-next-line no-console
+      console.error("[generate-quiz] unknown topic:", {
+        raw: rawTopic,
+        normalised: topic,
+        type: typeof body.topic,
+        keys: Object.keys(TYPE_TO_TOPIC),
+      });
       return new Response(
         JSON.stringify({
           error: `Unknown topic. Expected one of: ${Object.keys(TYPE_TO_TOPIC).join(", ")}`,
+          received: rawTopic,
+          normalised: topic,
         }),
         {
           status: 400,
@@ -334,7 +401,17 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
+    // Log the error for debugging
+    console.error("Error in generate-quiz function:", err);
+
+    // Return more detailed error information for debugging
+    // In production, you might want to hide specific details
+    return new Response(JSON.stringify({
+      error: "Internal server error",
+      detail: err instanceof Error ? err.message : String(err),
+      // Uncomment the next line for more detailed debugging (remove in production)
+      // type: err.constructor.name
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
