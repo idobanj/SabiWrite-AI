@@ -87,31 +87,25 @@ async function callGemini(apiKey: string, body: GeminiRequest) {
  * never show the user a malformed UI state.
  */
 function buildPrompt(text: string): string {
-  return `You are an English writing coach for non-native speakers (often Yoruba, Hausa, Igbo, or French first-language). Analyse the text the user submits and respond ONLY with a JSON object that matches this exact shape — no markdown fences, no commentary.
+  return `You are SabiWrite, an AI English writing coach for non-native speakers (Yoruba, Hausa, Igbo, French L1). Coach on clarity, word choice, and flow—not grammar only.
+
+Return ONLY valid JSON (no fences, no extra text):
 
 {
-  "corrected_sentence": "<the full corrected version of the input, preserving its original meaning and tone>",
-  "mistakes": [
-    {
-      "type": "<one of: subject_verb_agreement | tense | article | preposition | word_choice | spelling | punctuation | sentence_structure | other>",
-      "wrong_text": "<the exact substring from the original>",
-      "correct_text": "<the replacement substring>",
-      "explanation": "<one short sentence explaining the rule, in plain English>",
-      "tip": "<one short, actionable tip — what to do next time, optional>"
-    }
-  ],
-  "explanation": "<one sentence overall coaching note for the writer>",
-  "focusArea": "<one short phrase naming the dominant theme, e.g. 'Subject-Verb Agreement', 'Articles', 'Tense Consistency'>"
+  "corrected_sentence": "<corrected; preserve meaning and tone>",
+  "mistakes": [{
+    "type": "<subject_verb_agreement|tense|article|preposition|word_choice|spelling|punctuation|sentence_structure|other>",
+    "wrong_text": "<verbatim from input>",
+    "correct_text": "<replacement>",
+    "explanation": "<≤18 words, plain English>",
+    "tip": "<≤12 words; omit if none>"
+  }],
+  "explanation": "<one-sentence coaching note>"
 }
 
-Rules:
-- If the text is already correct, return an empty mistakes array and a positive coaching note.
-- Every wrong_text must appear verbatim in the user's input.
-- Keep explanations short (≤ 18 words) and concrete.
-- Keep tip concrete and short (≤ 12 words). Omit the field if there's no useful tip.
-- focusArea should be the single biggest theme, not a list.
+Rules: empty mistakes[] if correct (positive note). wrong_text must appear verbatim in input.
 
-User's text to analyse:
+Text:
 """
 ${text}
 """`;
@@ -145,17 +139,20 @@ interface AnalysisResponse {
   focusArea: string;
 }
 
-const VALID_TYPES = new Set([
-  "subject_verb_agreement",
-  "tense",
-  "article",
-  "preposition",
-  "word_choice",
-  "spelling",
-  "punctuation",
-  "sentence_structure",
-  "other",
-]);
+const MISTAKE_TYPE_LABELS: Record<string, string> = {
+  subject_verb_agreement: "Subject-Verb Agreement",
+  tense: "Tense",
+  article: "Article",
+  preposition: "Preposition",
+  word_choice: "Word Choice",
+  spelling: "Spelling",
+  punctuation: "Punctuation",
+  sentence_structure: "Sentence Structure",
+  other: "Other",
+};
+
+const TYPE_PRIORITY = Object.keys(MISTAKE_TYPE_LABELS);
+const VALID_TYPES = new Set(TYPE_PRIORITY);
 
 function normaliseMistake(raw: any): Mistake | null {
   if (!raw || typeof raw !== "object") return null;
@@ -182,6 +179,28 @@ function computeAccuracyScore(mistakeCount: number): number {
   return Math.max(0, 100 - mistakeCount * 10);
 }
 
+/** Dominant mistake theme by type frequency — never from the model. */
+function computeFocusArea(mistakes: Mistake[]): string {
+  if (mistakes.length === 0) return "General";
+
+  const counts = new Map<string, number>();
+  for (const m of mistakes) {
+    counts.set(m.type, (counts.get(m.type) ?? 0) + 1);
+  }
+
+  let dominant: string | null = null;
+  let maxCount = 0;
+  for (const type of TYPE_PRIORITY) {
+    const count = counts.get(type) ?? 0;
+    if (count > maxCount) {
+      maxCount = count;
+      dominant = type;
+    }
+  }
+
+  return dominant ? (MISTAKE_TYPE_LABELS[dominant] ?? "General") : "General";
+}
+
 function normaliseResponse(raw: any): AnalysisResponse | null {
   if (!raw || typeof raw !== "object") return null;
   const mistakes = Array.isArray(raw.mistakes)
@@ -199,10 +218,7 @@ function normaliseResponse(raw: any): AnalysisResponse | null {
     explanation:
       typeof raw.explanation === "string" ? raw.explanation : "",
     accuracyScore,
-    focusArea:
-      typeof raw.focusArea === "string" && raw.focusArea.trim()
-        ? raw.focusArea
-        : "General",
+    focusArea: computeFocusArea(mistakes),
   };
 }
 
