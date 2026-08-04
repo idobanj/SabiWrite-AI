@@ -18,6 +18,8 @@
 // never trust a user_id from the body.
 // ============================================================================
 
+import { generate } from "../_shared/ai/index.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -237,9 +239,6 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
-
-    // Import the AI service dynamically to avoid circular dependencies
-    const { generate } = await import("../_shared/ai");
 
     const user = await getAuthedUser(req);
 

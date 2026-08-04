@@ -1,2 +1,2 @@
 // supabase/functions/_shared/ai/providers/index.ts
-export { GeminiProvider } from "./gemini";
+export { GeminiProvider } from "./gemini.ts";

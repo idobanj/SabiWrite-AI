@@ -11,6 +11,8 @@
 // Model: gemini-2.5-flash — fast and cheap, fine for sentence-level analysis.
 // ============================================================================
 
+import { generate } from "../_shared/ai/index.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -155,9 +157,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Import the AI service dynamically to avoid circular dependencies
-    const { generate } = await import("../_shared/ai");
-
     let body: { text?: unknown };
     try {
       body = await req.json();
@@ -194,12 +193,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const geminiReq: { prompt: string; temperature: number } = {
+    const rawText = await generate({
       prompt: buildPrompt(text),
       temperature: 0,
-    };
-
-    const rawText = await generate(geminiReq);
+    });
 
     if (!rawText) {
       return new Response(

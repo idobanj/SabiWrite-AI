@@ -1,6 +1,6 @@
 // supabase/functions/_shared/ai/index.ts
-import { loadAIConfig } from "./config";
-import { GeminiProvider } from "./providers";
+import { loadAIConfig } from "./config.ts";
+import { GeminiProvider } from "./providers/index.ts";
 
 /**
  * Creates an AI service instance with the configured providers.

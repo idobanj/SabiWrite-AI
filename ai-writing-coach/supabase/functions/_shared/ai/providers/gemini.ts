@@ -1,7 +1,7 @@
 // supabase/functions/_shared/ai/providers/gemini.ts
-import { withRetry } from "../retry";
-import { loadAIConfig } from "../config";
-import { ProviderError } from "../errors";
+import { withRetry } from "../retry.ts";
+import { loadAIConfig } from "../config.ts";
+import { ProviderError } from "../errors.ts";
 
 const GEMINI_MODELS = [
   { name: "gemini-flash-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" },

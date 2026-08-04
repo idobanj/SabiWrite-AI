@@ -1,5 +1,5 @@
 // supabase/functions/_shared/ai/retry.ts
-import { ProviderError } from "./errors";
+import { ProviderError } from "./errors.ts";
 
 /**
  * Options for the retry mechanism.
