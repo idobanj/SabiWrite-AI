@@ -103,12 +103,11 @@ function buildPrompt(text: string): string {
     }
   ],
   "explanation": "<one sentence overall coaching note for the writer>",
-  "accuracyScore": <integer 0-100, where 100 is perfect>,
   "focusArea": "<one short phrase naming the dominant theme, e.g. 'Subject-Verb Agreement', 'Articles', 'Tense Consistency'>"
 }
 
 Rules:
-- If the text is already correct, return an empty mistakes array, accuracyScore 100, and a positive coaching note.
+- If the text is already correct, return an empty mistakes array and a positive coaching note.
 - Every wrong_text must appear verbatim in the user's input.
 - Keep explanations short (≤ 18 words) and concrete.
 - Keep tip concrete and short (≤ 12 words). Omit the field if there's no useful tip.
@@ -180,17 +179,18 @@ function normaliseMistake(raw: any): Mistake | null {
   return out;
 }
 
+/** Deterministic score derived from validated mistake count — never from the model. */
+function computeAccuracyScore(mistakeCount: number): number {
+  return Math.max(0, 100 - mistakeCount * 10);
+}
+
 function normaliseResponse(raw: any): AnalysisResponse | null {
   if (!raw || typeof raw !== "object") return null;
   const mistakes = Array.isArray(raw.mistakes)
     ? raw.mistakes.map(normaliseMistake).filter((m): m is Mistake => m !== null)
     : [];
 
-  // CONSISTENT SCORE CALCULATION: Always base score on mistake count
-  // This ensures identical inputs produce identical outputs
-  // We ignore Gemini's accuracyScore to eliminate non-determinism
-  // Base score: 100 points, deduct 10 points per mistake
-  const accuracyScore = Math.max(0, 100 - (mistakes.length * 10));
+  const accuracyScore = computeAccuracyScore(mistakes.length);
 
   return {
     corrected_sentence:
@@ -200,7 +200,7 @@ function normaliseResponse(raw: any): AnalysisResponse | null {
     mistakes,
     explanation:
       typeof raw.explanation === "string" ? raw.explanation : "",
-    accuracyScore, // Always use mistake-based score for consistency
+    accuracyScore,
     focusArea:
       typeof raw.focusArea === "string" && raw.focusArea.trim()
         ? raw.focusArea
