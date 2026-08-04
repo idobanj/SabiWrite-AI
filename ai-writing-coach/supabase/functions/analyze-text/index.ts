@@ -201,11 +201,13 @@ function computeFocusArea(mistakes: Mistake[]): string {
   return dominant ? (MISTAKE_TYPE_LABELS[dominant] ?? "General") : "General";
 }
 
-function normaliseResponse(raw: any): AnalysisResponse | null {
+function normaliseResponse(raw: any, originalText: string): AnalysisResponse | null {
   if (!raw || typeof raw !== "object") return null;
-  const mistakes = Array.isArray(raw.mistakes)
+  const validMistakes = Array.isArray(raw.mistakes)
     ? raw.mistakes.map(normaliseMistake).filter((m): m is Mistake => m !== null)
     : [];
+  // Keep only mistakes where wrong_text appears verbatim in original input
+  const mistakes = validMistakes.filter(m => originalText.includes(m.wrong_text));
 
   const accuracyScore = computeAccuracyScore(mistakes.length);
 
@@ -326,7 +328,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const analysis = normaliseResponse(parsed);
+    const analysis = normaliseResponse(parsed, text);
     if (!analysis) {
       return new Response(
         JSON.stringify({ error: "Gemini response did not match expected shape" }),
