@@ -307,6 +307,8 @@ Deno.serve(async (req: Request) => {
     let body: { topic?: string; count?: number };
     try {
       body = await req.json();
+      // eslint-disable-next-line no-console
+      console.log("[generate-quiz] parsed body:", JSON.stringify(body), "keys:", Object.keys(body ?? {}));
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
@@ -315,15 +317,29 @@ Deno.serve(async (req: Request) => {
     }
 
     const rawTopic = typeof body.topic === "string" ? body.topic : "";
+    // eslint-disable-next-line no-console
+    console.log("[generate-quiz] topic check:", { rawTopic, bodyType: typeof body.topic, bodyKeys: body ? Object.keys(body) : null });
     // Normalise: trim, lowercase, collapse whitespace → underscores. Old
     // mistakes rows occasionally hold values like "Verb Tense" or "verb
     // tense" that don't match the canonical snake_case keys; this catches
     // the obvious drift before we reject the request.
     const topic = rawTopic.trim().toLowerCase().replace(/\s+/g, "_");
     if (!topic || !TYPE_TO_TOPIC[topic]) {
+      // Log the actual incoming value so the Supabase function logs tell
+      // us exactly what the client sent, even when the response is just a
+      // terse 400 to the user.
+      // eslint-disable-next-line no-console
+      console.error("[generate-quiz] unknown topic:", {
+        raw: rawTopic,
+        normalised: topic,
+        type: typeof body.topic,
+        keys: Object.keys(TYPE_TO_TOPIC),
+      });
       return new Response(
         JSON.stringify({
           error: `Unknown topic. Expected one of: ${Object.keys(TYPE_TO_TOPIC).join(", ")}`,
+          received: rawTopic,
+          normalised: topic,
         }),
         {
           status: 400,
