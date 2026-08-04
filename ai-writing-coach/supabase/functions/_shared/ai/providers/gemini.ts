@@ -3,8 +3,8 @@ import { loadAIConfig } from "../config.ts";
 import { ProviderError } from "../errors.ts";
 
 const GEMINI_MODELS = [
-  { name: "gemini-flash-latest", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" },
-  { name: "gemini-2.5-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" },
+  { name: "gemini-1.5-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent" },
+  { name: "gemini-2.0-flash", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" },
 ] as const;
 
 interface GeminiRequest {
