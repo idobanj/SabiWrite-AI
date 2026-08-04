@@ -1,5 +1,4 @@
 // supabase/functions/_shared/ai/providers/gemini.ts
-import { withRetry } from "../retry.ts";
 import { loadAIConfig } from "../config.ts";
 import { ProviderError } from "../errors.ts";
 
@@ -34,8 +33,10 @@ export class GeminiProvider {
       generationConfig: { temperature: request.temperature ?? 0 }
     };
 
+    let lastErr: string | null = null;
     for (const model of GEMINI_MODELS) {
-      const attemptFn = async () => {
+      // Two attempts per model: one immediate, one after a 700ms backoff.
+      for (let attempt = 0; attempt < 2; attempt++) {
         const res = await fetch(model.url, {
           method: "POST",
           headers: {
@@ -53,24 +54,31 @@ export class GeminiProvider {
         }
 
         const errText = await res.text();
-        throw new Error(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`);
-      };
+        lastErr = `${model.name} (${res.status}): ${errText.slice(0, 200)}`;
 
-      try {
-        return await withRetry(attemptFn, { maxAttempts: 2, retryDelayMs: 700 });
-      } catch (err: any) {
-        // If this is the last model in the list, format the error to match the original
-        if (model === GEMINI_MODELS[GEMINI_MODELS.length - 1]) {
-          const baseMsg = err.message ?? String(err);
-          const statusMatch = baseMsg.match(/\((\d+)\)/);
-          const status = statusMatch ? statusMatch[1] : "unknown";
-          const detail = baseMsg.replace(/^.*\): /, "");
-          throw new Error(`Gemini unavailable: ${model.name} (${status}): ${detail}`);
+        // 503 = overloaded. Retry the same model once, then move on.
+        // 429 = rate-limited. Same treatment.
+        if (res.status === 503 || res.status === 429) {
+          if (attempt === 0) {
+            await new Promise(resolve => setTimeout(resolve, 700));
+            continue;
+          }
+          // exhausted this model, try the next one
+          break;
         }
-        // Otherwise, continue to the next model
+
+        // 404 = model not available to this account (common on the free
+        // tier when Google retires a model). Skip immediately to the next.
+        if (res.status === 404) {
+          // Model is not available to this account. Don't retry it — move on.
+          break;
+        }
+
+        // Anything else (400, 401, 403, 500…) is a hard failure — don't retry,
+        // don't fall back, surface immediately.
+        throw new Error(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`);
       }
     }
-
-    throw new Error("Gemini unavailable: unknown error");
+    throw new Error(`Gemini unavailable: ${lastErr}`);
   }
 }
