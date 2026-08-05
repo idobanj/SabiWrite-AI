@@ -370,7 +370,10 @@ function ResultsPanel({ analysis, originalText }) {
           </div>
           <div className="space-y-3">
             {mistakes.map((m, i) => (
-              <MistakeCard key={i} index={i} mistake={m} />
+              <>
+                <MistakeCard key={i} index={i} mistake={m} />
+                {mistakes.length - 1 !== i && <hr className="my-4" />}
+              </>
             ))}
           </div>
         </Card>

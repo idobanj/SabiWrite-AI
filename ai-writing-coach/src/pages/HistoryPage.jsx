@@ -175,11 +175,11 @@ export function HistoryPage() {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
-                      <th className="p-4">Submission date</th>
-                      <th className="p-4">Text snippet preview</th>
-                      <th className="p-4">Mistakes identified</th>
-                      <th className="p-4">Accuracy score</th>
-                      <th className="p-4 text-right">Actions</th>
+                      <th className="p-4 w-20 whitespace-nowrap">Submission date</th>
+                      <th className="p-4 w-40">Text snippet preview</th>
+                      <th className="p-4 w-20">Mistakes identified</th>
+                      <th className="p-4 w-10">Accuracy score</th>
+                      <th className="p-4 w-10 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200 font-medium">
@@ -239,10 +239,10 @@ export function HistoryPage() {
 function HistoryTableRow({ row, onReview }) {
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-      <td className="p-4 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
+      <td className="p-4 w-20 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
         {fmtTableDate(row.created_at)}
       </td>
-      <td className="p-4 text-slate-800 dark:text-slate-200 font-bold max-w-md">
+      <td className="p-4 w-40 text-slate-800 dark:text-slate-200 font-bold max-w-md">
         <p className="truncate" title={row.original_text}>
           {row.original_text}
         </p>
@@ -252,17 +252,17 @@ function HistoryTableRow({ row, onReview }) {
           </Pill>
         ) : null}
       </td>
-      <td className="p-4">
+      <td className="p-4 w-20">
         {row.mistake_count > 0 ? (
           <Pill color="red">{row.mistake_count} errors flagged</Pill>
         ) : (
           <Pill color="emerald">No errors</Pill>
         )}
       </td>
-      <td className="p-4 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
+      <td className="p-4 w-10 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
         {row.accuracy_score}%
       </td>
-      <td className="p-4 text-right">
+      <td className="p-4 w-10 text-right">
         <Button
           size="sm"
           variant="outline"

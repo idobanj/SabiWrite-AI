@@ -8,3 +8,8 @@ export interface AIRequest {
 
 // The AI service returns the raw text response from the provider.
 export type AIResponse = string;
+
+// Provider interface for AI services
+export interface AIProvider {
+  generate(request: { prompt: string; temperature?: number }): Promise<string>;
+}

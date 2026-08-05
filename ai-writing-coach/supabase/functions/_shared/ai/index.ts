@@ -1,37 +1,16 @@
 // supabase/functions/_shared/ai/index.ts
-import { loadAIConfig } from "./config.ts";
-import { GeminiProvider } from "./providers/index.ts";
+import { getProvider } from "./provider-registry.ts";
 
 /**
- * Creates an AI service instance with the configured providers.
+ * Creates an AI service instance with the configured provider.
  * @returns An object with a generate method that takes an AIRequest and returns a Promise<string>
  */
 export function createAIService() {
-  const { providerOrder, providers } = loadAIConfig();
-
-  // Initialize providers based on configuration
-  const providerMap: Record<string, any> = {
-    gemini: new GeminiProvider(providers.geminiApiKey!),
-  };
-
-  const orderedProviders = providerOrder
-    .map(p => providerMap[p])
-    .filter(Boolean);
+  const provider = getProvider();
 
   return {
     generate: async (request: { prompt: string; temperature?: number }): Promise<string> => {
-      for (const provider of orderedProviders) {
-        try {
-          return await provider.generate(request);
-        } catch (err) {
-          // If this is the last provider, rethrow the error
-          if (provider === orderedProviders[orderedProviders.length - 1]) {
-            throw err;
-          }
-          // Otherwise, try the next provider
-        }
-      }
-      throw new Error("All providers failed");
+      return await provider.generate(request);
     }
   };
 }

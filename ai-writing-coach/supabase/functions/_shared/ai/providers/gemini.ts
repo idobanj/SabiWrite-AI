@@ -1,6 +1,7 @@
 // supabase/functions/_shared/ai/providers/gemini.ts
 import { loadAIConfig } from "../config.ts";
 import { ProviderError } from "../errors.ts";
+import { AIProvider } from "../types.ts";
 
 const GEMINI_MODELS = [
   { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
@@ -21,7 +22,7 @@ interface GeminiResponse {
 /**
  * Gemini provider implementation that matches the original callGemini behavior exactly.
  */
-export class GeminiProvider {
+export class GeminiProvider implements AIProvider {
   private apiKey: string;
 
   constructor(apiKey: string) {
