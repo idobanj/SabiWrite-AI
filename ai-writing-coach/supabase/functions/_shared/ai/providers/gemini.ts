@@ -51,7 +51,7 @@ export class GeminiProvider implements AIProvider {
         if (res.ok) {
           const json = (await res.json()) as GeminiResponse;
           const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-          if (!text) throw new Error("Empty response from Gemini");
+          if (!text) throw new ProviderError("Empty response from Gemini", null);
           return text;
         }
 
@@ -78,9 +78,9 @@ export class GeminiProvider implements AIProvider {
 
         // Anything else (400, 401, 403, 500…) is a hard failure — don't retry,
         // don't fall back, surface immediately.
-        throw new Error(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`);
+        throw new ProviderError(`Gemini API error (${res.status}): ${errText.slice(0, 300)}`, res.status);
       }
     }
-    throw new Error(`Gemini unavailable: ${lastErr}`);
+    throw new ProviderError(`Gemini unavailable: ${lastErr}`, null);
   }
 }

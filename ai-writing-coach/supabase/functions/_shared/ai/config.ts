@@ -1,11 +1,12 @@
 // supabase/functions/_shared/ai/config.ts
 export interface ProviderConfig {
   geminiApiKey?: string;
-  // future providers: groqApiKey?, agentRouterEndpoint?, agentRouterApiKey?, etc.
+  grokApiKey?: string;
+  // future providers: ...
 }
 
 export interface AIConfig {
-  providerOrder: string[]; // e.g., ["gemini", "groq", "agent-router"]
+  providerOrder: string[]; // e.g., ["gemini", "grok"]
   providers: ProviderConfig;
 }
 
@@ -20,16 +21,14 @@ export function loadAIConfig(): AIConfig {
     : ["gemini"]; // default to gemini only
 
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+  const grokApiKey = Deno.env.get("GROK_API_KEY");
 
   const providers: ProviderConfig = {
     geminiApiKey,
+    grokApiKey,
   };
 
-  // Validate that at least one provider in the order has its required config.
-  // For simplicity, we only validate gemini for now.
-  if (providerOrder.includes("gemini") && !geminiApiKey) {
-    throw new Error("GEMINI_API_KEY is not set in the environment.");
-  }
+  // Validation is deferred to the point of use. No eager validation here.
 
   return {
     providerOrder,
