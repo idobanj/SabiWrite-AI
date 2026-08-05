@@ -43,15 +43,14 @@ export async function generateQuiz(topic, count = 5) {
   if (!supabase) throw new Error("Supabase is not configured.");
   if (!topic) throw new Error("Topic is required.");
 
-  const { data, error } = await invokeFunction("generate-quiz", { topic, count });
+  const result = await invokeFunction("generate-quiz", { topic, count });
 
-  console.log("genrateQuiz response:", data);
+  console.log("genrateQuiz response:", result);
 
-  if (error) throw new Error(error.message ?? "Couldn't generate a quiz.");
-  if (data && typeof data === "object" && "error" in data) {
-    throw new Error(String(data.error));
+  if (result && typeof result === "object" && "error" in result) {
+    throw new Error(String(result.error));
   }
-  return /** @type {Quiz} */ (data);
+  return /** @type {Quiz} */ (result);
 }
 
 /**
