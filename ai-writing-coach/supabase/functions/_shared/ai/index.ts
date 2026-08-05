@@ -1,5 +1,5 @@
-import { GeminiProvider } from "./providers/index.ts";
-import { GrokProvider } from "./providers/index.ts";
+import { GeminiProvider } from "./providers/gemini.ts";
+import { GrokProvider } from "./providers/groq.ts";
 import { loadAIConfig } from "./config.ts";
 import { AIProvider } from "./types.ts";
 
@@ -8,7 +8,7 @@ import { AIProvider } from "./types.ts";
  */
 export function createAIService() {
   return {
-    generate: async (request: { prompt: string; temperature?: number }): Promise<string> => {
+    generate: async (request: AIRequest): Promise<string> => {
       const { providerOrder, providers } = loadAIConfig();
 
       // Map provider names to their classes
@@ -37,7 +37,7 @@ export function createAIService() {
         const apiKeyProperty = apiKeyMap[providerName];
         const apiKey = providers[apiKeyProperty];
         if (!apiKey) {
-          console.warn(`[API key not configured for provider: ${providerName}`);
+          console.warn(`[API key not configured for provider: ${providerName}]`);
           continue;
         }
 

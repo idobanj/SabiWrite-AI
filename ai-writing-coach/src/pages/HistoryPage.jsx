@@ -172,14 +172,14 @@ export function HistoryPage() {
           <div className="hidden md:block">
             <Card padded={false} className="overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs table-fixed">
+                <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="dark:bg-slate-900 bg-slate-50 border-b border-slate-200 text-slate-500 dark:text-slate-100 font-bold">
-                      <th className="p-4 w-1/5 whitespace-nowrap">Submission Date</th>
-                      <th className="p-4 w-1/5 whitespace-nowrap">Text Snippet Preview</th>
-                      <th className="p-4 w-1/5 whitespace-nowrap">Mistakes Identified</th>
-                      <th className="p-4 w-1/5 whitespace-nowrap">Accuracy Score</th>
-                      <th className="p-4 w-1/5 text-right whitespace-nowrap">Actions</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                      <th className="p-4">Submission Date</th>
+                      <th className="p-4">Text Snippet Preview</th>
+                      <th className="p-4">Mistakes Identified</th>
+                      <th className="p-4">Accuracy Score</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -239,25 +239,30 @@ export function HistoryPage() {
 function HistoryTableRow({ row, onReview }) {
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-      <td className="p-4 w-1/5 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
+      <td className="p-4 w-20 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
         {fmtTableDate(row.created_at)}
       </td>
-      <td className="p-4 w-1/5 text-slate-800 dark:text-slate-200">
+      <td className="p-4 w-40 text-slate-800 dark:text-slate-200 font-bold max-w-md">
         <p className="truncate" title={row.original_text}>
           {row.original_text}
         </p>
+        {row.focus_area ? (
+          <Pill color="brand" className="mt-1.5">
+            {row.focus_area}
+          </Pill>
+        ) : null}
       </td>
-      <td className="p-4 w-1/5">
+      <td className="p-4 w-20">
         {row.mistake_count > 0 ? (
-          <Pill color="red" className="border-0">{row.mistake_count} errors flagged</Pill>
+          <Pill color="red">{row.mistake_count} errors flagged</Pill>
         ) : (
-          <Pill color="emerald" className="border-0">No errors</Pill>
+          <Pill color="emerald">No errors</Pill>
         )}
       </td>
-      <td className="p-4 w-1/5 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
+      <td className="p-4 w-10 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
         {row.accuracy_score}%
       </td>
-      <td className="p-4 w-1/5 text-right">
+      <td className="p-4 w-10 text-right">
         <Button
           size="sm"
           variant="outline"
