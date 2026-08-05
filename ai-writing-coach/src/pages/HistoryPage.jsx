@@ -239,30 +239,25 @@ export function HistoryPage() {
 function HistoryTableRow({ row, onReview }) {
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-      <td className="p-4 w-20 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
+      <td className="p-4 w-1/5 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
         {fmtTableDate(row.created_at)}
       </td>
-      <td className="p-4 w-40 text-slate-800 dark:text-slate-200 font-bold max-w-md">
+      <td className="p-4 w-1/5 text-slate-800 dark:text-slate-200">
         <p className="truncate" title={row.original_text}>
           {row.original_text}
         </p>
-        {row.focus_area ? (
-          <Pill color="brand" className="mt-1.5">
-            {row.focus_area}
-          </Pill>
-        ) : null}
       </td>
-      <td className="p-4 w-20">
+      <td className="p-4 w-1/5">
         {row.mistake_count > 0 ? (
-          <Pill color="red">{row.mistake_count} errors flagged</Pill>
+          <Pill color="red" className="border-0">{row.mistake_count} errors flagged</Pill>
         ) : (
-          <Pill color="emerald">No errors</Pill>
+          <Pill color="emerald" className="border-0">No errors</Pill>
         )}
       </td>
-      <td className="p-4 w-10 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
+      <td className="p-4 w-1/5 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
         {row.accuracy_score}%
       </td>
-      <td className="p-4 w-10 text-right">
+      <td className="p-4 w-1/5 text-right">
         <Button
           size="sm"
           variant="outline"
