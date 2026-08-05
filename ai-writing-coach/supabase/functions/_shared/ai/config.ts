@@ -14,7 +14,7 @@ export interface AIConfig {
    *   {PROVIDER_NAME_UPPERCASE}_API_KEY
    * Examples:
    *   "gemini" → GEMINI_API_KEY
-   *   "grok"   → GROK_API_KEY
+   *   "groq"   → GROQ_API_KEY
    *   "openai" → OPENAI_API_KEY
    * No provider names are hardcoded here; the map is built at runtime from
    * whatever names appear in providerOrder.
