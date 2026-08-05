@@ -1,6 +1,7 @@
 // supabase/functions/_shared/ai/provider-registry.ts
 import { GeminiProvider } from "./providers/index.ts";
 import { GrokProvider } from "./providers/index.ts";
+import { GroqProvider } from "./providers/index.ts";
 import { loadAIConfig } from "./config.ts";
 import { AIProvider, AIRequest, AIResponse } from "./types.ts";
 import { ProviderError } from "./errors.ts";
@@ -18,6 +19,7 @@ import { ProviderError } from "./errors.ts";
 const PROVIDER_REGISTRY: Record<string, new (apiKey: string) => AIProvider> = {
   gemini: GeminiProvider,
   grok: GrokProvider,
+  groq: GroqProvider,
 };
 
 // ---------------------------------------------------------------------------
