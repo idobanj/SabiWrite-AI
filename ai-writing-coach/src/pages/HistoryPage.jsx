@@ -172,17 +172,17 @@ export function HistoryPage() {
           <div className="hidden md:block">
             <Card padded={false} className="overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs table-fixed">
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
-                      <th className="p-4 w-20 whitespace-nowrap">Submission date</th>
-                      <th className="p-4 w-40">Text snippet preview</th>
-                      <th className="p-4 w-20">Mistakes identified</th>
-                      <th className="p-4 w-10">Accuracy score</th>
-                      <th className="p-4 w-10 text-right">Actions</th>
+                    <tr className="dark:bg-slate-900 bg-slate-50 border-b border-slate-200 text-slate-500 dark:text-slate-100 font-bold">
+                      <th className="p-4 w-1/5 whitespace-nowrap">Submission Date</th>
+                      <th className="p-4 w-1/5 whitespace-nowrap">Text Snippet Preview</th>
+                      <th className="p-4 w-1/5 whitespace-nowrap">Mistakes Identified</th>
+                      <th className="p-4 w-1/5 whitespace-nowrap">Accuracy Score</th>
+                      <th className="p-4 w-1/5 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200 font-medium">
+                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
                     {visible.map((row) => (
                       <HistoryTableRow
                         key={row.id}

@@ -1,19 +1,79 @@
-// supabase/functions/_shared/ai/index.ts
-import { getProvider } from "./provider-registry.ts";
-import type { AIRequest, AIResponse } from "./types.ts";
+import { GeminiProvider } from "./providers/index.ts";
+import { GrokProvider } from "./providers/index.ts";
+import { loadAIConfig } from "./config.ts";
+import { AIProvider } from "./types.ts";
 
 /**
- * Creates a provider-agnostic AI service.
- *
- * This function does not know — and must never know — which AI provider is
- * in use. It delegates every call to the AIProvider returned by the registry.
+ * Creates a provider-agnostic AI service with provider-level fallback.
  */
 export function createAIService() {
-  const provider = getProvider();
-
   return {
-    generate: (request: AIRequest): Promise<AIResponse> => {
-      return provider.generate(request);
+    generate: async (request: { prompt: string; temperature?: number }): Promise<string> => {
+      const { providerOrder, providers } = loadAIConfig();
+
+      // Map provider names to their classes
+      const providerMap: Record<string, new (apiKey: string) => AIProvider> = {
+        gemini: GeminiProvider,
+        grok: GrokProvider,
+      };
+
+      // Map provider names to their API key property in the providers object
+      const apiKeyMap: Record<string, keyof ProviderConfig> = {
+        gemini: "geminiApiKey",
+        grok: "grokApiKey",
+      };
+
+      const errors: Array<{ provider: string; message: string }> = [];
+
+      for (const providerName of providerOrder) {
+        console.log(`[AI] Trying provider: ${providerName}`);
+
+        const ProviderClass = providerMap[providerName];
+        if (!ProviderClass) {
+          console.warn(`[AI] Unknown provider: ${providerName}`);
+          continue;
+        }
+
+        const apiKeyProperty = apiKeyMap[providerName];
+        const apiKey = providers[apiKeyProperty];
+        if (!apiKey) {
+          console.warn(`[API key not configured for provider: ${providerName}`);
+          continue;
+        }
+
+        let providerInstance: AIProvider;
+        try {
+          providerInstance = new ProviderClass(apiKey);
+        } catch (err) {
+          const msg = `Failed to instantiate provider ${providerName}: ${err instanceof Error ? err.message : String(err)}`;
+          console.error(`[AI] ${msg}`);
+          errors.push({ provider: providerName, message: msg });
+          continue;
+        }
+
+        try {
+          const result = await providerInstance.generate(request);
+          console.log(`[AI] Provider succeeded: ${providerName}`);
+          return result;
+        } catch (err) {
+          let message = String(err);
+          if (err instanceof Error) {
+            message = err.message;
+          }
+          console.warn(`[AI] Provider failed: ${providerName}`);
+          errors.push({ provider: providerName, message });
+          // We don't break here; we try the next provider
+        }
+      }
+
+      // If we get here, all providers failed
+      const errorMessages = errors.map(
+        ({ provider, message }) => `- ${provider} → ${message}`
+      );
+      const combinedMessage = `All AI providers failed.\n${errorMessages.join("\n")}`;
+      const error = new Error(combinedMessage);
+      console.error(`[AI] ${combinedMessage}`);
+      throw error;
     },
   };
 }
