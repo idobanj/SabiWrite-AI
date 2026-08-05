@@ -2,133 +2,139 @@
 import { GeminiProvider } from "./providers/index.ts";
 import { GrokProvider } from "./providers/index.ts";
 import { loadAIConfig } from "./config.ts";
-import { AIProvider } from "./types.ts";
+import { AIProvider, AIRequest, AIResponse } from "./types.ts";
 import { ProviderError } from "./errors.ts";
 
+// ---------------------------------------------------------------------------
+// Provider registry
+// ---------------------------------------------------------------------------
+// This is the ONLY place in the codebase that knows about concrete provider
+// classes. To add a new provider:
+//   1. Create providers/<name>.ts implementing AIProvider.
+//   2. Export it from providers/index.ts.
+//   3. Add one line here: <name>: <ClassName>.
+// No other file needs to change.
+// ---------------------------------------------------------------------------
+const PROVIDER_REGISTRY: Record<string, new (apiKey: string) => AIProvider> = {
+  gemini: GeminiProvider,
+  grok: GrokProvider,
+};
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
- * Get the AI provider instance based on configuration with fallback support.
- * Tries providers in the order given by AI_PROVIDER_ORDER (defaults to ["gemini"]).
- * If a provider fails with a retryable error (429, 503, timeout, network), tries the next.
- * If all providers fail, throws a combined error.
+ * Returns an AIProvider ready to handle generate() calls.
+ *
+ * - Reads the ordered provider list from AI_PROVIDER_ORDER (defaults to ["gemini"]).
+ * - If only one provider is requested, returns it directly (no overhead).
+ * - If multiple providers are requested, returns a FallbackProvider that tries
+ *   them in order, skipping retryable errors (429, 503) and surfacing the rest.
  */
 export function getProvider(): AIProvider {
-  const { providerOrder, providers } = loadAIConfig();
-
-  // Default to gemini if no provider configured
+  const { providerOrder, apiKeys } = loadAIConfig();
   const ordered = providerOrder.length > 0 ? providerOrder : ["gemini"];
 
-  // Map provider names to their classes
-  const providerMap: Record<string, new (apiKey: string) => AIProvider> = {
-    gemini: GeminiProvider,
-    grok: GrokProvider,
-  };
-
-  // Map provider names to their API key getters
-  const apiKeyMap: Record<string, () => string | undefined> = {
-    gemini: () => providers.geminiApiKey,
-    grok: () => providers.grokApiKey,
-  };
-
-  // If only one provider is configured, return it directly to preserve exact behavior.
   if (ordered.length === 1) {
-    const providerName = ordered[0];
-    const ProviderClass = providerMap[providerName];
-    if (!ProviderClass) {
-      throw new Error(`Unknown AI provider: ${providerName}. Configured providers: ${Object.keys(providerMap).join(", ")}`);
-    }
-    const apiKey = apiKeyMap[providerName]();
-    if (!apiKey) {
-      throw new Error(`API key not configured for provider: ${providerName}`);
-    }
-    return new ProviderClass(apiKey);
+    // Fast path: single provider — construct and return directly.
+    return buildProvider(ordered[0], apiKeys[ordered[0]]);
   }
 
-  // Otherwise, return a wrapper that implements fallback logic.
-  class FallbackProvider implements AIProvider {
-    private readonly ordered: string[];
-    private readonly providerMap: Record<string, new (apiKey: string) => AIProvider>;
-    private readonly apiKeyMap: Record<string, () => string | undefined>;
+  // Multi-provider path: wrap in fallback logic.
+  return new FallbackProvider(ordered, apiKeys);
+}
 
-    constructor(
-      ordered: string[],
-      providerMap: Record<string, new (apiKey: string) => AIProvider>,
-      apiKeyMap: Record<string, () => string | undefined>
-    ) {
-      this.ordered = ordered;
-      this.providerMap = providerMap;
-      this.apiKeyMap = apiKeyMap;
-    }
+// ---------------------------------------------------------------------------
+// Internal helpers — not exported
+// ---------------------------------------------------------------------------
 
-    async generate(request: { prompt: string; temperature?: number }): Promise<string> {
-      // Use the order captured at construction time (should match config at that time)
-      const ordered = this.ordered;
-      const providerMap = this.providerMap;
-      const apiKeyMap = this.apiKeyMap;
+/**
+ * Constructs and returns a single provider by name.
+ * Throws clear, actionable errors if the name is unknown or the key is missing.
+ */
+function buildProvider(
+  name: string,
+  apiKey: string | undefined,
+): AIProvider {
+  const ProviderClass = PROVIDER_REGISTRY[name];
 
-      const errors: Array<{ provider: string; message: string; retryable: boolean }> = [];
+  if (!ProviderClass) {
+    throw new Error(
+      `Unknown AI provider: "${name}". ` +
+      `Known providers: ${Object.keys(PROVIDER_REGISTRY).join(", ")}.`,
+    );
+  }
 
-      for (const providerName of ordered) {
-        console.log(`[AI Provider] Attempting provider: ${providerName}`);
+  if (!apiKey) {
+    throw new Error(
+      `API key not configured for provider: "${name}". ` +
+      `Set the ${name.toUpperCase()}_API_KEY environment variable.`,
+    );
+  }
 
-        const ProviderClass = providerMap[providerName];
-        if (!ProviderClass) {
-          const msg = `Unknown AI provider: ${providerName}`;
-          console.error(`[AI Provider] ${msg}`);
-          errors.push({ provider: providerName, message: msg, retryable: false });
-          continue;
-        }
+  return new ProviderClass(apiKey);
+}
 
-        const apiKey = apiKeyMap[providerName]();
-        if (!apiKey) {
-          const msg = `API key not configured for provider: ${providerName}`;
-          console.error(`[AI Provider] ${msg}`);
-          errors.push({ provider: providerName, message: msg, retryable: false });
-          continue;
-        }
+/**
+ * Tries each provider in order, falling back to the next on retryable errors.
+ * Non-retryable errors are re-thrown immediately (no silent suppression).
+ * If every provider fails, throws a combined diagnostic error.
+ */
+class FallbackProvider implements AIProvider {
+  constructor(
+    private readonly ordered: string[],
+    private readonly apiKeys: Record<string, string | undefined>,
+  ) {}
 
-        let providerInstance: AIProvider;
-        try {
-          providerInstance = new ProviderClass(apiKey);
-        } catch (err) {
-          const msg = `Failed to instantiate provider ${providerName}: ${err instanceof Error ? err.message : String(err)}`;
-          console.error(`[AI Provider] ${msg}`);
-          errors.push({ provider: providerName, message: msg, retryable: false });
-          continue;
-        }
+  async generate(request: AIRequest): Promise<AIResponse> {
+    const errors: Array<{ provider: string; message: string; retryable: boolean }> = [];
 
-        try {
-          const result = await providerInstance.generate(request);
-          console.log(`[AI Provider] Provider ${providerName} succeeded`);
-          return result;
-        } catch (err) {
-          let retryable = false;
-          let message = String(err);
-          if (err instanceof ProviderError) {
-            retryable = err.isRetryable;
-            message = err.message;
-          } else if (err instanceof Error) {
-            message = err.message;
-          }
-          console.warn(`[AI Provider] Provider ${providerName} failed: ${message}`);
-          errors.push({ provider: providerName, message: message, retryable: retryable });
+    for (const name of this.ordered) {
+      console.log(`[AI Provider] Attempting provider: ${name}`);
 
-          if (!retryable) {
-            // Non-retryable error: propagate immediately
-            throw err;
-          }
-          // else continue to next provider
-        }
+      // --- Construction ---
+      let provider: AIProvider;
+      try {
+        provider = buildProvider(name, this.apiKeys[name]);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[AI Provider] ${message}`);
+        errors.push({ provider: name, message, retryable: false });
+        continue;
       }
 
-      // All attempts failed; construct combined error.
-      const lines = errors.map(e => {
-        const retryTag = e.retryable ? " (retryable)" : "";
-        return `${e.provider}: ${e.message}${retryTag}`;
-      });
-      const combinedMsg = `All AI providers failed.\n${lines.join("\n")}`;
-      throw new Error(combinedMsg);
-    }
-  }
+      // --- Invocation ---
+      try {
+        const result = await provider.generate(request);
+        console.log(`[AI Provider] Provider "${name}" succeeded`);
+        return result;
+      } catch (err) {
+        let retryable = false;
+        let message = String(err);
 
-  return new FallbackProvider(ordered, providerMap, apiKeyMap);
+        if (err instanceof ProviderError) {
+          retryable = err.isRetryable;
+          message = err.message;
+        } else if (err instanceof Error) {
+          message = err.message;
+        }
+
+        console.warn(`[AI Provider] Provider "${name}" failed: ${message}`);
+        errors.push({ provider: name, message, retryable });
+
+        if (!retryable) {
+          // Hard error — don't try the next provider, surface immediately.
+          throw err;
+        }
+        // Retryable error — move on to the next provider.
+      }
+    }
+
+    // Every provider was tried and all failed.
+    const detail = errors
+      .map((e) => `  ${e.provider}: ${e.message}${e.retryable ? " (retryable)" : ""}`)
+      .join("\n");
+    throw new Error(`All AI providers failed.\n${detail}`);
+  }
 }
