@@ -201,7 +201,7 @@ export function ProfilePage() {
                 title="Goal"
                 value={profile?.target_goal || "Not set yet."}
               />
-              <ProfileRow
+              {/* <ProfileRow
                 icon={<GraduationCap className="w-4 h-4" />}
                 tone="indigo"
                 title="CGPA"
@@ -210,7 +210,7 @@ export function ProfilePage() {
                     ? String(profile.cgpa)
                     : "Not set yet."
                 }
-              />
+              /> */}
             </div>
           )}
         </Card>

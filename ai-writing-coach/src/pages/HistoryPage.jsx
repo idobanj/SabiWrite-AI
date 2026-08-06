@@ -182,7 +182,7 @@ export function HistoryPage() {
                       <th className="p-4 w-10 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-600 text-slate-700 font-medium">
                     {visible.map((row) => (
                       <HistoryTableRow
                         key={row.id}
@@ -247,17 +247,17 @@ function HistoryTableRow({ row, onReview }) {
           {row.original_text}
         </p>
       </td>
-      <td className="p-4 w-20">
+      <td className="p-4 w-20 whitespace-nowrap">
         {row.mistake_count > 0 ? (
-          <Pill color="red">{row.mistake_count} errors flagged</Pill>
+          <span className="text-red-600">{row.mistake_count} {row.mistake_count === 1 ? 'error' : 'errors'}</span>
         ) : (
-          <Pill color="emerald">No errors</Pill>
+          <span className="text-emerald-600">No errors</span>
         )}
       </td>
       <td className="p-4 w-10 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
         {row.accuracy_score}%
       </td>
-      <td className="p-4 w-10 text-right">
+      <td className="p-4 w-10 text-right whitespace-nowrap">
         <Button
           size="sm"
           variant="outline"
@@ -287,11 +287,9 @@ function HistoryMobileRow({ row, onReview }) {
           {row.accuracy_score}%
         </Pill>
         {row.mistake_count > 0 ? (
-          <Pill color="red">
-            {row.mistake_count} {row.mistake_count === 1 ? "error" : "errors"}
-          </Pill>
+          <span className="text-red-600 whitespace-nowrap">{row.mistake_count} {row.mistake_count === 1 ? "error" : "errors"}</span>
         ) : (
-          <Pill color="emerald">Clean</Pill>
+          <span className="text-emerald-600 whitespace-nowrap">Clean</span>
         )}
       </div>
       <Button
