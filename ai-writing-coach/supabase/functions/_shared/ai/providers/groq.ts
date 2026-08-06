@@ -7,11 +7,20 @@ import { AIProvider, AIRequest, AIResponse } from "../types.ts";
 // GroqProvider tries each model in turn; if one is unavailable or rate-limited
 // it moves on to the next automatically.
 // ---------------------------------------------------------------------------
+// const GROQ_MODELS = [
+//   "llama-3.3-70b-versatile",
+//   "openai/gpt-oss-120b",
+//   "openai/gpt-oss-20b",
+//   "llama-3.1-8b-instant",
+// ] as const;
+
+
 const GROQ_MODELS = [
-  "llama-3.3-70b-versatile",
-  "openai/gpt-oss-120b",
-  "openai/gpt-oss-20b",
   "llama-3.1-8b-instant",
+  "qwen/qwen3.6-27b",
+  "openai/gpt-oss-20b",
+  "openai/gpt-oss-120b",
+  "llama-3.3-70b-versatile",
 ] as const;
 
 // The single endpoint that handles all Groq chat-completion requests.
