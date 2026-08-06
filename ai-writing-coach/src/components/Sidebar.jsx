@@ -15,7 +15,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "./Toast";
 
 const navEntries = [
-  { to: "/app/workspace", label: "Writing Desk", icon: PenTool, badge: "New" },
+  { to: "/app/workspace", label: "Writing Desk", icon: PenTool, badge: "" },
   { to: "/app/analytics", label: "Progress", icon: BarChart3 },
   { to: "/app/focus", label: "Practice", icon: BookOpen },
   { to: "/app/history", label: "History", icon: History },

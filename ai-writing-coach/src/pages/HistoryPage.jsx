@@ -174,12 +174,12 @@ export function HistoryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-                      <th className="p-4">Submission Date</th>
-                      <th className="p-4">Text Snippet Preview</th>
-                      <th className="p-4">Mistakes Identified</th>
-                      <th className="p-4">Accuracy Score</th>
-                      <th className="p-4 text-right">Actions</th>
+                    <tr className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold">
+                      <th className="p-4 w-20 whitespace-nowrap">Submission Date</th>
+                      <th className="p-4 w-40 whitespace-nowrap">Text Snippet Preview</th>
+                      <th className="p-4 w-20 whitespace-nowrap">Mistakes Identified</th>
+                      <th className="p-4 w-10 whitespace-nowrap">Accuracy Score</th>
+                      <th className="p-4 w-10 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -246,11 +246,6 @@ function HistoryTableRow({ row, onReview }) {
         <p className="truncate" title={row.original_text}>
           {row.original_text}
         </p>
-        {row.focus_area ? (
-          <Pill color="brand" className="mt-1.5">
-            {row.focus_area}
-          </Pill>
-        ) : null}
       </td>
       <td className="p-4 w-20">
         {row.mistake_count > 0 ? (
@@ -298,7 +293,6 @@ function HistoryMobileRow({ row, onReview }) {
         ) : (
           <Pill color="emerald">Clean</Pill>
         )}
-        {row.focus_area ? <Pill color="brand">{row.focus_area}</Pill> : null}
       </div>
       <Button
         size="sm"
@@ -404,7 +398,7 @@ function HistoryTableSkeleton() {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
+            <tr className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold">
               <th className="p-4">Submission date</th>
               <th className="p-4">Text snippet preview</th>
               <th className="p-4">Mistakes identified</th>
