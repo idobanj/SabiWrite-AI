@@ -33,6 +33,7 @@ interface GroqRequest {
   model: string;
   messages: { role: string; content: string }[];
   temperature: number;
+  max_tokens: number;
 }
 
 interface GroqResponse {
@@ -76,6 +77,7 @@ export class GroqProvider implements AIProvider {
         model,
         messages: [{ role: "user", content: request.prompt }],
         temperature: request.temperature ?? 0,
+        max_tokens: request.maxTokens ?? 8192,
       };
 
       // Two attempts per model: one immediate, one after a 700 ms backoff.

@@ -399,13 +399,33 @@ function DiffPanel({ label, tone, text, mistakes }) {
       >
         {label}
       </p>
-      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere">
+      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
         {isError
           ? renderWithMarks(text, mistakes, "red")
           : renderCorrected(text, mistakes)}
       </p>
     </div>
   );
+}
+
+/**
+ * Quote-normalised substring search. Finds needle inside haystack tolerating
+ * curly/smart-quote vs straight-quote differences introduced by LLMs.
+ * Returns the character index in haystack, or -1 if not found.
+ */
+function findIn(haystack, needle, fromIndex = 0) {
+  if (!needle) return -1;
+  // Exact match first
+  const direct = haystack.indexOf(needle, fromIndex);
+  if (direct !== -1) return direct;
+  // Quote-normalised
+  const norm = (s) => s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+  const nhaystack = norm(haystack);
+  const nneedle = norm(needle);
+  const ni = nhaystack.indexOf(nneedle, fromIndex);
+  if (ni !== -1) return ni;
+  // Case-insensitive quote-normalised
+  return nhaystack.toLowerCase().indexOf(nneedle.toLowerCase(), fromIndex);
 }
 
 /**
@@ -416,14 +436,15 @@ function renderWithMarks(text, mistakes, _tone) {
   if (!text) return null;
   if (!mistakes || mistakes.length === 0) return text;
 
-  // Find all match positions for every wrong_text. We process mistakes in
-  // order of appearance so the spans don't overlap weirdly.
   const ranges = [];
+  let searchFrom = 0;
   for (const m of mistakes) {
     if (!m.wrong_text) continue;
-    const idx = text.indexOf(m.wrong_text);
+    let idx = findIn(text, m.wrong_text, searchFrom);
+    if (idx === -1) idx = findIn(text, m.wrong_text, 0); // retry from start
     if (idx === -1) continue;
     ranges.push({ start: idx, end: idx + m.wrong_text.length, mistake: m });
+    searchFrom = idx + m.wrong_text.length;
   }
   ranges.sort((a, b) => a.start - b.start);
 
@@ -434,9 +455,7 @@ function renderWithMarks(text, mistakes, _tone) {
   for (let i = 0; i < ranges.length; i++) {
     const r = ranges[i];
     if (r.start < cursor) continue; // overlap, skip
-    if (r.start > cursor) {
-      out.push(text.slice(cursor, r.start));
-    }
+    if (r.start > cursor) out.push(text.slice(cursor, r.start));
     out.push(
       <span
         key={i}
@@ -448,9 +467,7 @@ function renderWithMarks(text, mistakes, _tone) {
     );
     cursor = r.end;
   }
-  if (cursor < text.length) {
-    out.push(text.slice(cursor));
-  }
+  if (cursor < text.length) out.push(text.slice(cursor));
   return out;
 }
 
@@ -466,17 +483,11 @@ function renderCorrected(text, mistakes) {
   let cursor = 0;
   for (const m of mistakes) {
     if (!m.correct_text) continue;
-    const idx = text.indexOf(m.correct_text, cursor);
-    if (idx === -1) {
-      // Try from the start in case ordering is off
-      const fromStart = text.indexOf(m.correct_text);
-      if (fromStart === -1) continue;
-      ranges.push({ start: fromStart, end: fromStart + m.correct_text.length });
-      cursor = fromStart + m.correct_text.length;
-    } else {
-      ranges.push({ start: idx, end: idx + m.correct_text.length });
-      cursor = idx + m.correct_text.length;
-    }
+    let idx = findIn(text, m.correct_text, cursor);
+    if (idx === -1) idx = findIn(text, m.correct_text, 0); // retry from start
+    if (idx === -1) continue;
+    ranges.push({ start: idx, end: idx + m.correct_text.length });
+    cursor = idx + m.correct_text.length;
   }
 
   if (ranges.length === 0) return text;
