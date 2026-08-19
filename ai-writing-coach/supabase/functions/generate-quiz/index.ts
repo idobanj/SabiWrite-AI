@@ -306,8 +306,16 @@ Deno.serve(async (req: Request) => {
 
     let parsed: any;
     try {
-      // Strip markdown fences in case the model wraps output in ```json ... ```
-      const cleaned = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      let cleaned = rawText
+        .replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "")
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```\s*$/i, "")
+        .trim();
+      const firstBrace = cleaned.indexOf("{");
+      const lastBrace = cleaned.lastIndexOf("}");
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+      }
       parsed = JSON.parse(cleaned);
     } catch {
       return new Response(

@@ -276,6 +276,7 @@ function parseAIJsonResponse(rawText: string): any {
   if (!rawText?.trim()) throw new Error("Empty response from AI service");
 
   let cleaned = rawText
+    .replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "")
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/i, "")
     .trim();
