@@ -7,20 +7,11 @@ import { AIProvider, AIRequest, AIResponse } from "../types.ts";
 // GroqProvider tries each model in turn; if one is unavailable or rate-limited
 // it moves on to the next automatically.
 // ---------------------------------------------------------------------------
-// const GROQ_MODELS = [
-//   "llama-3.3-70b-versatile",
-//   "openai/gpt-oss-120b",
-//   "openai/gpt-oss-20b",
-//   "llama-3.1-8b-instant",
-// ] as const;
-
-
 const GROQ_MODELS = [
-  "llama-3.1-8b-instant",
-  "qwen/qwen3.6-27b",
-  "openai/gpt-oss-20b",
   "openai/gpt-oss-120b",
-  "llama-3.3-70b-versatile",
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.6-27b",
+  "groq/compound",
 ] as const;
 
 // The single endpoint that handles all Groq chat-completion requests.
@@ -77,7 +68,7 @@ export class GroqProvider implements AIProvider {
         model,
         messages: [{ role: "user", content: request.prompt }],
         temperature: request.temperature ?? 0,
-        max_tokens: request.maxTokens ?? 8192,
+        max_tokens: Math.min(request.maxTokens ?? 4096, 4096),
       };
 
       // Two attempts per model: one immediate, one after a 700 ms backoff.
@@ -111,10 +102,19 @@ export class GroqProvider implements AIProvider {
           break; // exhausted retries for this model — try the next
         }
 
-        // 404 = model not available on this account → skip to next model immediately.
-        if (res.status === 404) break;
+        // 404 or 400 (model not found / decommissioned) → skip to next model immediately.
+        if (
+          res.status === 404 ||
+          (res.status === 400 &&
+            (errText.includes("model_not_found") ||
+              errText.includes("model_decommissioned") ||
+              errText.includes("decommissioned") ||
+              errText.includes("does not exist")))
+        ) {
+          break;
+        }
 
-        // Any other status (400, 401, 403…) is a hard failure — surface immediately.
+        // Any other status (401, 403…) is a hard failure — surface immediately.
         throw new ProviderError(
           `Groq API error (${res.status}): ${errText.slice(0, 300)}`,
           res.status,

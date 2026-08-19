@@ -60,7 +60,7 @@ export function createAIService() {
                     if (err instanceof Error) {
                         message = err.message;
                     }
-                    console.warn(`[AI] Provider failed: ${providerName}`);
+                    console.warn(`[AI] Provider failed: ${providerName}: ${message}`);
                     errors.push({provider: providerName, message});
                     // We don't break here; we try the next provider
                 }
