@@ -68,6 +68,7 @@ export function LoginPage() {
       await signIn(email, password, remember);
       navigate(returnTo, { replace: true });
     } catch (err) {
+      console.error("[login] Sign-in failed:", err);
       show(err?.message ?? "Couldn't sign you in. Double-check the credentials.");
     } finally {
       setSubmitting(false);
@@ -79,6 +80,7 @@ export function LoginPage() {
     try {
       await signInWithGoogle();
     } catch (err) {
+      console.error("[login] Google sign-in failed:", err);
       show(err?.message ?? "Google sign-in didn't go through.");
       setGoogleSubmitting(false);
     }

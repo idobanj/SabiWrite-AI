@@ -5,6 +5,7 @@ import {
   BarChart3,
   BookOpen,
   Check,
+  ChevronLeft,
   ChevronRight,
   Lightbulb,
   RefreshCcw,
@@ -351,7 +352,12 @@ function ActiveQuiz({ quiz, answers, onAnswer, onFinish, onBack }) {
   const currentQuestion = quiz.questions[currentIndex];
   const currentAnswer = answers[currentIndex];
   const allAnswered = answers.every((a) => a !== null);
+  const isFirst = currentIndex === 0;
   const isLast = currentIndex === total - 1;
+
+  const handlePrev = () => {
+    setCurrentIndex((i) => Math.max(0, i - 1));
+  };
 
   const handleNext = () => {
     if (isLast) {
@@ -434,6 +440,17 @@ function ActiveQuiz({ quiz, answers, onAnswer, onFinish, onBack }) {
           Cancel
         </Button>
         <div className="flex items-center gap-2">
+          {!isFirst && (
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={handlePrev}
+              leftIcon={<ChevronLeft className="w-4 h-4" />}
+            >
+              Previous
+            </Button>
+          )}
           {!isLast ? (
             <Button
               type="button"

@@ -153,13 +153,20 @@ function buildPrompt(
         .join("\n")
     : "No prior mistakes logged for this topic — generate general questions.";
 
+  // Random 6-digit seed so the AI treats every call as unique and doesn't
+  // reproduce a cached response when the prompt text happens to be the same.
+  const seed = Math.floor(Math.random() * 900000) + 100000;
+
   return `You are an English writing coach. Generate exactly ${count} multiple-choice quiz questions on the topic: **${topic}**.
+[seed:${seed}]
 
 Topic guidance for the writer:
 ${guidance}
 
 The writer's actual recurring mistakes on this topic (use these to make the questions feel personal and concrete):
 ${exampleBlock}
+
+IMPORTANT: Every run of this prompt must produce DIFFERENT questions. Do NOT repeat prompts or option wording from previous quizzes. Vary sentence subjects, contexts, and phrasing each time.
 
 Return ONLY a JSON object with this exact shape — no markdown, no commentary:
 
@@ -292,19 +299,45 @@ Deno.serve(async (req: Request) => {
     const count = Math.max(3, Math.min(10, Number(body.count) || 5));
     const { label, guidance } = TYPE_TO_TOPIC[topic];
 
-    // Pull the writer's top recurring mistakes on this topic. We cap at 5 so
-    // the prompt stays bounded; the most frequent rows give Gemini the
-    // strongest signal about the writer's actual patterns.
-    const examples = await rest<MistakeRow[]>(
+    // Pull up to 15 of the writer's mistakes for this topic, then randomly
+    // sample 5 so the AI sees a different mix each time instead of always
+    // anchoring on the same top rows. We still order by frequency first so
+    // the pool is biased toward the writer's actual patterns.
+    const allExamples = await rest<MistakeRow[]>(
       `/mistakes?user_id=eq.${user.id}&mistake_type=eq.${topic}` +
         `&select=wrong_text,correct_text,frequency_count,explanation` +
-        `&order=frequency_count.desc&limit=5`
+        `&order=frequency_count.desc&limit=15`
     );
+    const pool = allExamples ?? [];
+    // Fisher-Yates shuffle of a copy, then take the first 5.
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const examples = shuffled.slice(0, 5);
 
-    const prompt = buildPrompt(label, guidance, examples ?? [], count);
-    // Use a moderate temperature to introduce variability in generated quizzes.
-    // A higher temperature makes the model's output less deterministic.
-    const rawText = await generate({ prompt, temperature: 0.7 });
+    const prompt = buildPrompt(label, guidance, examples, count);
+    // Attempt generation with a higher temperature for variability.
+    // If that fails (e.g., JSON validation), retry with temperature 0 for a deterministic response.
+    const temperatures = [0.7, 0];
+    let rawText: string | undefined;
+    for (const temp of temperatures) {
+      try {
+        rawText = await generate({ prompt, temperature: temp });
+        // Generation succeeded, break out of loop.
+        break;
+      } catch (err) {
+        console.warn(`[generate-quiz] generation failed at temperature ${temp}:`, err instanceof Error ? err.message : err);
+        // Continue to next temperature.
+      }
+    }
+    if (!rawText) {
+      return new Response(
+        JSON.stringify({ error: "AI service failed to generate quiz after retries" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     let parsed: any;
     try {

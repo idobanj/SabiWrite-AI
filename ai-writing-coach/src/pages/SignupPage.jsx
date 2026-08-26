@@ -78,6 +78,7 @@ export function SignupPage() {
         navigate("/login", { replace: true });
       }
     } catch (err) {
+      console.error("[signup] Sign-up failed:", err);
       show(err?.message ?? "Couldn't create your account. Try again in a moment.");
     } finally {
       setSubmitting(false);
@@ -89,6 +90,7 @@ export function SignupPage() {
     try {
       await signInWithGoogle();
     } catch (err) {
+      console.error("[signup] Google sign-in failed:", err);
       show(err?.message ?? "Google sign-in didn't go through.");
       setGoogleSubmitting(false);
     }
