@@ -55,6 +55,8 @@ CRITICAL INSTRUCTIONS FOR THOROUGH AND CONSISTENT ANALYSIS:
 8. Complete Sync: Every actual correction made in "corrected_sentence" MUST have a corresponding mistake entry in the "mistakes" array. Do not silently correct text in "corrected_sentence" without logging the mistake.
 9. Full Text Preservation: "corrected_sentence" MUST contain the COMPLETE corrected text of the ENTIRE input from start to finish. Preserve all original paragraph breaks and line structure. Do NOT truncate or return only part of the text.
 10. Valid JSON Escaping: All string values in the JSON must use standard escaped double-quotes (\\" not \'). Newlines inside JSON string values must be encoded as \\n.
+11. Standard English Corrections: "correct_text" and "corrected_sentence" must strictly adhere to standard, natural English grammar. Never suggest ungrammatical, awkward, or inverted phrasings (e.g. do not suggest "good an" or "good of an").
+12. Do Not Flag Correct English: Never mark correct, standard English phrasing as a mistake.
 
 User text to analyse:
 """${text}"""

@@ -157,14 +157,33 @@ function buildPrompt(
   // reproduce a cached response when the prompt text happens to be the same.
   const seed = Math.floor(Math.random() * 900000) + 100000;
 
-  return `You are an English writing coach. Generate exactly ${count} multiple-choice quiz questions on the topic: **${topic}**.
+  return `You are an expert English writing coach, grammarian, and quiz author. Generate exactly ${count} high-quality, grammatically rigorous multiple-choice quiz questions on the topic: **${topic}**.
 [seed:${seed}]
 
 Topic guidance for the writer:
 ${guidance}
 
-The writer's actual recurring mistakes on this topic (use these to make the questions feel personal and concrete):
+The writer's past mistake log (use strictly for thematic context on concepts the writer struggles with):
 ${exampleBlock}
+
+CRITICAL RULES FOR GRAMMAR, SYNTAX, AND QUESTION VALIDITY:
+1. Standard English Grammar is Absolute: The correct answer MUST adhere to standard, uncontroversial English grammar. If any example from the writer's past log is ungrammatical, inverted, or malformed, DO NOT replicate that error—always default to standard English.
+2. Full Sentence Coherence: When the correct option (at "answer_index") replaces "___" in the prompt, the resulting sentence MUST be 100% complete, natural, and grammatically flawless.
+   - NEVER create broken prompts where substituting the answer leaves residual bad grammar (e.g. NEVER write prompt "She ___ good of an example." with answer "is good").
+   - Correct prompt format: "She is ___ example for the team." with options ["a good", "good a", "an good", "good an"] and correct answer "a good".
+3. Strict Article, Determiner & Word Order Rules:
+   - Adjective + Noun order with articles MUST follow "a/an/the + [adjective] + [noun]" (e.g., "a good applicant", "an important decision").
+   - NEVER suggest inverted order like "good an applicant" or "good of an example" unless standard degree modifiers (as/so/too/how) are explicitly present in the prompt.
+   - Singular indefinite articles (a/an) must NEVER modify plural nouns (e.g., "made a contributions" is strictly invalid; it must be "made a contribution").
+4. Grounded, Accurate Explanations:
+   - Explanations must be ≤ 20 words and state the real grammatical reason directly applicable to the sentence.
+   - Do NOT hallucinate external context (e.g., do NOT mention "teachers" or other entities unless they are explicitly in the sentence).
+5. Exact Answer Index & Parallel Options:
+   - Exactly ${count} questions.
+   - Exactly 4 options per question.
+   - Exactly one unambiguously correct option.
+   - "answer_index" (0, 1, 2, or 3) MUST match the index of the grammatically correct option.
+   - The 3 distractor options must be plausible common errors but clearly grammatically incorrect.
 
 IMPORTANT: Every run of this prompt must produce DIFFERENT questions. Do NOT repeat prompts or option wording from previous quizzes. Vary sentence subjects, contexts, and phrasing each time.
 
@@ -174,22 +193,14 @@ Return ONLY a JSON object with this exact shape — no markdown, no commentary:
   "questions": [
     {
       "id": "q1",
-      "prompt": "<a single short sentence with a blank or a clearly-underlined phrase the writer must fix. Use ___ for the blank.>",
+      "prompt": "<a single short sentence with a blank (___) or 'Choose the correct sentence: ___'>",
       "options": ["<choice A>", "<choice B>", "<choice C>", "<choice D>"],
       "answer_index": <0..3, the index of the correct option>,
-      "explanation": "<one short sentence explaining the rule, in plain English, ≤ 18 words>"
+      "explanation": "<one short sentence explaining the rule in plain English, ≤ 20 words>"
     }
   ]
 }
-
-Rules:
-- Exactly ${count} questions.
-- Exactly 4 options each, no more, no fewer. Exactly one is correct.
-- The correct option must be unambiguous. Avoid "all of the above" or "none of the above".
-- Vary the prompt style: at least one fill-in-the-blank, at least one "choose the correct sentence".
-- Keep options short (≤ 8 words each) and parallel in grammar.
-- Explanations are ≤ 18 words, concrete, and reference the rule.
-- Prioritise question patterns that mirror the writer's own wrong→correct examples when possible.`;
+`;
 }
 
 function normaliseQuestion(raw: any, idx: number): QuizQuestion | null {
@@ -204,10 +215,44 @@ function normaliseQuestion(raw: any, idx: number): QuizQuestion | null {
   }
   const ai = Number(raw.answer_index);
   if (!Number.isInteger(ai) || ai < 0 || ai > 3) return null;
+
+  const prompt = raw.prompt.trim();
+  const options = raw.options.map((o: string) => o.trim());
+  const correctOption = options[ai];
+
+  // Automated sanity checks for common LLM grammatical glitches:
+  if (prompt.includes("___")) {
+    const fullSentence = prompt.replace("___", correctOption);
+
+    // Glitch A: "a/an + plural noun" (e.g. "a contributions", "a mistakes")
+    const nonPluralSEndings = /\b(analysis|status|process|series|species|canvas|lens|business|address|class|success|basis|crisis|hypothesis|news|thesis)\b/i;
+    const aPluralMatch = fullSentence.match(/\ba\s+([a-z]{3,}s)\b/i);
+    if (aPluralMatch && !nonPluralSEndings.test(aPluralMatch[1])) {
+      return null;
+    }
+
+    // Glitch B: "good an" or "good of an" without degree modifiers (as, so, too, how)
+    if (/\b(?:good|great|bad|large|small)\s+(?:of\s+)?an?\s+[a-z]+/i.test(fullSentence)) {
+      if (!/\b(?:as|so|too|how)\s+(?:good|great|bad|large|small)\s+(?:of\s+)?an?\b/i.test(fullSentence)) {
+        return null;
+      }
+    }
+
+    // Glitch C: Missing article before singular countable noun (e.g. "was good idea", "is great plan")
+    if (/\b(?:was|is|became|had)\s+(?:good|bad|great|new|terrible|nice)\s+(?:idea|topic|plan|example|problem|question|mistake|choice)\b/i.test(fullSentence)) {
+      return null;
+    }
+
+    // Glitch D: Repetition artifacts (e.g. repeated multi-word phrase from bad blank placement)
+    if (/\b([a-z]{3,}\s+[a-z]{3,}\s+[a-z]{3,})\s+\1\b/i.test(fullSentence)) {
+      return null;
+    }
+  }
+
   return {
     id: typeof raw.id === "string" && raw.id ? raw.id : `q${idx + 1}`,
-    prompt: raw.prompt.trim(),
-    options: raw.options.map((o: string) => o.trim()),
+    prompt,
+    options,
     answer_index: ai,
     explanation:
       typeof raw.explanation === "string" ? raw.explanation.slice(0, 300) : "",
@@ -317,7 +362,9 @@ Deno.serve(async (req: Request) => {
     }
     const examples = shuffled.slice(0, 5);
 
-    const prompt = buildPrompt(label, guidance, examples, count);
+    // Request count + 2 questions so that if any question is discarded by sanity filters,
+    // we still have at least `count` validated questions for the user.
+    const prompt = buildPrompt(label, guidance, examples, count + 2);
     // Attempt generation with a higher temperature for variability.
     // If that fails (e.g., JSON validation), retry with temperature 0 for a deterministic response.
     const temperatures = [0.7, 0];
