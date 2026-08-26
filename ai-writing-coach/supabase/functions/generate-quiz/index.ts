@@ -302,7 +302,9 @@ Deno.serve(async (req: Request) => {
     );
 
     const prompt = buildPrompt(label, guidance, examples ?? [], count);
-    const rawText = await generate({ prompt, temperature: 0 });
+    // Use a moderate temperature to introduce variability in generated quizzes.
+    // A higher temperature makes the model's output less deterministic.
+    const rawText = await generate({ prompt, temperature: 0.7 });
 
     let parsed: any;
     try {
