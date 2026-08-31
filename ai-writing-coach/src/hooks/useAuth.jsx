@@ -5,6 +5,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -31,6 +32,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const initialized = useRef(false);
 
   // Fetch the profile row that matches the current user.
   const fetchProfile = useCallback(async (userId) => {
@@ -61,7 +63,8 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    let mounted = true;
+    if (initialized.current) return;
+    initialized.current = true;
 
     // Check if the URL contains auth callback tokens (#access_token or ?code=)
     const hasAuthCallback =
@@ -72,7 +75,6 @@ export function AuthProvider({ children }) {
     // Listen for sign-in / sign-out events.
     const { data: sub } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
-        if (!mounted) return;
         setSession(newSession);
         if (newSession?.user?.id) {
           fetchProfile(newSession.user.id);
@@ -85,7 +87,6 @@ export function AuthProvider({ children }) {
 
     // Initial session check from localStorage
     supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
       if (data?.session) {
         setSession(data.session);
         fetchProfile(data.session.user.id);
@@ -98,7 +99,6 @@ export function AuthProvider({ children }) {
     });
 
     return () => {
-      mounted = false;
       sub?.subscription?.unsubscribe?.();
     };
   }, [fetchProfile]);
