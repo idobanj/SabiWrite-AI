@@ -11,6 +11,7 @@ import {
   Repeat,
   History,
   Trophy,
+  Copy,
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
@@ -385,26 +386,36 @@ function ResultsPanel({ analysis, originalText }) {
 function DiffPanel({ label, tone, text, mistakes }) {
   const isError = tone === "red";
   return (
-    <div
-      className={`rounded-2xl border p-3.5 sm:p-4 space-y-2 ${
-        isError
-          ? "border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5"
-          : "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
-      }`}
-    >
-      <p
-        className={`text-[10px] font-bold uppercase tracking-widest ${
-          isError ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
+      <div className={`rounded-2xl border p-3.5 sm:p-4 space-y-2 relative ${
+          isError
+            ? "border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5"
+            : "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
         }`}
-      >
-        {label}
-      </p>
-      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-        {isError
-          ? renderWithMarks(text, mistakes, "red")
-          : renderCorrected(text, mistakes)}
-      </p>
-    </div>
+        >
+          {/* Copy to clipboard button */}
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(text).catch(() => {});
+              show && show('Copied corrected text');
+            }}
+            className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+          <p
+            className={`text-[10px] font-bold uppercase tracking-widest ${
+              isError ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
+            }`}
+          >
+            {label}
+          </p>
+          <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+            {isError
+              ? renderWithMarks(text, mistakes, "red")
+              : renderCorrected(text, mistakes)}
+          </p>
+        </div>
   );
 }
 
