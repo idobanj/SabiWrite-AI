@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import {
   PenTool,
   Sparkles,
+  Check,
   CheckCircle2,
   XCircle,
   Lightbulb,
@@ -389,6 +390,7 @@ function DiffPanel({ label, tone, text, mistakes }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
+    if (!text) return;
     navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -400,17 +402,24 @@ function DiffPanel({ label, tone, text, mistakes }) {
           ? "border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5"
           : "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
       }`}>
-      {/* Copy button only for corrected (non‑error) panel */}
+      {/* Copy button only for coach correction panel */}
       {!isError && (
         <button
           type="button"
           onClick={handleCopy}
-          className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"
+          title={copied ? "Copied!" : "Copy corrected text"}
+          className="absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 bg-white/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"
         >
           {copied ? (
-            <Check className="w-4 h-4 text-emerald-600" />
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Copied</span>
+            </>
           ) : (
-            <Copy className="w-4 h-4" />
+            <>
+              <Copy className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400" />
+              <span className="text-[11px]">Copy</span>
+            </>
           )}
         </button>
       )}
@@ -421,7 +430,7 @@ function DiffPanel({ label, tone, text, mistakes }) {
       >
         {label}
       </p>
-      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap pr-16 sm:pr-20">
         {isError
           ? renderWithMarks(text, mistakes, "red")
           : renderCorrected(text, mistakes)}
