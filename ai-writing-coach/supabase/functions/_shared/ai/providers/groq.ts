@@ -1,6 +1,8 @@
+/** @format */
+
 // supabase/functions/_shared/ai/providers/groq.ts
-import { ProviderError } from "../errors.ts";
-import { AIProvider, AIRequest, AIResponse } from "../types.ts";
+import {ProviderError} from '../errors.ts';
+import {AIProvider, AIRequest, AIResponse} from '../types.ts';
 
 // ---------------------------------------------------------------------------
 // Model list — ordered by preference (fastest / most capable first).
@@ -8,33 +10,31 @@ import { AIProvider, AIRequest, AIResponse } from "../types.ts";
 // it moves on to the next automatically.
 // ---------------------------------------------------------------------------
 const GROQ_MODELS = [
-  "openai/gpt-oss-20b",
-  "qwen/qwen3.6-27b",
-  "qwen/qwen3.8-27b",
-  "groq/compound",
-  "groq/compound-mini",
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "openai/gpt-oss-120b",
+    'qwen/qwen3.6-27b',
+    'qwen/qwen3.8-27b',
+    'openai/gpt-oss-20b',
+    'groq/compound',
+    'groq/compound-mini',
+    'openai/gpt-oss-120b',
 ] as const;
 
 // The single endpoint that handles all Groq chat-completion requests.
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // ---------------------------------------------------------------------------
 // Request / response shapes for the Groq OpenAI-compatible endpoint.
 // ---------------------------------------------------------------------------
 interface GroqRequest {
-  model: string;
-  messages: { role: string; content: string }[];
-  temperature: number;
-  max_tokens: number;
-  response_format?: { type: string };
+    model: string;
+    messages: {role: string; content: string}[];
+    temperature: number;
+    max_tokens: number;
+    response_format?: {type: string};
 }
 
 interface GroqResponse {
-  choices?: { message: { content: string } }[];
-  error?: { message: string };
+    choices?: {message: {content: string}}[];
+    error?: {message: string};
 }
 
 // ---------------------------------------------------------------------------
@@ -63,83 +63,106 @@ interface GroqResponse {
  *  - Any other unexpected status.
  */
 export class GroqProvider implements AIProvider {
-  constructor(private readonly apiKey: string) {}
+    constructor(private readonly apiKey: string) {}
 
-  async generate(request: AIRequest): Promise<AIResponse> {
-    let lastErr: string | null = null;
+    async generate(request: AIRequest): Promise<AIResponse> {
+        let lastErr: string | null = null;
 
-    for (const model of GROQ_MODELS) {
-      const groqReq: GroqRequest = {
-        model,
-        messages: [{ role: "user", content: request.prompt }],
-        temperature: request.temperature ?? 0,
-        max_tokens: Math.min(request.maxTokens ?? 4096, 8192),
-        response_format: { type: "json_object" },
-      };
+        for (const model of GROQ_MODELS) {
+            const groqReq: GroqRequest = {
+                model,
+                messages: [{role: 'user', content: request.prompt}],
+                temperature: request.temperature ?? 0,
+                max_tokens: Math.min(request.maxTokens ?? 4096, 8192),
+                response_format: {type: 'json_object'},
+            };
 
-      // Two attempts per model: one immediate, one after a 300 ms backoff.
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 12000);
+            // Two attempts per model: one immediate, one after a 300 ms backoff.
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(
+                        () => controller.abort(),
+                        12000,
+                    );
 
-          const res = await fetch(GROQ_API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.apiKey}`,
-            },
-            body: JSON.stringify(groqReq),
-            signal: controller.signal,
-          });
+                    const res = await fetch(GROQ_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${this.apiKey}`,
+                        },
+                        body: JSON.stringify(groqReq),
+                        signal: controller.signal,
+                    });
 
-          clearTimeout(timeoutId);
+                    clearTimeout(timeoutId);
 
-          if (res.ok) {
-            const json = (await res.json()) as GroqResponse;
-            const text = json.choices?.[0]?.message?.content ?? "";
-            if (!text) throw new ProviderError("Empty response from Groq", null);
-            return text;
-          }
+                    if (res.ok) {
+                        const json = (await res.json()) as GroqResponse;
+                        const text = json.choices?.[0]?.message?.content ?? '';
+                        if (!text)
+                            throw new ProviderError(
+                                'Empty response from Groq',
+                                null,
+                            );
+                        return text;
+                    }
 
-          const errText = await res.text();
-          lastErr = `${model} (${res.status}): ${errText.slice(0, 200)}`;
+                    const errText = await res.text();
+                    lastErr = `${model} (${res.status}): ${errText.slice(0, 200)}`;
 
-          // 429 = rate-limited, 500 = internal error, 503 = overloaded.
-          // Retry once with backoff, then move on to the next model.
-          if (res.status === 429 || res.status === 500 || res.status === 503) {
-            if (attempt === 0) {
-              await new Promise((resolve) => setTimeout(resolve, 300));
-              continue;
+                    // 429 = rate-limited, 500 = internal error, 503 = overloaded.
+                    // Retry once with backoff, then move on to the next model.
+                    if (
+                        res.status === 429 ||
+                        res.status === 500 ||
+                        res.status === 503
+                    ) {
+                        if (attempt === 0) {
+                            await new Promise((resolve) =>
+                                setTimeout(resolve, 300),
+                            );
+                            continue;
+                        }
+                        break; // exhausted retries for this model — try the next
+                    }
+
+                    // 404 or 400 (model not found / decommissioned / invalid request for model) → skip to next model immediately.
+                    if (res.status === 404 || res.status === 400) {
+                        console.warn(
+                            `[GroqProvider] ${model} returned ${res.status}: ${errText.slice(0, 100)}, skipping to next model`,
+                        );
+                        break;
+                    }
+
+                    // Any other status (401, 403…) is an auth/account failure — surface immediately.
+                    if (res.status === 401 || res.status === 403) {
+                        throw new ProviderError(
+                            `Groq Auth/API error (${res.status}): ${errText.slice(0, 300)}`,
+                            res.status,
+                        );
+                    }
+                } catch (err: any) {
+                    if (err instanceof ProviderError) throw err;
+                    if (
+                        err.name === 'AbortError' ||
+                        err.message?.includes('aborted')
+                    ) {
+                        lastErr = `${model}: request timed out after 12s`;
+                        console.warn(
+                            `[GroqProvider] ${model} timed out after 12s, trying next model`,
+                        );
+                        break; // skip to next model
+                    }
+                    lastErr = `${model}: ${err.message || String(err)}`;
+                }
             }
-            break; // exhausted retries for this model — try the next
-          }
-
-          // 404 or 400 (model not found / decommissioned / invalid request for model) → skip to next model immediately.
-          if (res.status === 404 || res.status === 400) {
-            console.warn(`[GroqProvider] ${model} returned ${res.status}: ${errText.slice(0, 100)}, skipping to next model`);
-            break;
-          }
-
-          // Any other status (401, 403…) is an auth/account failure — surface immediately.
-          if (res.status === 401 || res.status === 403) {
-            throw new ProviderError(
-              `Groq Auth/API error (${res.status}): ${errText.slice(0, 300)}`,
-              res.status,
-            );
-          }
-        } catch (err: any) {
-          if (err instanceof ProviderError) throw err;
-          if (err.name === "AbortError" || err.message?.includes("aborted")) {
-            lastErr = `${model}: request timed out after 12s`;
-            console.warn(`[GroqProvider] ${model} timed out after 12s, trying next model`);
-            break; // skip to next model
-          }
-          lastErr = `${model}: ${err.message || String(err)}`;
         }
-      }
-    }
 
-    throw new ProviderError(`Groq unavailable after all models: ${lastErr}`, null);
-  }
+        throw new ProviderError(
+            `Groq unavailable after all models: ${lastErr}`,
+            null,
+        );
+    }
 }
