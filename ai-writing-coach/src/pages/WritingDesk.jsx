@@ -385,37 +385,48 @@ function ResultsPanel({ analysis, originalText }) {
 
 function DiffPanel({ label, tone, text, mistakes }) {
   const isError = tone === "red";
+  // Show temporary copied feedback
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-      <div className={`rounded-2xl border p-3.5 sm:p-4 space-y-2 relative ${
-          isError
-            ? "border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5"
-            : "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
-        }`}
+    <div className={`rounded-2xl border p-3.5 sm:p-4 space-y-2 relative ${
+        isError
+          ? "border-red-100 bg-red-50/40 dark:border-red-500/20 dark:bg-red-500/5"
+          : "border-emerald-100 bg-emerald-50/40 dark:border-emerald-500/20 dark:bg-emerald-500/5"
+      }`}>
+      {/* Copy button only for corrected (non‑error) panel */}
+      {!isError && (
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"
         >
-          {/* Copy to clipboard button */}
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(text).catch(() => {});
-              show && show('Copied corrected text');
-            }}
-            className="absolute top-2 right-2 text-slate-400 hover:text-slate-600"
-          >
+          {copied ? (
+            <Check className="w-4 h-4 text-emerald-600" />
+          ) : (
             <Copy className="w-4 h-4" />
-          </button>
-          <p
-            className={`text-[10px] font-bold uppercase tracking-widest ${
-              isError ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
-            }`}
-          >
-            {label}
-          </p>
-          <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-            {isError
-              ? renderWithMarks(text, mistakes, "red")
-              : renderCorrected(text, mistakes)}
-          </p>
-        </div>
+          )}
+        </button>
+      )}
+      <p
+        className={`text-[10px] font-bold uppercase tracking-widest ${
+          isError ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
+        }`}
+      >
+        {label}
+      </p>
+      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+        {isError
+          ? renderWithMarks(text, mistakes, "red")
+          : renderCorrected(text, mistakes)}
+      </p>
+    </div>
   );
 }
 
