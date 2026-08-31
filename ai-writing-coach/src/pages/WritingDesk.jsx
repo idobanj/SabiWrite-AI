@@ -20,7 +20,7 @@ import { Pill } from "../components/Pill";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../components/Toast";
 import { Skeleton } from "../components/Skeleton";
-import { analyzeText, logAnalysis } from "../lib/analysis";
+import { analyzeText, analyzeTextStream, logAnalysis } from "../lib/analysis";
 import { logMistakes } from "../lib/mistakes";
 import { getHistoryEntry } from "../lib/history";
 import { bumpMastery } from "../lib/mastery";
@@ -42,6 +42,10 @@ export function WritingDesk() {
   const [text, setText] = useState("");
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [progressState, setProgressState] = useState({
+    stage: "reading",
+    message: "Reading your writing...",
+  });
   const [reviewMeta, setReviewMeta] = useState(null); // { createdAt, id } when reviewing
 
   const wordCount = useMemo(
@@ -113,8 +117,14 @@ export function WritingDesk() {
     setLoading(true);
     setAnalysis(null);
     setReviewMeta(null);
+    setProgressState({
+      stage: "reading",
+      message: "Reading your writing...",
+    });
     try {
-      const result = await analyzeText(trimmed);
+      const result = await analyzeTextStream(trimmed, (progress) => {
+        setProgressState(progress);
+      });
       setAnalysis(result);
 
       // Fire-and-forget: the analysis is already on screen, the user shouldn't
@@ -250,7 +260,7 @@ export function WritingDesk() {
 
         {/* Results */}
         <div className="lg:col-span-7 space-y-4 lg:overflow-y-auto lg:pr-1 custom-scrollbar min-h-0">
-          {loading ? <LoadingPanel /> : null}
+          {loading ? <LoadingPanel progressState={progressState} /> : null}
           {!loading && analysis ? (
             <ResultsPanel analysis={analysis} originalText={text} />
           ) : null}
@@ -281,16 +291,22 @@ function EmptyPanel() {
   );
 }
 
-function LoadingPanel() {
+function LoadingPanel({ progressState }) {
+  const message = progressState?.message || "Reading your draft…";
   return (
-    <Card className="p-10 text-center space-y-4">
-      <div className="w-10 h-10 mx-auto border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
-      <div className="space-y-1">
-        <p className="text-sm font-semibold text-slate-900 dark:text-white">
-          Reading your draft…
+    <Card className="p-8 sm:p-10 text-center space-y-5">
+      <div className="relative w-12 h-12 mx-auto">
+        <div className="w-12 h-12 border-4 border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center text-brand-500">
+          <Sparkles className="w-5 h-5 animate-pulse" />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-base font-bold text-slate-900 dark:text-white transition-all duration-300">
+          {message}
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          This usually takes 2–5 seconds.
+          SabiWrite AI writing coach is actively analyzing your draft...
         </p>
       </div>
     </Card>

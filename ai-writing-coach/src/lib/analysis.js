@@ -70,6 +70,92 @@ export async function analyzeText(text) {
 }
 
 /**
+ * Stream text to the analyze-text Edge Function and receive real-time progress events.
+ * Returns the final AnalysisResponse. Automatically falls back to standard analyzeText
+ * if the stream is interrupted or fails.
+ *
+ * @param {string} text
+ * @param {(progress: { stage: string, message: string }) => void} [onProgress]
+ * @returns {Promise<AnalysisResponse>}
+ */
+export async function analyzeTextStream(text, onProgress) {
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+  const trimmed = (text ?? "").trim();
+  if (!trimmed) {
+    throw new Error("Type or paste something before analyzing.");
+  }
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-text`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": anonKey,
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ text: trimmed, stream: true }),
+    });
+
+    if (!response.ok || !response.body) {
+      console.warn("[analyzeTextStream] Non-OK stream response, falling back to standard analyzeText");
+      return await analyzeText(text);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalResult = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() ?? ""; // keep incomplete tail
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine.startsWith("data:")) continue;
+        const jsonStr = trimmedLine.replace(/^data:\s*/, "");
+        if (!jsonStr) continue;
+
+        try {
+          const event = JSON.parse(jsonStr);
+          if (event.type === "progress" && onProgress) {
+            onProgress({ stage: event.stage, message: event.message });
+          } else if (event.type === "complete" && event.result) {
+            finalResult = event.result;
+          } else if (event.type === "error") {
+            throw new Error(event.error || "Analysis stream encountered an error.");
+          }
+        } catch (e) {
+          if (e.message && e.message.includes("Analysis stream encountered")) throw e;
+        }
+      }
+    }
+
+    if (finalResult) {
+      return /** @type {AnalysisResponse} */ (finalResult);
+    }
+
+    // If stream ended without complete payload, fall back to standard call
+    console.warn("[analyzeTextStream] Stream ended without complete payload, falling back to standard analyzeText");
+    return await analyzeText(text);
+  } catch (err) {
+    console.warn("[analyzeTextStream] Stream error, falling back to standard analyzeText:", err);
+    return await analyzeText(text);
+  }
+}
+
+/**
  * Persist one analysis to the analysis_logs table. Phase 2 only writes
  * here; Phase 3 will fold in mistake deduplication.
  *
