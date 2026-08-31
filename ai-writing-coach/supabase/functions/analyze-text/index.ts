@@ -26,17 +26,18 @@ const corsHeaders = {
  * never show the user a malformed UI state.
  */
 function buildPrompt(text: string): string {
-  return `You are SabiWrite, an AI English writing coach for non-native speakers (Yoruba, Hausa, Igbo, French L1). Coach on clarity, word choice, and flow—not grammar only.
+  return `You are SabiWrite, an AI English writing coach for non-native speakers. Coach on clarity, word choice, and flow—not grammar only.
 
 Return ONLY valid JSON. No markdown fences. No extra text before or after. Follow standard JSON escaping.
 
 {
-  "corrected_sentence": "<FULL, COMPLETE corrected version of the ENTIRE user input text from beginning to end>",
   "mistakes": [
     {
       "type": "<subject_verb_agreement|tense|article|preposition|word_choice|spelling|punctuation|sentence_structure|other>",
       "wrong_text": "<smallest exact verbatim word or short phrase from input, preferably 1-4 words>",
-      "correct_text": "<replacement word or short phrase as it appears in corrected_sentence>",
+      "correct_text": "<replacement word or short phrase>",
+      "start": <number>,
+      "end": <number>,
       "explanation": "<18 words or fewer, plain English>",
       "tip": "<12 words or fewer; omit key entirely if no tip>"
     }
@@ -45,18 +46,15 @@ Return ONLY valid JSON. No markdown fences. No extra text before or after. Follo
 }
 
 CRITICAL INSTRUCTIONS FOR THOROUGH AND CONSISTENT ANALYSIS:
-1. Systematic Audit: Perform a systematic sentence-by-sentence analysis of the ENTIRE input from beginning to end. Evaluate every sentence and every paragraph with equal thoroughness.
+1. Systematic Audit: Perform a systematic sentence-by-sentence analysis of the ENTIRE input from beginning to end. Evaluate EVERY sentence and EVERY paragraph with equal thoroughness. Do not stop after finding a few mistakes.
 2. No Sampling or Summarizing: Do not summarize the mistakes, sample only the most obvious errors, or decrease evaluation depth for later paragraphs or longer submissions. Treat every paragraph as if it were submitted individually.
-3. Comprehensive Category Checking: Check every sentence across all relevant categories: subject-verb agreement, tense, article, preposition, word choice, spelling, punctuation, sentence structure, and other.
-4. Report All Genuine Errors: Report every genuine error discovered in the text.
-5. Accuracy First: Report ONLY genuine errors. Do NOT invent, force, or manufacture mistakes simply to increase the mistake count.
+3. Comprehensive Category Checking: Check every sentence across all relevant categories.
+4. Report All Genuine Errors: Return every genuine error discovered in the text. Do not artificially cap the number of mistakes.
+5. Accuracy First: Report ONLY genuine errors. Do NOT invent, force, or manufacture mistakes. Avoid subjective rewrites unless they materially improve correctness or clarity.
 6. Minimum Verbatim Span: "wrong_text" MUST be the smallest useful exact verbatim portion of the user's original text (preferably 1–4 words). Never quote an entire sentence or long clause unless strictly necessary.
-7. Exact Type Strings: The "type" field MUST be strictly one of: subject_verb_agreement, tense, article, preposition, word_choice, spelling, punctuation, sentence_structure, other.
-8. Complete Sync: Every actual correction made in "corrected_sentence" MUST have a corresponding mistake entry in the "mistakes" array. Do not silently correct text in "corrected_sentence" without logging the mistake.
-9. Full Text Preservation: "corrected_sentence" MUST contain the COMPLETE corrected text of the ENTIRE input from start to finish. Preserve all original paragraph breaks and line structure. Do NOT truncate or return only part of the text.
-10. Valid JSON Escaping: All string values in the JSON must use standard escaped double-quotes (\\" not \'). Newlines inside JSON string values must be encoded as \\n.
-11. Standard English Corrections: "correct_text" and "corrected_sentence" must strictly adhere to standard, natural English grammar. Never suggest ungrammatical, awkward, or inverted phrasings (e.g. do not suggest "good an" or "good of an").
-12. Do Not Flag Correct English: Never mark correct, standard English phrasing as a mistake.
+7. Precise Offsets: You MUST provide the accurate 0-based character indices for "start" (inclusive) and "end" (exclusive) where "wrong_text" appears in the original text.
+8. Exact Type Strings: The "type" field MUST be strictly one of: subject_verb_agreement, tense, article, preposition, word_choice, spelling, punctuation, sentence_structure, other.
+9. Standard English Corrections: "correct_text" must strictly adhere to standard, natural English grammar. Never suggest ungrammatical phrasings.
 
 User text to analyse:
 """${text}"""
@@ -68,6 +66,8 @@ interface Mistake {
   type: string;
   wrong_text: string;
   correct_text: string;
+  start?: number;
+  end?: number;
   explanation?: string;
   tip?: string;
 }
@@ -97,16 +97,19 @@ const VALID_TYPES = new Set(TYPE_PRIORITY);
 
 function normaliseMistake(raw: any): Mistake | null {
   if (!raw || typeof raw !== "object") return null;
-  const { type, wrong_text, correct_text, explanation, tip } = raw;
+  const { type, wrong_text, correct_text, start, end, explanation, tip } = raw;
   if (typeof wrong_text !== "string" || typeof correct_text !== "string") {
     return null;
   }
   if (typeof explanation !== "string") return null;
   if (!VALID_TYPES.has(type)) return null;
+  
   const out: Mistake = {
     type,
     wrong_text,
     correct_text,
+    start: typeof start === "number" ? start : undefined,
+    end: typeof end === "number" ? end : undefined,
     explanation: explanation.slice(0, 300),
   };
   if (typeof tip === "string" && tip.trim()) {
@@ -143,30 +146,29 @@ function computeFocusArea(mistakes: Mistake[]): string {
 }
 
 /**
- * Finds wrong_text inside originalText, tolerating smart-quote vs straight-quote
- * differences that LLMs frequently introduce. Returns the exact verbatim
- * substring from originalText so highlights always align, or null if no match.
+ * Validates the start/end bounds against the original text.
+ * Tolerates smart-quote vs straight-quote differences that LLMs introduce.
+ * Returns true if valid, false otherwise.
  */
-function matchVerbatimSubstring(
+function isValidPositionalMatch(
   originalText: string,
   wrongText: string,
-): string | null {
-  if (!wrongText) return null;
-  // 1. Exact match
-  if (originalText.includes(wrongText)) return wrongText;
-
-  // 2. Quote-normalised match
+  start: number,
+  end: number
+): boolean {
+  if (start < 0 || end > originalText.length || start >= end) return false;
+  
+  const slice = originalText.slice(start, end);
+  if (slice === wrongText) return true;
+  
+  // Quote-normalised match fallback
   const norm = (s: string) => s.replace(/['']/g, "'").replace(/[""]/g, '"');
-  const normOriginal = norm(originalText);
-  const normWrong = norm(wrongText);
-  const idx = normOriginal.indexOf(normWrong);
-  if (idx !== -1) return originalText.slice(idx, idx + wrongText.length);
-
-  // 3. Case-insensitive quote-normalised fallback
-  const lowerIdx = normOriginal.toLowerCase().indexOf(normWrong.toLowerCase());
-  if (lowerIdx !== -1) return originalText.slice(lowerIdx, lowerIdx + wrongText.length);
-
-  return null;
+  if (norm(slice) === norm(wrongText)) return true;
+  
+  // Case-insensitive quote-normalised fallback
+  if (norm(slice).toLowerCase() === norm(wrongText).toLowerCase()) return true;
+  
+  return false;
 }
 
 function normaliseResponse(raw: any, originalText: string): AnalysisResponse | null {
@@ -174,25 +176,58 @@ function normaliseResponse(raw: any, originalText: string): AnalysisResponse | n
 
   const mistakes: Mistake[] = [];
   const rawMistakes = Array.isArray(raw.mistakes) ? raw.mistakes : [];
+  
+  // Validated mistakes with positional metadata
+  const validEdits: { start: number; end: number; wrong_text: string; correct_text: string; mistake: Mistake }[] = [];
+  
   for (const rawM of rawMistakes) {
     const norm = normaliseMistake(rawM);
     if (!norm) continue;
-    const exact = matchVerbatimSubstring(originalText, norm.wrong_text);
-    if (!exact) continue; // wrong_text genuinely not in original — discard
-    norm.wrong_text = exact; // pin to exact original characters (fixes quote drift)
+    
+    // Positional validation logic
+    if (typeof norm.start === "number" && typeof norm.end === "number") {
+      if (isValidPositionalMatch(originalText, norm.wrong_text, norm.start, norm.end)) {
+        // Pin to exact original characters (fixes quote drift)
+        norm.wrong_text = originalText.slice(norm.start, norm.end);
+        validEdits.push({ start: norm.start, end: norm.end, wrong_text: norm.wrong_text, correct_text: norm.correct_text, mistake: norm });
+        mistakes.push(norm);
+        continue;
+      } else {
+        console.warn(`[AnalyzeText] Positional mismatch: expected "${norm.wrong_text}" at [${norm.start}, ${norm.end}], got "${originalText.slice(norm.start, norm.end)}"`);
+        // Fall back to old verbatim match if positional fails (LLM math error)
+      }
+    }
+    
+    // Fallback: try to find it somewhere if no start/end or if they were wrong
+    // (We do NOT use this for global replacement in the text, only to keep the mistake for tracking)
+    console.warn(`[AnalyzeText] Edit failed positional validation, skipping string replacement for: ${norm.wrong_text}`);
+    // We can still push the mistake for scoring/feedback, but it won't be replaced in corrected_sentence.
     mistakes.push(norm);
+  }
+
+  // Sort valid edits from back to front to apply safely
+  validEdits.sort((a, b) => b.start - a.start);
+  
+  // Reconstruct corrected_sentence
+  let reconstructedText = originalText;
+  let lastStart = originalText.length + 1; // track to prevent overlapping edits
+  
+  for (const edit of validEdits) {
+    if (edit.end <= lastStart) { // prevent overlapping edits from corrupting string
+      reconstructedText = 
+        reconstructedText.slice(0, edit.start) + 
+        edit.correct_text + 
+        reconstructedText.slice(edit.end);
+      lastStart = edit.start;
+    }
   }
 
   const accuracyScore = computeAccuracyScore(mistakes.length);
 
   return {
-    corrected_sentence:
-      typeof raw.corrected_sentence === "string"
-        ? raw.corrected_sentence
-        : "",
+    corrected_sentence: reconstructedText,
     mistakes,
-    explanation:
-      typeof raw.explanation === "string" ? raw.explanation : "",
+    explanation: typeof raw.explanation === "string" ? raw.explanation : "",
     accuracyScore,
     focusArea: computeFocusArea(mistakes),
   };

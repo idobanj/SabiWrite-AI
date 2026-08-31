@@ -77,52 +77,68 @@ export class GroqProvider implements AIProvider {
 
       // Two attempts per model: one immediate, one after a 300 ms backoff.
       for (let attempt = 0; attempt < 2; attempt++) {
-        const res = await fetch(GROQ_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify(groqReq),
-        });
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-        if (res.ok) {
-          const json = (await res.json()) as GroqResponse;
-          const text = json.choices?.[0]?.message?.content ?? "";
-          if (!text) throw new ProviderError("Empty response from Groq", null);
-          return text;
-        }
+          const res = await fetch(GROQ_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.apiKey}`,
+            },
+            body: JSON.stringify(groqReq),
+            signal: controller.signal,
+          });
 
-        const errText = await res.text();
-        lastErr = `${model} (${res.status}): ${errText.slice(0, 200)}`;
+          clearTimeout(timeoutId);
 
-        // 429 = rate-limited, 500 = internal error, 503 = overloaded.
-        // Retry once with backoff, then move on to the next model.
-        if (res.status === 429 || res.status === 500 || res.status === 503) {
-          if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 300));
-            continue;
+          if (res.ok) {
+            const json = (await res.json()) as GroqResponse;
+            const text = json.choices?.[0]?.message?.content ?? "";
+            if (!text) throw new ProviderError("Empty response from Groq", null);
+            return text;
           }
-          break; // exhausted retries for this model — try the next
-        }
 
-        // 404 or 400 (model not found / decommissioned) → skip to next model immediately.
-        if (
-          res.status === 404 ||
-          (res.status === 400 &&
-            (errText.includes("model_not_found") ||
-              errText.includes("model_decommissioned") ||
-              errText.includes("decommissioned") ||
-              errText.includes("does not exist")))
-        ) {
-          break;
-        }
+          const errText = await res.text();
+          lastErr = `${model} (${res.status}): ${errText.slice(0, 200)}`;
 
-        // Any other status (401, 403…) is a hard failure — surface immediately.
-        throw new ProviderError(
-          `Groq API error (${res.status}): ${errText.slice(0, 300)}`,
-          res.status,
-        );
+          // 429 = rate-limited, 500 = internal error, 503 = overloaded.
+          // Retry once with backoff, then move on to the next model.
+          if (res.status === 429 || res.status === 500 || res.status === 503) {
+            if (attempt === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+              continue;
+            }
+            break; // exhausted retries for this model — try the next
+          }
+
+          // 404 or 400 (model not found / decommissioned) → skip to next model immediately.
+          if (
+            res.status === 404 ||
+            (res.status === 400 &&
+              (errText.includes("model_not_found") ||
+                errText.includes("model_decommissioned") ||
+                errText.includes("decommissioned") ||
+                errText.includes("does not exist")))
+          ) {
+            break;
+          }
+
+          // Any other status (401, 403…) is a hard failure — surface immediately.
+          throw new ProviderError(
+            `Groq API error (${res.status}): ${errText.slice(0, 300)}`,
+            res.status,
+          );
+        } catch (err: any) {
+          if (err instanceof ProviderError) throw err;
+          if (err.name === "AbortError" || err.message?.includes("aborted")) {
+            lastErr = `${model}: request timed out after 12s`;
+            console.warn(`[GroqProvider] ${model} timed out after 12s, trying next model`);
+            break; // skip to next model
+          }
+          lastErr = `${model}: ${err.message || String(err)}`;
+        }
       }
     }
 
