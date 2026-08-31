@@ -26,7 +26,7 @@ const corsHeaders = {
  * never show the user a malformed UI state.
  */
 function buildPrompt(text: string): string {
-  return `You are SabiWrite, an AI English writing coach for non-native speakers. Coach on clarity, word choice, and flow—not grammar only.
+  return `You are SabiWrite, an AI English writing coach for non-native speakers. Coach on clarity, grammar, and natural flow.
 
 Return ONLY valid JSON. No markdown fences. No extra text before or after. Follow standard JSON escaping.
 
@@ -45,16 +45,24 @@ Return ONLY valid JSON. No markdown fences. No extra text before or after. Follo
   "explanation": "<one-sentence coaching note>"
 }
 
-CRITICAL INSTRUCTIONS FOR THOROUGH AND CONSISTENT ANALYSIS:
-1. Systematic Audit: Perform a systematic sentence-by-sentence analysis of the ENTIRE input from beginning to end. Evaluate EVERY sentence and EVERY paragraph with equal thoroughness. Do not stop after finding a few mistakes.
-2. No Sampling or Summarizing: Do not summarize the mistakes, sample only the most obvious errors, or decrease evaluation depth for later paragraphs or longer submissions. Treat every paragraph as if it were submitted individually.
-3. Comprehensive Category Checking: Check every sentence across all relevant categories.
-4. Report All Genuine Errors: Return every genuine error discovered in the text. Do not artificially cap the number of mistakes.
-5. Accuracy First: Report ONLY genuine errors. Do NOT invent, force, or manufacture mistakes. Avoid subjective rewrites unless they materially improve correctness or clarity.
-6. Minimum Verbatim Span: "wrong_text" MUST be the smallest useful exact verbatim portion of the user's original text (preferably 1–4 words). Never quote an entire sentence or long clause unless strictly necessary.
-7. Precise Offsets: You MUST provide the accurate 0-based character indices for "start" (inclusive) and "end" (exclusive) where "wrong_text" appears in the original text.
-8. Exact Type Strings: The "type" field MUST be strictly one of: subject_verb_agreement, tense, article, preposition, word_choice, spelling, punctuation, sentence_structure, other.
-9. Standard English Corrections: "correct_text" must strictly adhere to standard, natural English grammar. Never suggest ungrammatical phrasings.
+CRITICAL RULES FOR ACCURATE COACHING:
+1. ZERO HALLUCINATED MISTAKES (NO SYNONYM SWAPPING):
+   - If a sentence is already grammatically correct, natural, and clear, DO NOT change it.
+   - NEVER swap a correct word for an arbitrary synonym (e.g. do NOT change "mixed" to "divergent", "organised" to "convened", "conniving" to "colluding", "dismissed" to "rejected", "favoured" to "preferred").
+   - If the user's text has NO genuine errors, return an EMPTY mistakes array: "mistakes": [].
+
+2. REPORT ONLY GENUINE ERRORS:
+   - Subject-verb agreement (e.g. "he go" -> "he goes")
+   - Tense errors (e.g. "yesterday he go" -> "yesterday he went")
+   - Wrong or missing prepositions (e.g. "discuss about" -> "discuss")
+   - Wrong or missing articles (e.g. "an university" -> "a university")
+   - Spelling mistakes (e.g. "definately" -> "definitely")
+   - Punctuation & sentence fragments / run-ons
+   - Truly awkward or ungrammatical phrasing (L1 transfer errors from Yoruba/Hausa/Igbo/French).
+
+3. Minimum Verbatim Span: "wrong_text" MUST be the smallest useful exact verbatim portion of the user's original text (preferably 1–4 words). Never quote an entire sentence or long clause unless strictly necessary.
+4. Precise Offsets: Provide 0-based character indices for "start" (inclusive) and "end" (exclusive) where "wrong_text" appears in the original text.
+5. Exact Type Strings: The "type" field MUST be strictly one of: subject_verb_agreement, tense, article, preposition, word_choice, spelling, punctuation, sentence_structure, other.
 
 User text to analyse:
 """${text}"""
@@ -118,9 +126,43 @@ function normaliseMistake(raw: any): Mistake | null {
   return out;
 }
 
-/** Deterministic score derived from validated mistake count — never from the model. */
-function computeAccuracyScore(mistakeCount: number): number {
-  return Math.max(0, 100 - mistakeCount * 10);
+/**
+ * Computes a realistic, length-aware, and severity-weighted accuracy score (0-100).
+ * - Zero mistakes is always a clean 100.
+ * - Hard grammar errors (subject_verb_agreement, tense, sentence_structure) carry full weight.
+ * - Minor/soft suggestions (word_choice, punctuation, other) carry lighter weight.
+ * - Word count is factored in so a 500-word essay with 2 suggestions is not crushed to 0 or 70.
+ */
+function computeAccuracyScore(mistakes: Mistake[], text: string): number {
+  if (!mistakes || mistakes.length === 0) return 100;
+
+  const words = text.trim().split(/\s+/).filter(Boolean).length || 1;
+
+  // Severity weights
+  const weights: Record<string, number> = {
+    subject_verb_agreement: 1.0,
+    tense: 1.0,
+    sentence_structure: 1.0,
+    preposition: 0.8,
+    article: 0.7,
+    spelling: 0.7,
+    word_choice: 0.35,
+    punctuation: 0.25,
+    other: 0.35,
+  };
+
+  let totalWeight = 0;
+  for (const m of mistakes) {
+    totalWeight += weights[m.type] ?? 0.5;
+  }
+
+  // Calculate error density per 100 words with a baseline denominator of 30 words
+  const effectiveWords = Math.max(30, words);
+  const errorDensity = (totalWeight / effectiveWords) * 100;
+
+  // Moderate penalty curve: scaled smoothly so 1-2 small tips in 500 words is ~95-98 score
+  const penalty = Math.min(100, Math.round(errorDensity * 6 + totalWeight * 2));
+  return Math.max(0, 100 - penalty);
 }
 
 /** Dominant mistake theme by type frequency — never from the model. */
@@ -304,7 +346,7 @@ function normaliseResponse(raw: any, originalText: string): AnalysisResponse | n
       reconstructedText.slice(edit.end);
   }
 
-  const accuracyScore = computeAccuracyScore(mistakes.length);
+  const accuracyScore = computeAccuracyScore(mistakes, originalText);
 
   return {
     corrected_sentence: reconstructedText,
