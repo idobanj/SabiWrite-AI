@@ -171,55 +171,137 @@ function isValidPositionalMatch(
   return false;
 }
 
+/**
+ * Finds the exact start/end indices of wrong_text inside originalText.
+ * If the model provided a start hint, it picks the match closest to that hint.
+ * Tracks usedRanges to prevent overlapping or duplicate replacements.
+ */
+function findBestPositionMatch(
+  originalText: string,
+  wrongText: string,
+  startHint?: number,
+  usedRanges: { start: number; end: number }[] = []
+): { start: number; end: number; exactText: string } | null {
+  if (!wrongText) return null;
+
+  // 1. Direct slice check if hint was provided
+  if (typeof startHint === "number") {
+    const endHint = startHint + wrongText.length;
+    if (isValidPositionalMatch(originalText, wrongText, startHint, endHint)) {
+      const isOverlapping = usedRanges.some(
+        (r) => Math.max(r.start, startHint) < Math.min(r.end, endHint)
+      );
+      if (!isOverlapping) {
+        return {
+          start: startHint,
+          end: endHint,
+          exactText: originalText.slice(startHint, endHint),
+        };
+      }
+    }
+  }
+
+  // 2. Search for all occurrences of wrongText (quote-normalised)
+  const norm = (s: string) => s.replace(/['']/g, "'").replace(/[""]/g, '"');
+  const normOriginal = norm(originalText);
+  const normWrong = norm(wrongText);
+  
+  const occurrences: number[] = [];
+  let pos = 0;
+  while ((pos = normOriginal.indexOf(normWrong, pos)) !== -1) {
+    occurrences.push(pos);
+    pos += normWrong.length || 1;
+  }
+
+  // If no match found, try case-insensitive
+  if (occurrences.length === 0) {
+    const lowerOriginal = normOriginal.toLowerCase();
+    const lowerWrong = normWrong.toLowerCase();
+    pos = 0;
+    while ((pos = lowerOriginal.indexOf(lowerWrong, pos)) !== -1) {
+      occurrences.push(pos);
+      pos += lowerWrong.length || 1;
+    }
+  }
+
+  if (occurrences.length === 0) return null;
+
+  // Filter out overlapping occurrences
+  const availableOccurrences = occurrences.filter((occ) => {
+    const occEnd = occ + wrongText.length;
+    return !usedRanges.some(
+      (r) => Math.max(r.start, occ) < Math.min(r.end, occEnd)
+    );
+  });
+
+  if (availableOccurrences.length === 0) return null;
+
+  // Pick the occurrence closest to startHint (or the first available if no hint)
+  let bestOcc = availableOccurrences[0];
+  if (typeof startHint === "number") {
+    let minDistance = Math.abs(bestOcc - startHint);
+    for (const occ of availableOccurrences) {
+      const dist = Math.abs(occ - startHint);
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestOcc = occ;
+      }
+    }
+  }
+
+  return {
+    start: bestOcc,
+    end: bestOcc + wrongText.length,
+    exactText: originalText.slice(bestOcc, bestOcc + wrongText.length),
+  };
+}
+
 function normaliseResponse(raw: any, originalText: string): AnalysisResponse | null {
   if (!raw || typeof raw !== "object") return null;
 
   const mistakes: Mistake[] = [];
   const rawMistakes = Array.isArray(raw.mistakes) ? raw.mistakes : [];
   
-  // Validated mistakes with positional metadata
+  const usedRanges: { start: number; end: number }[] = [];
   const validEdits: { start: number; end: number; wrong_text: string; correct_text: string; mistake: Mistake }[] = [];
   
   for (const rawM of rawMistakes) {
     const norm = normaliseMistake(rawM);
     if (!norm) continue;
     
-    // Positional validation logic
-    if (typeof norm.start === "number" && typeof norm.end === "number") {
-      if (isValidPositionalMatch(originalText, norm.wrong_text, norm.start, norm.end)) {
-        // Pin to exact original characters (fixes quote drift)
-        norm.wrong_text = originalText.slice(norm.start, norm.end);
-        validEdits.push({ start: norm.start, end: norm.end, wrong_text: norm.wrong_text, correct_text: norm.correct_text, mistake: norm });
-        mistakes.push(norm);
-        continue;
-      } else {
-        console.warn(`[AnalyzeText] Positional mismatch: expected "${norm.wrong_text}" at [${norm.start}, ${norm.end}], got "${originalText.slice(norm.start, norm.end)}"`);
-        // Fall back to old verbatim match if positional fails (LLM math error)
-      }
+    // Find best position match using start hint if available
+    const match = findBestPositionMatch(originalText, norm.wrong_text, norm.start, usedRanges);
+    
+    if (match) {
+      norm.start = match.start;
+      norm.end = match.end;
+      norm.wrong_text = match.exactText; // pin to verbatim slice from input
+      
+      usedRanges.push({ start: match.start, end: match.end });
+      validEdits.push({
+        start: match.start,
+        end: match.end,
+        wrong_text: norm.wrong_text,
+        correct_text: norm.correct_text,
+        mistake: norm,
+      });
+    } else {
+      console.warn(`[AnalyzeText] Could not locate verbatim substring in text for: "${norm.wrong_text}"`);
     }
     
-    // Fallback: try to find it somewhere if no start/end or if they were wrong
-    // (We do NOT use this for global replacement in the text, only to keep the mistake for tracking)
-    console.warn(`[AnalyzeText] Edit failed positional validation, skipping string replacement for: ${norm.wrong_text}`);
-    // We can still push the mistake for scoring/feedback, but it won't be replaced in corrected_sentence.
     mistakes.push(norm);
   }
 
-  // Sort valid edits from back to front to apply safely
+  // Sort valid edits from back to front to apply safely without shifting indices
   validEdits.sort((a, b) => b.start - a.start);
   
   // Reconstruct corrected_sentence
   let reconstructedText = originalText;
-  let lastStart = originalText.length + 1; // track to prevent overlapping edits
-  
   for (const edit of validEdits) {
-    if (edit.end <= lastStart) { // prevent overlapping edits from corrupting string
-      reconstructedText = 
-        reconstructedText.slice(0, edit.start) + 
-        edit.correct_text + 
-        reconstructedText.slice(edit.end);
-      lastStart = edit.start;
-    }
+    reconstructedText = 
+      reconstructedText.slice(0, edit.start) + 
+      edit.correct_text + 
+      reconstructedText.slice(edit.end);
   }
 
   const accuracyScore = computeAccuracyScore(mistakes.length);
@@ -356,7 +438,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    let body: { text?: unknown };
+    let body: { text?: unknown; stream?: unknown };
     try {
       body = await req.json();
     } catch {
@@ -370,6 +452,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const text = typeof body.text === "string" ? body.text.trim() : "";
+    const isStream = body.stream === true;
+
     if (!text) {
       return new Response(
         JSON.stringify({ error: "Missing or empty 'text' field" }),
@@ -392,6 +476,96 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // --- Streaming Mode (SSE) ---
+    if (isStream) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          const sendEvent = (event: Record<string, any>) => {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          };
+
+          try {
+            sendEvent({
+              type: "progress",
+              stage: "reading",
+              message: "Reading your writing...",
+            });
+
+            sendEvent({
+              type: "progress",
+              stage: "analyzing",
+              message: "Auditing grammar & sentence structure...",
+            });
+
+            const rawText = await generate({
+              prompt: buildPrompt(text),
+              temperature: 0,
+            });
+
+            if (!rawText) {
+              sendEvent({ type: "error", error: "Empty response from AI service" });
+              controller.close();
+              return;
+            }
+
+            sendEvent({
+              type: "progress",
+              stage: "extracting",
+              message: "Extracting coaching tips & focus area...",
+            });
+
+            let parsed: unknown;
+            try {
+              parsed = parseAIJsonResponse(rawText);
+            } catch (parseErr) {
+              console.error("[analyze-text-stream] JSON parsing failed:", parseErr);
+              sendEvent({ type: "error", error: "AI service returned malformed JSON" });
+              controller.close();
+              return;
+            }
+
+            const analysis = normaliseResponse(parsed, text);
+            if (!analysis) {
+              sendEvent({ type: "error", error: "AI service response did not match expected shape" });
+              controller.close();
+              return;
+            }
+
+            sendEvent({
+              type: "progress",
+              stage: "finalizing",
+              message: "Finalizing your feedback...",
+            });
+
+            sendEvent({
+              type: "complete",
+              result: analysis,
+            });
+
+            controller.close();
+          } catch (err: any) {
+            console.error("[analyze-text-stream] Stream processing error:", err);
+            sendEvent({
+              type: "error",
+              error: err instanceof Error ? err.message : String(err),
+            });
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
+    // --- Standard Non-Streaming Mode ---
     const rawText = await generate({
       prompt: buildPrompt(text),
       temperature: 0,

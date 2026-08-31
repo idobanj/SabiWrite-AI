@@ -8,12 +8,14 @@ import { AIProvider, AIRequest, AIResponse } from "../types.ts";
 // it moves on to the next automatically.
 // ---------------------------------------------------------------------------
 const GROQ_MODELS = [
-  "openai/gpt-oss-120b",
   "openai/gpt-oss-20b",
   "qwen/qwen3.6-27b",
   "qwen/qwen3.8-27b",
   "groq/compound",
   "groq/compound-mini",
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+  "openai/gpt-oss-120b",
 ] as const;
 
 // The single endpoint that handles all Groq chat-completion requests.
@@ -113,23 +115,19 @@ export class GroqProvider implements AIProvider {
             break; // exhausted retries for this model — try the next
           }
 
-          // 404 or 400 (model not found / decommissioned) → skip to next model immediately.
-          if (
-            res.status === 404 ||
-            (res.status === 400 &&
-              (errText.includes("model_not_found") ||
-                errText.includes("model_decommissioned") ||
-                errText.includes("decommissioned") ||
-                errText.includes("does not exist")))
-          ) {
+          // 404 or 400 (model not found / decommissioned / invalid request for model) → skip to next model immediately.
+          if (res.status === 404 || res.status === 400) {
+            console.warn(`[GroqProvider] ${model} returned ${res.status}: ${errText.slice(0, 100)}, skipping to next model`);
             break;
           }
 
-          // Any other status (401, 403…) is a hard failure — surface immediately.
-          throw new ProviderError(
-            `Groq API error (${res.status}): ${errText.slice(0, 300)}`,
-            res.status,
-          );
+          // Any other status (401, 403…) is an auth/account failure — surface immediately.
+          if (res.status === 401 || res.status === 403) {
+            throw new ProviderError(
+              `Groq Auth/API error (${res.status}): ${errText.slice(0, 300)}`,
+              res.status,
+            );
+          }
         } catch (err: any) {
           if (err instanceof ProviderError) throw err;
           if (err.name === "AbortError" || err.message?.includes("aborted")) {
