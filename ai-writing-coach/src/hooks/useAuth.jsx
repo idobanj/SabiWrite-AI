@@ -63,18 +63,38 @@ export function AuthProvider({ children }) {
 
     let mounted = true;
 
+    // Check if the URL contains auth callback tokens (#access_token or ?code=)
+    const hasAuthCallback =
+      typeof window !== "undefined" &&
+      (window.location.hash.includes("access_token") ||
+        window.location.search.includes("code="));
+
+    // Listen for sign-in / sign-out events.
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!mounted) return;
+        setSession(newSession);
+        if (newSession?.user?.id) {
+          fetchProfile(newSession.user.id);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    // Initial session check from localStorage
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      setSession(data.session);
-      fetchProfile(data.session?.user?.id);
-      setLoading(false);
-    });
-
-    // Listen for sign-in / sign-out events. The callback fires for every
-    // token refresh, so we treat all of them the same way.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      fetchProfile(newSession?.user?.id);
+      if (data?.session) {
+        setSession(data.session);
+        fetchProfile(data.session.user.id);
+        setLoading(false);
+      } else if (!hasAuthCallback) {
+        // Only mark loading as complete if we are not actively waiting
+        // for onAuthStateChange to exchange an OAuth callback from the URL.
+        setLoading(false);
+      }
     });
 
     return () => {

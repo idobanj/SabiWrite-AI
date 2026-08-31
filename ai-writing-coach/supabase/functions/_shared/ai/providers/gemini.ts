@@ -3,9 +3,8 @@ import { ProviderError } from "../errors.ts";
 import { AIProvider, AIRequest, AIResponse } from "../types.ts";
 
 const GEMINI_MODELS = [
-  { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
   { name: "gemini-2.5-flash",      url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" },
-  { name: "gemini-3.6-flash",      url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent" },
+  { name: "gemini-2.5-flash-lite", url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent" },
 ] as const;
 
 interface GeminiRequest {
@@ -59,7 +58,7 @@ export class GeminiProvider implements AIProvider {
         // 503 = overloaded, 429 = rate-limited → retry this model once, then move on.
         if (res.status === 503 || res.status === 429) {
           if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 700));
+            await new Promise((resolve) => setTimeout(resolve, 300));
             continue;
           }
           break; // exhausted retries for this model — try the next

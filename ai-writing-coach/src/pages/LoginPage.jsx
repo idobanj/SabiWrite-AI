@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -41,7 +41,7 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { session, loading, signIn, signInWithGoogle } = useAuth();
   const { show } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,6 +56,12 @@ export function LoginPage() {
 
   // Where to send the user after a successful sign-in.
   const returnTo = location.state?.from?.pathname ?? "/app/workspace";
+
+  useEffect(() => {
+    if (!loading && session) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [session, loading, navigate, returnTo]);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();

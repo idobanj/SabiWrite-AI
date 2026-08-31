@@ -11,7 +11,9 @@ const GROQ_MODELS = [
   "openai/gpt-oss-120b",
   "openai/gpt-oss-20b",
   "qwen/qwen3.6-27b",
+  "qwen/qwen3.8-27b",
   "groq/compound",
+  "groq/compound-mini",
 ] as const;
 
 // The single endpoint that handles all Groq chat-completion requests.
@@ -69,11 +71,11 @@ export class GroqProvider implements AIProvider {
         model,
         messages: [{ role: "user", content: request.prompt }],
         temperature: request.temperature ?? 0,
-        max_tokens: Math.min(request.maxTokens ?? 4096, 4096),
+        max_tokens: Math.min(request.maxTokens ?? 4096, 8192),
         response_format: { type: "json_object" },
       };
 
-      // Two attempts per model: one immediate, one after a 700 ms backoff.
+      // Two attempts per model: one immediate, one after a 300 ms backoff.
       for (let attempt = 0; attempt < 2; attempt++) {
         const res = await fetch(GROQ_API_URL, {
           method: "POST",
@@ -98,7 +100,7 @@ export class GroqProvider implements AIProvider {
         // Retry once with backoff, then move on to the next model.
         if (res.status === 429 || res.status === 500 || res.status === 503) {
           if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 700));
+            await new Promise((resolve) => setTimeout(resolve, 300));
             continue;
           }
           break; // exhausted retries for this model — try the next

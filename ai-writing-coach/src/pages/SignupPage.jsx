@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -41,7 +41,7 @@ function GoogleIcon() {
 }
 
 export function SignupPage() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { session, loading, signUp, signInWithGoogle } = useAuth();
   const { show } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,6 +53,12 @@ export function SignupPage() {
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
 
   const returnTo = location.state?.from?.pathname ?? "/app/workspace";
+
+  useEffect(() => {
+    if (!loading && session) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [session, loading, navigate, returnTo]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
