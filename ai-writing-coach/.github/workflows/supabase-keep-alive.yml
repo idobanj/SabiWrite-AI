@@ -1,0 +1,48 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # Runs every 3 hours (at minute 0)
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+
+jobs:
+  keep-alive:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST Endpoint
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::Missing required secret: SUPABASE_URL and/or SUPABASE_ANON_KEY are not set in repository secrets."
+            exit 1
+          fi
+
+          # Strip trailing slash if present
+          BASE_URL="${SUPABASE_URL%/}"
+          # Query the profiles table with limit=1 (read-only, minimal overhead, safe under RLS)
+          TARGET_URL="${BASE_URL}/rest/v1/profiles?select=id&limit=1"
+
+          echo "Pinging Supabase REST endpoint to keep project active..."
+
+          # Perform read-only GET request and capture HTTP status code
+          HTTP_STATUS=$(curl -s -S -o /dev/null -w "%{http_code}" \
+            --connect-timeout 15 \
+            --max-time 30 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${TARGET_URL}" || echo "CURL_ERROR")
+
+          echo "Response HTTP Status: ${HTTP_STATUS}"
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Supabase keep-alive ping failed. Expected HTTP 200, received ${HTTP_STATUS}."
+            exit 1
+          fi
+
+          echo "Supabase keep-alive ping succeeded with HTTP 200."
