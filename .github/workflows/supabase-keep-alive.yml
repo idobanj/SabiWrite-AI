@@ -31,16 +31,19 @@ jobs:
           echo "Pinging Supabase REST endpoint to keep project active..."
 
           # Perform read-only GET request and capture HTTP status code
-          HTTP_STATUS=$(curl -s -S -o /dev/null -w "%{http_code}" \
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             --connect-timeout 15 \
             --max-time 30 \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${TARGET_URL}" || echo "CURL_ERROR")
+            "${TARGET_URL}" || true)
 
           echo "Response HTTP Status: ${HTTP_STATUS}"
 
-          if [ "$HTTP_STATUS" != "200" ]; then
+          if [ "$HTTP_STATUS" = "000" ] || [ -z "$HTTP_STATUS" ]; then
+            echo "::error::Could not connect to Supabase (HTTP 000). The project is likely paused in the Supabase Dashboard, or the SUPABASE_URL is invalid/unreachable."
+            exit 1
+          elif [ "$HTTP_STATUS" != "200" ]; then
             echo "::error::Supabase keep-alive ping failed. Expected HTTP 200, received ${HTTP_STATUS}."
             exit 1
           fi
