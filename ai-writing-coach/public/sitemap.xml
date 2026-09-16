@@ -3,16 +3,16 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
 <url>
-<loc>https://ai-writing-coach-seven.vercel.app/</loc>
+<loc>https://sabiwrite-ai.vercel.app/</loc>
 <priority>1.0</priority>
 </url>
 
 <url>
-<loc>https://ai-writing-coach-seven.vercel.app/login</loc>
+<loc>https://sabiwrite-ai.vercel.app/login</loc>
 </url>
 
 <url>
-<loc>https://ai-writing-coach-seven.vercel.app/register</loc>
+<loc>https://sabiwrite-ai.vercel.app/signup</loc>
 </url>
 
 </urlset>

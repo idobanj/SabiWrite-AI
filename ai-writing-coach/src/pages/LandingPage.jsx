@@ -72,7 +72,7 @@ export function LandingPage() {
 
                 <link
                     rel='canonical'
-                    href='https://ai-writing-coach-seven.vercel.app/'
+                    href='https://sabiwrite-ai.vercel.app/'
                 />
 
                 {/* ======================OpenGraph=================== */}
@@ -81,7 +81,7 @@ export function LandingPage() {
 
                 <meta
                     property='og:url'
-                    content='https://ai-writing-coach-seven.vercel.app/'
+                    content='https://sabiwrite-ai.vercel.app/'
                 />
 
                 <meta
@@ -105,7 +105,7 @@ export function LandingPage() {
 
                 <meta
                     property='og:image'
-                    content='https://ai-writing-coach-seven.vercel.app/og-image.png'
+                    content='https://sabiwrite-ai.vercel.app/og-image.png'
                 />
 
                 <meta property='og:site_name' content='SabiWrite AI' />
@@ -125,7 +125,7 @@ export function LandingPage() {
 
                 <meta
                     name='twitter:image'
-                    content='https://ai-writing-coach-seven.vercel.app/og-image.png'
+                    content='https://sabiwrite-ai.vercel.app/og-image.png'
                 />
 
                 {/* ===========================================================
@@ -141,7 +141,7 @@ export function LandingPage() {
                                 name: 'SabiWrite AI',
                                 applicationCategory: 'EducationalApplication',
                                 operatingSystem: 'Web',
-                                url: 'https://ai-writing-coach-seven.vercel.app/',
+                                url: 'https://sabiwrite-ai.vercel.app/',
                                 description:
                                     'An AI-powered English writing coach that helps users improve by identifying recurring mistakes and generating personalized lessons.',
                                 offers: {
@@ -154,14 +154,14 @@ export function LandingPage() {
                             {
                                 '@type': 'WebSite',
                                 name: 'SabiWrite AI',
-                                url: 'https://ai-writing-coach-seven.vercel.app/',
+                                url: 'https://sabiwrite-ai.vercel.app/',
                             },
 
                             {
                                 '@type': 'Organization',
                                 name: 'SabiWrite AI',
-                                url: 'https://ai-writing-coach-seven.vercel.app/',
-                                logo: 'https://ai-writing-coach-seven.vercel.app/logo.png',
+                                url: 'https://sabiwrite-ai.vercel.app/',
+                                logo: 'https://sabiwrite-ai.vercel.app/logo.png',
                             },
                         ],
                     })}
@@ -196,11 +196,11 @@ export function LandingPage() {
                                 </span>
                             </h1>
                             <p id="hero-description" className='text-xl text-slate-600 dark:text-slate-300 leading-relaxed lg:pr-2  mt-0 text-center lg:text-left md:px-10 lg:px-0'>
-                                Stop using software as a crutch. English Error
-                                Coach doesn't just fix your typos—it acts as an
-                                elite personal tutor, analyzing your weakness
+                                Stop using software as a crutch. SabiWrite AI
+                                doesn't just fix your typos—it acts as an
+                                elite personal tutor, analyzing your weaknesses
                                 and generating dynamic lessons to elevate your
-                                communication
+                                communication.
                             </p>
                             <div className='flex flex-col sm:flex-row justify-center lg:justify-start gap-3 pt-2 pb-12'>
                                 <Link to='/login'
@@ -215,7 +215,7 @@ export function LandingPage() {
                                     </Button>
                                 </Link>
                                 <a href='#demo'
-                                aria-label="Learn more about Sabiwrite AI's">
+                                aria-label="Try the SabiWrite AI interactive demo">
                                     <Button
                                         className='border dark:border-gray-700 border-gray-200  text-gray-700 dark:text-gray-300 w-full text-[17px]'
                                         variant='ghost'
@@ -239,7 +239,7 @@ export function LandingPage() {
                                         <span className='w-2.5 h-2.5 rounded-full bg-green-500 ' />
                                     </div>
                                     <span className='text-[13px] font-medium text-slate-400'>
-                                        Writting Analysis Mock
+                                        Writing Analysis Mock
                                     </span>
                                 </div>
                                 <div className='p-5 space-y-3 py-7 px-5'>
@@ -356,13 +356,13 @@ export function LandingPage() {
                             icon={<PenTool aria-label='true' className='w-5 h-5' />}
                             tone='brand'
                             title="Teacher's Desk"
-                            body='Rather than silently correcting, the platform breaks down each correction in simple, understandable, localized mechanics..'
+                            body='Rather than silently correcting, the platform breaks down each correction in simple, understandable, localized mechanics.'
                         />
                         <ValueProp
                             icon={<BarChart2 className='w-5 h-5' />}
                             tone='indigo'
                             title='Weakness Profiler'
-                            body='We record patterns in your typing errors to isolate exactly where your logical understanding is failing..'
+                            body='We record patterns in your typing errors to isolate exactly where your logical understanding is failing.'
                         />
                         <ValueProp
                             icon={<GraduationCap  aria-label='true' className='w-5 h-5' />}

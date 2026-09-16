@@ -1,5 +1,6 @@
 User-agent: *
 
 Allow: /
+Disallow: /app/
 
-Sitemap: https://ai-writing-coach-seven.vercel.app/sitemap.xml
+Sitemap: https://sabiwrite-ai.vercel.app/sitemap.xml
