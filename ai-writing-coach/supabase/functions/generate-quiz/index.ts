@@ -111,30 +111,28 @@ async function rest<T>(path: string, init: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function getAuthedUser(req: Request) {
+function getAuthedUser(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) throw new Error("Missing Authorization header");
 
-  // Validate token by calling Supabase auth endpoint (original approach)
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: { Authorization: authHeader, apikey: SERVICE_ROLE_KEY },
-  });
+  // The Supabase gateway already validates the JWT before the Edge Function
+  // runs, so we can safely decode the payload without a network round-trip.
+  // Format: "Bearer <header>.<payload>.<signature>"
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Malformed authorization token");
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    // Map common auth errors to appropriate messages
-    if (res.status === 401) {
-      throw new Error("Invalid or expired token");
-    }
-    throw new Error(`Auth lookup failed: ${res.status} ${errorText}`);
+  try {
+    // Base64url → base64 → JSON
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+    ) as { sub?: string };
+
+    if (!payload.sub) throw new Error("Token missing user ID (sub claim)");
+    return { id: payload.sub };
+  } catch {
+    throw new Error("Invalid or expired token");
   }
-
-  const userData = await res.json() as { id: string; email?: string };
-  if (!userData.id) {
-    throw new Error("Invalid user data received from auth service");
-  }
-
-  return { id: userData.id };
 }
 
 function buildPrompt(
