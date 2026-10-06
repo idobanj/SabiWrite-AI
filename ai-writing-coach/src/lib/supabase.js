@@ -37,33 +37,23 @@ export const FUNCTIONS_BASE = supabaseUrl ? `${supabaseUrl}/functions/v1` : "";
 
 /**
  * Helper for invoking Supabase Edge Functions with the user's auth token.
- * Use this in every API call from the client.
+ * Uses supabase.functions.invoke() which automatically refreshes the JWT
+ * before every call — prevents "Invalid or expired token" errors.
  */
 export async function invokeFunction(functionName, body) {
   if (!supabase) {
     throw new Error("Supabase is not configured. Check your .env file.");
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const res = await fetch(`${FUNCTIONS_BASE}/${functionName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: supabaseAnonKey ?? "",
-      ...(session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}),
-    },
-    body: JSON.stringify(body),
+  const { data, error } = await supabase.functions.invoke(functionName, {
+    body,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Function ${functionName} failed: ${res.status} ${text}`);
+  if (error) {
+    // Preserve the original error text so callers see the detail field
+    const message = error.message ?? String(error);
+    throw new Error(`Function ${functionName} failed: ${message}`);
   }
 
-  return await res.json();
+  return data;
 }
