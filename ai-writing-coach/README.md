@@ -1,44 +1,39 @@
-# AI Writing Coach with Memory
+# SabiWrite AI — Your AI-Powered English Writing Coach
 
-A pedagogical AI-powered writing coach that helps users improve their English by remembering recurring mistakes, identifying patterns, and generating personalized lessons and quizzes.
+> Stop using software as a crutch. SabiWrite AI doesn't just fix your typos — it acts as an elite personal tutor, analyzing your weaknesses and generating dynamic lessons to elevate your communication.
 
-**Stack:** React (Vite + JavaScript) + Tailwind CSS · Supabase (Auth + PostgreSQL + Edge Functions) · Gemini API
-
----
-
-## Quick Start
-
-### Prerequisites
-- **Node.js 20+**
-- **Supabase CLI** ([install guide](https://supabase.com/docs/guides/local-development/cli/getting-started))
-- **Docker Desktop** (required by Supabase local stack)
-
-### Setup
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Copy environment variables
-cp .env.example .env
-# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from `supabase status`
-
-# 3. Start the Supabase local stack (Postgres, Auth, Edge Functions, Studio)
-npx supabase start
-
-# 4. Run the dev server
-npm run dev
-```
-
-App at **http://localhost:5173** · Supabase Studio at **http://127.0.0.1:54323**
+🌐 **Live App:** [https://sabiwrite-ai.vercel.app](https://sabiwrite-ai.vercel.app)
 
 ---
 
-## Project Structure (Standard Vite + Supabase)
+## What It Does
+
+SabiWrite AI is a pedagogical AI writing coach that:
+
+- 📝 **Analyzes your writing** — detects grammar mistakes, subject-verb agreement errors, tense issues, and more
+- 🧠 **Remembers your mistakes** — builds a personal mistake profile over time
+- 📊 **Tracks your weaknesses** — shows patterns in your recurring errors via a progress dashboard
+- 🎓 **Generates personalized lessons** — turns your weakest areas into interactive micro-lessons and quizzes
+- 🏆 **Tracks your mastery** — rewards improvement with a mastery system
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 (Vite + JavaScript) + Tailwind CSS |
+| Auth & Database | Supabase (Auth + PostgreSQL + RLS) |
+| AI | Google Gemini API (via Supabase Edge Functions) |
+| Deployment | Vercel |
+
+---
+
+## Project Structure
 
 ```
 ai-writing-coach/
-├── public/                 # Static assets
+├── public/                 # Static assets (sitemap, robots.txt, og-image)
 ├── src/
 │   ├── components/         # Shared UI components
 │   │   ├── AppShell.jsx    # Sidebar + TopHeader + Outlet
@@ -55,6 +50,7 @@ ai-writing-coach/
 │   ├── pages/              # Route-level page components
 │   │   ├── LandingPage.jsx
 │   │   ├── LoginPage.jsx
+│   │   ├── SignupPage.jsx
 │   │   ├── WritingDesk.jsx
 │   │   ├── ProgressDashboard.jsx
 │   │   ├── PracticeModule.jsx
@@ -78,26 +74,11 @@ ai-writing-coach/
 │   ├── migrations/
 │   │   └── 0001_initial_schema.sql
 │   └── config.toml
+├── .github/workflows/      # GitHub Actions
+│   └── supabase-keep-alive.yml
 ├── .env.example
 └── package.json
 ```
-
----
-
-## Project Phases
-
-| Phase | Status | Goal |
-|---|---|---|
-| **Phase 0** | 🟢 In progress | Project setup, design system, scaffolding |
-| Phase 1 | ⚪ Pending | Supabase Auth (login/signup) |
-| Phase 2 | ⚪ Pending | Gemini text analysis API |
-| Phase 3 | ⚪ Pending | Mistake memory + repetition logic |
-| Phase 4 | ⚪ Pending | Dashboard with stats & history |
-| Phase 5 | ⚪ Pending | AI lesson generation |
-| Phase 6 | ⚪ Pending | Adaptive quiz system |
-| Phase 7 | ⚪ Pending | Notifications |
-| Phase 8 | ⚪ Pending | Mastery system |
-| Phase 9 | ⚪ Pending | Final polish |
 
 ---
 
@@ -124,7 +105,48 @@ The interface between Gemini and our app is locked in `src/lib/analysis.js` as J
  */
 ```
 
-Every Edge Function, every React component, and every database column for `mistakes` references this contract.
+---
+
+## Local Development
+
+### Prerequisites
+- **Node.js 20+**
+- **Supabase CLI** ([install guide](https://supabase.com/docs/guides/local-development/cli/getting-started))
+- **Docker Desktop** (required by Supabase local stack)
+
+### Setup
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/idobanj/SabiWrite-AI.git
+cd SabiWrite-AI/ai-writing-coach
+
+# 2. Install dependencies
+npm install
+
+# 3. Copy environment variables
+cp .env.example .env
+# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+
+# 4. Start the Supabase local stack
+npx supabase start
+
+# 5. Run the dev server
+npm run dev
+```
+
+App at **http://localhost:5173** · Supabase Studio at **http://127.0.0.1:54323**
+
+---
+
+## Environment Variables
+
+```bash
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+> ⚠️ Never commit `.env` or `.env.supabase` — they are in `.gitignore`
 
 ---
 
@@ -136,3 +158,26 @@ npm run build        # Production build → dist/
 npm run preview      # Preview the production build locally
 npm run lint         # oxlint
 ```
+
+---
+
+## Features Status
+
+| Feature | Status |
+|---|---|
+| Landing page with interactive demo | ✅ Live |
+| Auth (login / signup / password reset) | ✅ Live |
+| Writing Desk with AI analysis | ✅ Live |
+| Mistake memory & pattern tracking | ✅ Live |
+| Progress dashboard & stats | ✅ Live |
+| Personalized lesson generation | ✅ Live |
+| Adaptive quiz system | ✅ Live |
+| Dark / light mode | ✅ Live |
+| Google Search Console indexing | ✅ Done |
+| Supabase keep-alive (GitHub Actions) | ✅ Done |
+
+---
+
+## License
+
+MIT
