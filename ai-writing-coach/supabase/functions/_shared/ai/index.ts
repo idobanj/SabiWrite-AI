@@ -3,7 +3,7 @@
 import {GeminiProvider} from './providers/gemini.ts';
 import {GroqProvider} from './providers/groq.ts';
 import {loadAIConfig} from './config.ts';
-import {AIProvider} from './types.ts';
+import {AIProvider, AIRequest} from './types.ts';
 
 /**
  * Creates a provider-agnostic AI service with provider-level fallback.
