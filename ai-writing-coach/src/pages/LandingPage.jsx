@@ -44,7 +44,7 @@ function useReveal() {
 }
 
 /** Keep the typing loop separate from the hero's one-time entrance. */
-function useTypewriter(text, {startDelay = 1100, typeSpeed = 110, eraseSpeed = 65, pauseMs = 2800} = {}) {
+function useTypewriter(text, {startDelay = 650, typeSpeed = 80, eraseSpeed = 55, pauseMs = 7000} = {}) {
     const [displayed, setDisplayed] = useState('');
 
     useEffect(() => {
@@ -215,7 +215,7 @@ export function LandingPage() {
                     {/* Centered Hero Content */}
                     <div className='w-full max-w-7xl mx-auto pt-8 sm:pt-14 pb-12 text-center relative z-10 flex flex-col items-center'>
 
-                        {/* The badge settles in after the headline and actions. */}
+                        {/* The badge leads into the headline reveal. */}
                         <div className='hero-motion hero-badge mb-6 sm:mb-8 flex justify-center'>
                             <span className='inline-flex flex-nowrap items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold leading-none tracking-wide whitespace-nowrap shadow-sm'>
                                 <span className='w-4 h-4 shrink-0 rounded-full bg-brand-500 text-white inline-flex items-center justify-center'>
@@ -312,6 +312,8 @@ export function LandingPage() {
                                     loading='eager'
                                 />
                             </div>
+
+                            <HeroCorrectionExample />
                         </div>
 
                     </div>
@@ -459,6 +461,68 @@ export function LandingPage() {
 
             </main>
         </>
+    );
+}
+
+/** Play the illustrative correction once, when it can actually be seen. */
+function HeroCorrectionExample() {
+    const exampleRef = useRef(null);
+
+    useEffect(() => {
+        const example = exampleRef.current;
+        if (!example || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        const dashboard = example.closest('.hero-dashboard');
+        if (!dashboard) return;
+        const entrance = dashboard.getAnimations().find((animation) => animation.animationName === 'heroDashboardEnter');
+        let dashboardReady = !entrance || entrance.playState === 'finished';
+        let inView = false;
+
+        const play = () => {
+            if (!dashboardReady || !inView) return;
+            example.classList.add('is-active');
+            observer.disconnect();
+            dashboard.removeEventListener('animationend', onEntranceEnd);
+        };
+
+        const onEntranceEnd = (event) => {
+            if (event.target === dashboard && event.animationName === 'heroDashboardEnter') {
+                dashboardReady = true;
+                play();
+            }
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            inView = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.65);
+            play();
+        }, {threshold: 0.65});
+
+        dashboard.addEventListener('animationend', onEntranceEnd);
+        observer.observe(example);
+        return () => {
+            observer.disconnect();
+            dashboard.removeEventListener('animationend', onEntranceEnd);
+        };
+    }, []);
+
+    return (
+        <div ref={exampleRef} className='hero-correction-example' aria-hidden='true'>
+            <div className='hero-example-label'>
+                <Sparkles className='w-3.5 h-3.5' />
+                <span>Coaching example</span>
+            </div>
+            <p className='hero-example-sentence'>
+                They{' '}
+                <span className='hero-example-word'>
+                    <span className='hero-example-wrong'>has</span>
+                    <span className='hero-example-correct'>have</span>
+                </span>{' '}
+                finished the report.
+            </p>
+            <p className='hero-example-explanation'>
+                Use “have” with “they”.
+            </p>
+        </div>
     );
 }
 

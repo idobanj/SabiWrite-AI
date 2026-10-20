@@ -63,6 +63,7 @@
   /* One entrance sequence, timed from the reference video. */
   .landing-hero {
     --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --hero-dashboard-distance: 72px;
   }
 
   .hero-motion {
@@ -72,8 +73,8 @@
 
   .hero-nav {
     animation-name: heroNavEnter;
-    animation-duration: 850ms;
-    animation-delay: 180ms;
+    animation-duration: 650ms;
+    animation-delay: 0ms;
   }
 
   .hero-line-mask {
@@ -86,10 +87,10 @@
   .hero-headline-line {
     display: block;
     animation-name: heroLineEnter;
-    animation-duration: 820ms;
+    animation-duration: 700ms;
   }
-  .hero-headline-first { animation-delay: 160ms; }
-  .hero-headline-second { animation-delay: 420ms; }
+  .hero-headline-first { animation-delay: 220ms; }
+  .hero-headline-second { animation-delay: 340ms; }
 
   .hero-typewriter {
     display: inline-grid;
@@ -118,20 +119,110 @@
   .hero-actions,
   .hero-badge {
     animation-name: heroContentEnter;
-    animation-duration: 700ms;
+    animation-duration: 600ms;
   }
-  .hero-description { animation-delay: 700ms; }
-  .hero-actions { animation-delay: 880ms; }
+  .hero-description {
+    --hero-content-distance: 16px;
+    animation-delay: 540ms;
+  }
+  .hero-actions {
+    --hero-content-distance: 12px;
+    animation-delay: 680ms;
+  }
   .hero-badge {
     --hero-content-distance: 10px;
-    animation-delay: 1120ms;
-    animation-duration: 850ms;
+    animation-delay: 120ms;
   }
 
   .hero-dashboard {
     animation-name: heroDashboardEnter;
-    animation-duration: 1200ms;
-    animation-delay: 1100ms;
+    animation-duration: 900ms;
+    animation-delay: 820ms;
+  }
+
+  /* An overlay within the preview: no change to the hero's layout. */
+  .hero-correction-example {
+    --hero-example-wait: 300ms;
+    --hero-example-x: 50%;
+    position: absolute;
+    z-index: 1;
+    top: 84px;
+    right: 50%;
+    width: min(310px, calc(100% - 32px));
+    padding: 16px;
+    border: 1px solid #e0e7ff;
+    border-radius: 16px;
+    background: rgb(255 255 255 / 98%);
+    box-shadow: 0 12px 32px -12px rgb(15 23 42 / 28%);
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(var(--hero-example-x), 12px);
+  }
+  .hero-correction-example.is-active {
+    animation: heroExampleCard 4600ms var(--hero-ease) var(--hero-example-wait) both;
+  }
+  .hero-example-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #5b5bf7;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+  }
+  .hero-example-sentence {
+    margin-top: 10px;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+  }
+  .hero-example-word {
+    display: inline-grid;
+  }
+  .hero-example-wrong,
+  .hero-example-correct {
+    grid-area: 1 / 1;
+  }
+  .hero-example-wrong {
+    position: relative;
+    width: fit-content;
+    color: #dc2626;
+  }
+  .hero-example-wrong::after {
+    position: absolute;
+    top: 52%;
+    right: 0;
+    left: 0;
+    height: 1.5px;
+    background: currentColor;
+    content: '';
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .hero-example-correct {
+    color: #047857;
+    opacity: 0;
+  }
+  .hero-example-explanation {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 18px;
+    opacity: 0;
+  }
+  .is-active .hero-example-wrong::after {
+    animation: heroExampleStrike 420ms ease-out calc(var(--hero-example-wait) + 800ms) both;
+  }
+  .is-active .hero-example-wrong {
+    animation: heroExampleReplace 320ms ease-in calc(var(--hero-example-wait) + 1400ms) both;
+  }
+  .is-active .hero-example-correct {
+    animation: heroExampleReveal 450ms var(--hero-ease) calc(var(--hero-example-wait) + 1400ms) both;
+  }
+  .is-active .hero-example-explanation {
+    animation: heroExampleReveal 450ms var(--hero-ease) calc(var(--hero-example-wait) + 1850ms) both;
   }
 
   /* Mask the whole preview so the frame and shadow fade with the image. */
@@ -257,7 +348,7 @@
 }
 
 @keyframes heroNavEnter {
-  from { opacity: 0; transform: translateY(-32px); }
+  from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -272,8 +363,44 @@
 }
 
 @keyframes heroDashboardEnter {
-  from { opacity: 0; transform: translateY(clamp(160px, 45vh, 420px)); }
+  from { opacity: 0; transform: translateY(var(--hero-dashboard-distance)); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroExampleCard {
+  0%, 100% { opacity: 0; transform: translate(var(--hero-example-x), 12px); }
+  12%, 86% { opacity: 1; transform: translate(var(--hero-example-x), 0); }
+}
+
+@keyframes heroExampleStrike {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes heroExampleReplace {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes heroExampleReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 640px) {
+  .landing-hero {
+    --hero-dashboard-distance: clamp(100px, 18vh, 180px);
+  }
+
+  .hero-dashboard {
+    animation-duration: 1100ms;
+  }
+
+  .hero-correction-example {
+    --hero-example-x: 0%;
+    top: 60px;
+    right: 40px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -286,6 +413,10 @@
   }
 
   .landing-hero .hero-typewriter-cursor {
+    display: none;
+  }
+
+  .landing-hero .hero-correction-example {
     display: none;
   }
 }
