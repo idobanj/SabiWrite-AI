@@ -10,9 +10,21 @@ import {
     Award,
     Sparkles,
     ArrowRight,
+    ChevronDown,
 } from 'lucide-react';
 import {LandingDemo} from '../components/LandingDemo';
 import {useLandingMotion} from '../hooks/useLandingMotion';
+
+const faqs = [
+    {question: 'What is SabiWrite AI, and how does it work?', answer: 'answer'},
+    {question: 'How is SabiWrite AI different from a regular grammar checker?', answer: 'answer'},
+    {question: 'Can SabiWrite AI identify mistakes I repeatedly make?', answer: 'answer'},
+    {question: 'How do the personalized lessons and practice exercises work?', answer: 'answer'},
+    {question: 'Can beginners use SabiWrite AI?', answer: 'answer'},
+    {question: 'What types of writing can I improve with it?', answer: 'answer'},
+    {question: 'Is SabiWrite AI free?', answer: 'answer'},
+    {question: 'Is my writing data safe?', answer: 'answer'},
+];
 
 /** Keep the typing loop synchronized with the hero's scroll entrances. */
 function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, eraseSpeed = 55, pauseMs = 7000} = {}) {
@@ -250,23 +262,25 @@ export function LandingPage() {
                             </div>
 
                             {/* Desktop Dashboard Mockup (visible on tablet and desktop) */}
-                            <div className='hero-preview-fade hidden sm:block rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08),0_0_1px_1px_rgba(0,0,0,0.02)] overflow-hidden'>
-                                {/* Window Chrome Header */}
-                                <div className='flex items-center gap-1.5 px-4 py-2.5 bg-slate-100/90 border-b border-slate-200/80'>
-                                    <span className='w-2.5 h-2.5 rounded-full bg-red-400' />
-                                    <span className='w-2.5 h-2.5 rounded-full bg-amber-400' />
-                                    <span className='w-2.5 h-2.5 rounded-full bg-emerald-400' />
-                                </div>
+                            <div className='hero-preview-shadow hidden sm:block'>
+                                <div className='hero-preview-fade rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white overflow-hidden'>
+                                    {/* Window Chrome Header */}
+                                    <div className='flex items-center gap-1.5 px-4 py-2.5 bg-slate-100/90 border-b border-slate-200/80'>
+                                        <span className='w-2.5 h-2.5 rounded-full bg-red-400' />
+                                        <span className='w-2.5 h-2.5 rounded-full bg-amber-400' />
+                                        <span className='w-2.5 h-2.5 rounded-full bg-emerald-400' />
+                                    </div>
 
-                                {/* Dashboard Image */}
-                                <img
-                                    src='/hero-dashboard.png'
-                                    alt='SabiWrite AI Progress Dashboard'
-                                    className='w-full h-auto block select-none pointer-events-none'
-                                    width='1024'
-                                    height='516'
-                                    loading='eager'
-                                />
+                                    {/* Dashboard Image */}
+                                    <img
+                                        src='/hero-dashboard.png'
+                                        alt='SabiWrite AI Progress Dashboard'
+                                        className='w-full h-auto block select-none pointer-events-none'
+                                        width='1024'
+                                        height='516'
+                                        loading='eager'
+                                    />
+                                </div>
                             </div>
 
                             <HeroCorrectionExample />
@@ -278,22 +292,18 @@ export function LandingPage() {
                 <LandingDemo />
 
                 {/* ═══════════════════════════════════════
-                    SECTION 3 — FEATURES / VALUE PROPS  (full-screen)
+                    SECTION 3 — FEATURES / VALUE PROPS
                 ═══════════════════════════════════════ */}
                 <section
                     id='features'
                     aria-labelledby='features-heading'
-                    className='relative flex flex-col justify-center min-h-screen px-4 sm:px-12'>
+                    className='relative overflow-hidden bg-white px-4 py-20 sm:px-12 sm:py-24 lg:py-28'>
 
-                    <div aria-hidden='true' className='pointer-events-none absolute inset-0 -z-10 overflow-hidden'>
-                        <div className='animate-orb-2 absolute bottom-0 right-0 w-[420px] h-[420px] rounded-full bg-brand-500/8 blur-3xl' />
-                    </div>
-
-                    <div className='w-full max-w-7xl mx-auto py-24 lg:py-0 space-y-14'>
+                    <div className='w-full max-w-7xl mx-auto space-y-10 sm:space-y-11'>
 
                         {/* Heading */}
                         <div className='reveal text-center space-y-3'>
-                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-500 text-xs font-semibold tracking-wide'>
+                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-600 text-xs font-semibold tracking-wide'>
                                 Why SabiWrite AI
                             </span>
                             <h2
@@ -301,37 +311,33 @@ export function LandingPage() {
                                 className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
                                 Built to Make You Actually Improve
                             </h2>
-                            <p className='text-[16px] text-slate-500 max-w-xl mx-auto'>
+                            <p className='text-[16px] text-slate-600 max-w-xl mx-auto'>
                                 Four pillars that separate a real coach from a spell-checker.
                             </p>
                         </div>
 
                         {/* Cards grid */}
-                        <article className='grid sm:grid-cols-2 lg:grid-cols-4 gap-5'>
+                        <article className='grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4'>
                             <ValueProp
                                 icon={<PenTool aria-hidden='true' className='w-5 h-5' />}
-                                tone='brand'
                                 title="Teacher's Desk"
                                 body='Rather than silently correcting, the platform breaks down each correction in simple, understandable, localized mechanics.'
                                 delay={1}
                             />
                             <ValueProp
                                 icon={<BarChart2 aria-hidden='true' className='w-5 h-5' />}
-                                tone='indigo'
                                 title='Weakness Profiler'
                                 body='We record patterns in your typing errors to isolate exactly where your logical understanding is failing.'
                                 delay={2}
                             />
                             <ValueProp
                                 icon={<GraduationCap aria-hidden='true' className='w-5 h-5' />}
-                                tone='emerald'
                                 title='Interactive Micro-Lessons'
                                 body='Instantly convert detected weaknesses into specialized modules with quizzes to practice what you got wrong.'
                                 delay={3}
                             />
                             <ValueProp
                                 icon={<Award aria-hidden='true' className='w-5 h-5' />}
-                                tone='amber'
                                 title='Competition Ready'
                                 body='Built using advanced Gemini API reasoning for robust processing and customized EdTech execution workflows.'
                                 delay={4}
@@ -341,13 +347,45 @@ export function LandingPage() {
 
                     </div>
 
-                    {/* Footer */}
-                    <footer
-                        role='contentinfo'
-                        className='absolute bottom-0 inset-x-0 py-6 border-t border-slate-200 text-xs text-slate-400 text-center'>
-                        © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
-                    </footer>
                 </section>
+
+                <section
+                    id='faq'
+                    aria-labelledby='faq-heading'
+                    className='px-4 sm:px-12 py-20 sm:py-24'>
+                    <div className='w-full max-w-3xl mx-auto space-y-10'>
+                        <div className='reveal text-center space-y-3'>
+                            <span className='inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-500 text-xs font-semibold tracking-wide'>
+                                FAQ
+                            </span>
+                            <h2
+                                id='faq-heading'
+                                className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
+                                Frequently Asked Questions
+                            </h2>
+                        </div>
+
+                        <div className='divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white'>
+                            {faqs.map(({question, answer}) => (
+                                <details key={question} name='faq' className='reveal group'>
+                                    <summary className='flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-5 text-left text-sm sm:text-base font-semibold text-slate-800 transition-colors hover:text-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 [&::-webkit-details-marker]:hidden'>
+                                        <span>{question}</span>
+                                        <ChevronDown aria-hidden='true' className='h-5 w-5 shrink-0 text-slate-400 transition-transform group-open:rotate-180 motion-reduce:transition-none' />
+                                    </summary>
+                                    <div className='px-5 pb-5 text-sm sm:text-base text-slate-500 leading-relaxed'>
+                                        {answer}
+                                    </div>
+                                </details>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                <footer
+                    role='contentinfo'
+                    className='py-6 border-t border-slate-200 text-xs text-slate-400 text-center'>
+                    © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
+                </footer>
 
             </main>
         </>
@@ -427,14 +465,7 @@ function HeroCorrectionExample() {
     );
 }
 
-function ValueProp({icon, tone, title, body, delay}) {
-    const toneClass = {
-        brand: 'bg-brand-50 text-brand-500',
-        indigo: 'bg-indigo-50 text-indigo-500',
-        emerald: 'bg-emerald-50 text-emerald-500',
-        amber: 'bg-amber-50 text-amber-500',
-    }[tone];
-
+function ValueProp({icon, title, body, delay}) {
     const delayClass = {
         1: 'reveal-delay-1',
         2: 'reveal-delay-2',
@@ -443,10 +474,14 @@ function ValueProp({icon, tone, title, body, delay}) {
     }[delay] ?? '';
 
     return (
-        <div className={`reveal ${delayClass} hover-lift p-6 bg-white border border-slate-200 rounded-2xl space-y-4`}>
-            <div className={`p-2.5 rounded-xl w-fit ${toneClass}`}>{icon}</div>
-            <h3 className='font-semibold text-slate-900 text-[15px]'>{title}</h3>
-            <p className='text-sm text-slate-500 leading-relaxed'>{body}</p>
+        <div className={`reveal ${delayClass} hover-lift h-full rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.32)] sm:p-6`}>
+            <div className='flex items-center gap-3'>
+                <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-100 bg-brand-50 text-brand-600'>
+                    {icon}
+                </div>
+                <h3 className='font-semibold text-slate-900 text-[15px] leading-snug'>{title}</h3>
+            </div>
+            <p className='mt-4 text-sm text-slate-600 leading-relaxed'>{body}</p>
         </div>
     );
 }
