@@ -24,6 +24,7 @@ import { analyzeText, analyzeTextStream, logAnalysis } from "../lib/analysis";
 import { logMistakes } from "../lib/mistakes";
 import { getHistoryEntry } from "../lib/history";
 import { bumpMastery } from "../lib/mastery";
+import { readPendingDraft, clearPendingDraft } from "../lib/pendingDraft";
 
 /**
  * Phase 2 Writing Desk. The user types or pastes text, hits "Check it",
@@ -39,7 +40,10 @@ export function WritingDesk() {
   const { show } = useToast();
   const location = useLocation();
 
-  const [text, setText] = useState("");
+  const [pendingDraft] = useState(() =>
+    location.state?.reviewLogId ? null : readPendingDraft()
+  );
+  const [text, setText] = useState(pendingDraft ?? "");
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [progressState, setProgressState] = useState({
@@ -47,6 +51,12 @@ export function WritingDesk() {
     message: "Reading your writing...",
   });
   const [reviewMeta, setReviewMeta] = useState(null); // { createdAt, id } when reviewing
+
+  // Consume the handoff after initialization so StrictMode's repeated
+  // initializer reads cannot discard it before the editor receives it.
+  useEffect(() => {
+    if (pendingDraft) clearPendingDraft();
+  }, [pendingDraft]);
 
   const wordCount = useMemo(
     () => (text.trim() ? text.trim().split(/\s+/).length : 0),

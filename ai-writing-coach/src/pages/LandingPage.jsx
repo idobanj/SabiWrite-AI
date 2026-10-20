@@ -11,40 +11,11 @@ import {
     Sparkles,
     ArrowRight,
 } from 'lucide-react';
-import {Button} from '../components/Button';
-import {useToast} from '../components/Toast';
+import {LandingDemo} from '../components/LandingDemo';
+import {useLandingMotion} from '../hooks/useLandingMotion';
 
-const templates = {
-    pitch: 'Dear hiring team, I am writing to propose my services. The team of developers does tried to fix the API modules, but they has failed continuously. We need to implement a clean architecture as soon as possible. I am looking forward to see you.',
-    chat: 'Hi sir! I am happy to tell you that the project details is ready. Everybody in our group are working to ensure we submit early. Let me know when you has time to check.',
-    essay: 'The economic situation in Nigeria are challenging. Many youth struggles to get remote jobs due to this gap. I strongly believes that digital education provide a viable escape route.',
-};
-
-/** Triggers .is-visible on elements that enter the viewport */
-function useReveal() {
-    const ref = useRef(null);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const targets = el.querySelectorAll('.reveal');
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((e) => {
-                    if (e.isIntersecting) {
-                        e.target.classList.add('is-visible');
-                    }
-                });
-            },
-            {threshold: 0.1},
-        );
-        targets.forEach((t) => observer.observe(t));
-        return () => observer.disconnect();
-    }, []);
-    return ref;
-}
-
-/** Keep the typing loop separate from the hero's one-time entrance. */
-function useTypewriter(text, {startDelay = 650, typeSpeed = 80, eraseSpeed = 55, pauseMs = 7000} = {}) {
+/** Keep the typing loop synchronized with the hero's scroll entrances. */
+function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, eraseSpeed = 55, pauseMs = 7000} = {}) {
     const [displayed, setDisplayed] = useState('');
 
     useEffect(() => {
@@ -59,6 +30,7 @@ function useTypewriter(text, {startDelay = 650, typeSpeed = 80, eraseSpeed = 55,
             }
 
             setDisplayed('');
+            if (!active) return;
             let length = 0;
             let erasing = false;
 
@@ -86,20 +58,17 @@ function useTypewriter(text, {startDelay = 650, typeSpeed = 80, eraseSpeed = 55,
             clearTimeout(timer);
             reducedMotion.removeEventListener('change', start);
         };
-    }, [text, startDelay, typeSpeed, eraseSpeed, pauseMs]);
+    }, [text, active, startDelay, typeSpeed, eraseSpeed, pauseMs]);
 
     return displayed;
 }
 
 /**
- * Landing page. The interactive demo is visual only — submitting it
- * routes the user through the auth flow.
+ * Landing page with prepared coaching examples and authenticated draft handoff.
  */
 export function LandingPage() {
-    const [draft, setDraft] = useState('');
-    const {show} = useToast();
-    const pageRef = useReveal();
-    const typedText = useTypewriter('Writing Coach');
+    const {pageRef, heroActive} = useLandingMotion();
+    const typedText = useTypewriter('Writing Coach', {active: heroActive});
 
     // Landing page is strictly light mode alone
     useEffect(() => {
@@ -114,19 +83,6 @@ export function LandingPage() {
             }
         };
     }, []);
-
-    const handleTemplateClick = (key) => {
-        setDraft(templates[key]);
-        show(`Loaded the ${key} draft.`);
-    };
-
-    const handleCheckClick = () => {
-        if (!draft.trim()) {
-            show('Type or paste something first.');
-            return;
-        }
-        show('Sign in to run a real analysis on your draft.');
-    };
 
     return (
         <>
@@ -184,7 +140,7 @@ export function LandingPage() {
                 </script>
             </Helmet>
 
-            <main ref={pageRef} className='bg-slate-50 text-slate-800'>
+            <main ref={pageRef} className='landing-page bg-slate-50 text-slate-800'>
 
                 {/* ═══════════════════════════════════════
                     SECTION 1 — HERO
@@ -319,73 +275,7 @@ export function LandingPage() {
                     </div>
                 </section>
 
-                {/* ═══════════════════════════════════════
-                    SECTION 2 — INTERACTIVE DEMO  (full-screen)
-                ═══════════════════════════════════════ */}
-                <section
-                    id='demo'
-                    aria-labelledby='demo-heading'
-                    className='relative flex flex-col justify-center min-h-screen px-4 sm:px-12 bg-slate-100/60'>
-
-                    {/* Subtle divider top */}
-                    <div aria-hidden='true' className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent' />
-
-                    <div className='w-full max-w-7xl mx-auto py-24 lg:py-0 space-y-10'>
-
-                        {/* Heading */}
-                        <div className='reveal text-center space-y-2'>
-                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-500 text-xs font-semibold tracking-wide mb-2'>
-                                <Sparkles className='w-3 h-3' aria-hidden='true' />
-                                Live Playground
-                            </span>
-                            <h2
-                                id='demo-heading'
-                                className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
-                                Try It Out Right Now
-                            </h2>
-                            <p className='text-[16px] text-slate-500 max-w-lg mx-auto'>
-                                Pick a sample draft or type your own. See how SabiWrite AI
-                                flags patterns and explains every correction.
-                            </p>
-                        </div>
-
-                        {/* Template pills */}
-                        <div className='reveal reveal-delay-1 flex flex-wrap gap-2 justify-center'>
-                            <TemplateButton onClick={() => handleTemplateClick('pitch')}>
-                                A client proposal
-                            </TemplateButton>
-                            <TemplateButton onClick={() => handleTemplateClick('chat')}>
-                                A freelancer message
-                            </TemplateButton>
-                            <TemplateButton onClick={() => handleTemplateClick('essay')}>
-                                A scholarship essay
-                            </TemplateButton>
-                        </div>
-
-                        {/* Textarea card */}
-                        <div className='reveal reveal-delay-2 hover-lift bg-white border border-slate-200 rounded-2xl p-5'>
-                            <textarea
-                                value={draft}
-                                onChange={(e) => setDraft(e.target.value)}
-                                rows={6}
-                                className='w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none'
-                                placeholder='Type or paste your text here…'
-                            />
-                            <div className='flex items-center justify-between pt-3'>
-                                <span className='text-xs text-slate-400'>
-                                    {draft.trim() ? `${draft.trim().split(/\s+/).length} words` : 'Empty'}
-                                </span>
-                                <Button
-                                    type='button'
-                                    className='text-[15px] transition-transform duration-200 hover:scale-[1.04] active:scale-95'
-                                    onClick={handleCheckClick}
-                                    leftIcon={<Sparkles aria-hidden='true' className='w-3.5 h-3.5' />}>
-                                    Check in Writing Desk
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <LandingDemo />
 
                 {/* ═══════════════════════════════════════
                     SECTION 3 — FEATURES / VALUE PROPS  (full-screen)
@@ -395,7 +285,7 @@ export function LandingPage() {
                     aria-labelledby='features-heading'
                     className='relative flex flex-col justify-center min-h-screen px-4 sm:px-12'>
 
-                    <div aria-hidden='true' className='pointer-events-none absolute inset-0 -z-10'>
+                    <div aria-hidden='true' className='pointer-events-none absolute inset-0 -z-10 overflow-hidden'>
                         <div className='animate-orb-2 absolute bottom-0 right-0 w-[420px] h-[420px] rounded-full bg-brand-500/8 blur-3xl' />
                     </div>
 
@@ -464,25 +354,32 @@ export function LandingPage() {
     );
 }
 
-/** Play the illustrative correction once, when it can actually be seen. */
+/** Play the illustrative correction after each scroll entrance. */
 function HeroCorrectionExample() {
     const exampleRef = useRef(null);
 
     useEffect(() => {
         const example = exampleRef.current;
-        if (!example || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (!example) return;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
         const dashboard = example.closest('.hero-dashboard');
         if (!dashboard) return;
         const entrance = dashboard.getAnimations().find((animation) => animation.animationName === 'heroDashboardEnter');
-        let dashboardReady = !entrance || entrance.playState === 'finished';
+        let dashboardReady = entrance ? entrance.playState === 'finished' : dashboard.classList.contains('is-visible');
         let inView = false;
+        let played = false;
 
         const play = () => {
-            if (!dashboardReady || !inView) return;
+            if (reducedMotion.matches || !dashboardReady || !inView || played) return;
+            played = true;
             example.classList.add('is-active');
-            observer.disconnect();
-            dashboard.removeEventListener('animationend', onEntranceEnd);
+        };
+
+        const reset = () => {
+            played = false;
+            dashboardReady = false;
+            example.classList.remove('is-active');
         };
 
         const onEntranceEnd = (event) => {
@@ -498,10 +395,14 @@ function HeroCorrectionExample() {
         }, {threshold: 0.65});
 
         dashboard.addEventListener('animationend', onEntranceEnd);
+        dashboard.addEventListener('landing:motion-reset', reset);
+        reducedMotion.addEventListener('change', reset);
         observer.observe(example);
         return () => {
             observer.disconnect();
             dashboard.removeEventListener('animationend', onEntranceEnd);
+            dashboard.removeEventListener('landing:motion-reset', reset);
+            reducedMotion.removeEventListener('change', reset);
         };
     }, []);
 
@@ -523,16 +424,6 @@ function HeroCorrectionExample() {
                 Use “have” with “they”.
             </p>
         </div>
-    );
-}
-
-function TemplateButton({onClick, children}) {
-    return (
-        <button
-            onClick={onClick}
-            className='px-4 py-2 bg-white border border-slate-200 hover:border-brand-500/50 text-slate-700 text-xs font-medium rounded-full transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm'>
-            {children}
-        </button>
     );
 }
 

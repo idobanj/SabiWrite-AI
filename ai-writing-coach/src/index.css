@@ -60,15 +60,26 @@
     animation: fadeIn 0.35s ease-out forwards;
   }
 
-  /* One entrance sequence, timed from the reference video. */
+  /* Replay the reference-video entrance as each element returns to view. */
   .landing-hero {
     --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --hero-dashboard-distance: 72px;
+    --hero-dashboard-distance: 96px;
   }
 
   .hero-motion {
     animation-fill-mode: both;
     animation-timing-function: var(--hero-ease);
+  }
+
+  .landing-hero .hero-motion:not(.is-visible) {
+    animation: none;
+    opacity: 0;
+  }
+
+  .landing-page .animate-orb-1:not(.is-visible),
+  .landing-page .animate-orb-2:not(.is-visible),
+  .landing-hero .hero-motion:not(.is-visible) .hero-typewriter-cursor {
+    animation: none;
   }
 
   .hero-nav {
@@ -87,7 +98,7 @@
   .hero-headline-line {
     display: block;
     animation-name: heroLineEnter;
-    animation-duration: 700ms;
+    animation-duration: 850ms;
   }
   .hero-headline-first { animation-delay: 220ms; }
   .hero-headline-second { animation-delay: 340ms; }
@@ -119,24 +130,24 @@
   .hero-actions,
   .hero-badge {
     animation-name: heroContentEnter;
-    animation-duration: 600ms;
+    animation-duration: 750ms;
   }
   .hero-description {
-    --hero-content-distance: 16px;
+    --hero-content-distance: 24px;
     animation-delay: 540ms;
   }
   .hero-actions {
-    --hero-content-distance: 12px;
+    --hero-content-distance: 20px;
     animation-delay: 680ms;
   }
   .hero-badge {
-    --hero-content-distance: 10px;
+    --hero-content-distance: 16px;
     animation-delay: 120ms;
   }
 
   .hero-dashboard {
     animation-name: heroDashboardEnter;
-    animation-duration: 900ms;
+    animation-duration: 1100ms;
     animation-delay: 820ms;
   }
 
@@ -275,18 +286,19 @@
   /* Scroll-reveal: hidden until JS adds .is-visible */
   .reveal {
     opacity: 0;
-    transform: translateY(32px);
-    transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateY(48px);
+    transition: opacity 0.85s cubic-bezier(0.2, 0.65, 0.3, 1),
+                transform 0.85s cubic-bezier(0.2, 0.65, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0s);
   }
   .reveal.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
-  .reveal-delay-1 { transition-delay: 0.1s; }
-  .reveal-delay-2 { transition-delay: 0.2s; }
-  .reveal-delay-3 { transition-delay: 0.3s; }
-  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-1 { --reveal-delay: 0.14s; }
+  .reveal-delay-2 { --reveal-delay: 0.28s; }
+  .reveal-delay-3 { --reveal-delay: 0.42s; }
+  .reveal-delay-4 { --reveal-delay: 0.56s; }
 
   /* Card hover lift */
   .hover-lift {
@@ -296,6 +308,13 @@
   .hover-lift:hover {
     transform: translateY(-6px);
     box-shadow: 0 20px 40px -12px rgba(91, 91, 247, 0.18);
+  }
+
+  .reveal.hover-lift {
+    transition: opacity 0.85s cubic-bezier(0.2, 0.65, 0.3, 1),
+                transform 0.85s cubic-bezier(0.2, 0.65, 0.3, 1),
+                box-shadow 0.3s ease;
+    transition-delay: var(--reveal-delay, 0s);
   }
 }
 
@@ -404,7 +423,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-hero .hero-motion {
+  .landing-hero .hero-motion,
+  .landing-hero .hero-motion:not(.is-visible) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .reveal,
+  .reveal.is-visible,
+  .reveal.hover-lift {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .landing-page .animate-orb-1,
+  .landing-page .animate-orb-2 {
     animation: none;
   }
 
