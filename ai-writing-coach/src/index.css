@@ -60,7 +60,98 @@
     animation: fadeIn 0.35s ease-out forwards;
   }
 
+  /* One entrance sequence, timed from the reference video. */
+  .landing-hero {
+    --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hero-motion {
+    animation-fill-mode: both;
+    animation-timing-function: var(--hero-ease);
+  }
+
+  .hero-nav {
+    animation-name: heroNavEnter;
+    animation-duration: 850ms;
+    animation-delay: 180ms;
+  }
+
+  .hero-line-mask {
+    display: block;
+    overflow: hidden;
+    padding-block: 0.08em;
+    margin-block: -0.08em;
+  }
+
+  .hero-headline-line {
+    display: block;
+    animation-name: heroLineEnter;
+    animation-duration: 820ms;
+  }
+  .hero-headline-first { animation-delay: 160ms; }
+  .hero-headline-second { animation-delay: 420ms; }
+
+  .hero-typewriter {
+    display: inline-grid;
+    text-align: left;
+  }
+  .hero-typewriter-measure,
+  .hero-typewriter-text {
+    grid-area: 1 / 1;
+    white-space: nowrap;
+  }
+  .hero-typewriter-measure {
+    visibility: hidden;
+    padding-right: 0.1em;
+  }
+  .hero-typewriter-cursor {
+    display: inline-block;
+    width: 0.035em;
+    height: 0.82em;
+    margin-left: 0.055em;
+    border-radius: 999px;
+    background: #5b5bf7;
+    animation: blink 1s step-end infinite;
+  }
+
+  .hero-description,
+  .hero-actions,
+  .hero-badge {
+    animation-name: heroContentEnter;
+    animation-duration: 700ms;
+  }
+  .hero-description { animation-delay: 700ms; }
+  .hero-actions { animation-delay: 880ms; }
+  .hero-badge {
+    --hero-content-distance: 10px;
+    animation-delay: 1120ms;
+    animation-duration: 850ms;
+  }
+
+  .hero-dashboard {
+    animation-name: heroDashboardEnter;
+    animation-duration: 1200ms;
+    animation-delay: 1100ms;
+  }
+
+  /* Mask the whole preview so the frame and shadow fade with the image. */
+  .hero-preview-fade {
+    -webkit-mask-image: linear-gradient(to bottom, #000 60%, rgb(0 0 0 / 65%) 80%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 60%, rgb(0 0 0 / 65%) 80%, transparent 100%);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+
+  .hero-preview-fade-mobile {
+    -webkit-mask-image: linear-gradient(to bottom, #000 48%, rgb(0 0 0 / 45%) 64%, transparent 78%);
+    mask-image: linear-gradient(to bottom, #000 48%, rgb(0 0 0 / 45%) 64%, transparent 78%);
+  }
+
   /* ── Landing page animations ── */
+  .animate-card-enter {
+    animation: cardEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   .animate-fade-up {
     opacity: 0;
     animation: fadeSlideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -152,5 +243,50 @@
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
+}
+
+@keyframes cardEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes heroNavEnter {
+  from { opacity: 0; transform: translateY(-32px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroLineEnter {
+  from { opacity: 0; transform: translateY(115%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroContentEnter {
+  from { opacity: 0; transform: translateY(var(--hero-content-distance, 24px)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroDashboardEnter {
+  from { opacity: 0; transform: translateY(clamp(160px, 45vh, 420px)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero .hero-motion {
+    animation: none;
+  }
+
+  .landing-hero a {
+    transition: none;
+  }
+
+  .landing-hero .hero-typewriter-cursor {
+    display: none;
+  }
 }
 

@@ -10,8 +10,6 @@ import {
     Award,
     Sparkles,
     ArrowRight,
-    Info,
-    ChevronDown,
 } from 'lucide-react';
 import {Button} from '../components/Button';
 import {useToast} from '../components/Toast';
@@ -45,50 +43,53 @@ function useReveal() {
     return ref;
 }
 
-/**
- * Typewriter hook — types `text` char-by-char, pauses, then erases,
- * then repeats. Returns the currently-visible slice of the string.
- */
-function useTypewriter(text, {typeSpeed = 60, eraseSpeed = 35, pauseMs = 2200, startDelay = 700} = {}) {
+/** Keep the typing loop separate from the hero's one-time entrance. */
+function useTypewriter(text, {startDelay = 1100, typeSpeed = 110, eraseSpeed = 65, pauseMs = 2800} = {}) {
     const [displayed, setDisplayed] = useState('');
-    const [phase, setPhase] = useState('waiting'); // waiting | typing | pausing | erasing
 
     useEffect(() => {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
         let timer;
 
-        if (phase === 'waiting') {
-            timer = setTimeout(() => setPhase('typing'), startDelay);
-
-        } else if (phase === 'typing') {
-            if (displayed.length < text.length) {
-                timer = setTimeout(
-                    () => setDisplayed(text.slice(0, displayed.length + 1)),
-                    typeSpeed,
-                );
-            } else {
-                setPhase('pausing');
+        const start = () => {
+            clearTimeout(timer);
+            if (reducedMotion.matches) {
+                setDisplayed(text);
+                return;
             }
 
-        } else if (phase === 'pausing') {
-            timer = setTimeout(() => setPhase('erasing'), pauseMs);
+            setDisplayed('');
+            let length = 0;
+            let erasing = false;
 
-        } else if (phase === 'erasing') {
-            if (displayed.length > 0) {
-                timer = setTimeout(
-                    () => setDisplayed(text.slice(0, displayed.length - 1)),
-                    eraseSpeed,
-                );
-            } else {
-                setPhase('typing');
-            }
-        }
+            const tick = () => {
+                length += erasing ? -1 : 1;
+                setDisplayed(text.slice(0, length));
 
-        return () => clearTimeout(timer);
-    }, [phase, displayed, text, typeSpeed, eraseSpeed, pauseMs, startDelay]);
+                if (length === text.length) {
+                    erasing = true;
+                    timer = setTimeout(tick, pauseMs);
+                } else if (length === 0) {
+                    erasing = false;
+                    timer = setTimeout(tick, 900);
+                } else {
+                    timer = setTimeout(tick, erasing ? eraseSpeed : typeSpeed);
+                }
+            };
+
+            timer = setTimeout(tick, startDelay);
+        };
+
+        start();
+        reducedMotion.addEventListener('change', start);
+        return () => {
+            clearTimeout(timer);
+            reducedMotion.removeEventListener('change', start);
+        };
+    }, [text, startDelay, typeSpeed, eraseSpeed, pauseMs]);
 
     return displayed;
 }
-
 
 /**
  * Landing page. The interactive demo is visual only — submitting it
@@ -98,7 +99,7 @@ export function LandingPage() {
     const [draft, setDraft] = useState('');
     const {show} = useToast();
     const pageRef = useReveal();
-    const typedText = useTypewriter('Writing Coach', {typeSpeed: 120, eraseSpeed: 70, pauseMs: 3000});
+    const typedText = useTypewriter('Writing Coach');
 
     // Landing page is strictly light mode alone
     useEffect(() => {
@@ -186,145 +187,134 @@ export function LandingPage() {
             <main ref={pageRef} className='bg-slate-50 text-slate-800'>
 
                 {/* ═══════════════════════════════════════
-                    SECTION 1 — HERO  (full-screen)
+                    SECTION 1 — HERO
                 ═══════════════════════════════════════ */}
                 <section
                     id='hero'
                     aria-labelledby='hero-heading'
-                    className='relative flex flex-col items-center justify-center min-h-screen overflow-hidden px-4 sm:px-12'>
+                    className='landing-hero relative isolate overflow-hidden flex flex-col min-h-screen px-4 sm:px-8 bg-slate-50'>
 
-                    {/* Animated background orbs */}
-                    <div aria-hidden='true' className='pointer-events-none absolute inset-0 -z-10'>
-                        <div className='animate-orb-1 absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full bg-brand-500/10 blur-3xl' />
-                        <div className='animate-orb-2 absolute top-1/2 -right-48 w-[480px] h-[480px] rounded-full bg-indigo-400/10 blur-3xl' />
-                        <div className='animate-orb-1 absolute bottom-0 left-1/3 w-[360px] h-[360px] rounded-full bg-emerald-400/8 blur-3xl' />
+                    {/* Top Bar: Logo on left, Login button on top right */}
+                    <div className='hero-motion hero-nav w-full max-w-7xl mx-auto flex items-center justify-between pt-8 sm:pt-12 pb-4 relative z-20'>
+                        <div className='flex items-center gap-2.5 sm:gap-3 text-slate-800 font-extrabold text-lg sm:text-xl tracking-tight'>
+                            <div className='w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center font-black text-base sm:text-lg shadow-sm'>
+                                S
+                            </div>
+                            <span>
+                                SabiWrite<span className='text-brand-500'>.ai</span>
+                            </span>
+                        </div>
+
+                        <Link
+                            to='/login'
+                            className='px-6 py-2 sm:px-7 sm:py-2.5 rounded-full text-sm sm:text-base font-semibold text-slate-800 hover:text-slate-950 border border-slate-200 bg-white hover:bg-slate-100 shadow-sm transition-all duration-200 hover:scale-105 active:scale-95'>
+                            Log in
+                        </Link>
                     </div>
 
-                    {/* Content grid */}
-                    <div className='w-full max-w-7xl mx-auto grid lg:grid-cols-12 items-center gap-12 py-24 lg:py-0'>
+                    {/* Centered Hero Content */}
+                    <div className='w-full max-w-7xl mx-auto pt-8 sm:pt-14 pb-12 text-center relative z-10 flex flex-col items-center'>
 
-                        {/* Left copy */}
-                        <div className='lg:col-span-7 space-y-7'>
-
-                            {/* Badge */}
-                            <div className='animate-fade-up flex justify-center lg:justify-start'>
-                                <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-500 text-xs font-semibold tracking-wide'>
+                        {/* The badge settles in after the headline and actions. */}
+                        <div className='hero-motion hero-badge mb-6 sm:mb-8 flex justify-center'>
+                            <span className='inline-flex flex-nowrap items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold leading-none tracking-wide whitespace-nowrap shadow-sm'>
+                                <span className='w-4 h-4 shrink-0 rounded-full bg-brand-500 text-white inline-flex items-center justify-center'>
                                     <Sparkles className='w-3 h-3' aria-hidden='true' />
-                                    AI-Powered Coaching
                                 </span>
-                            </div>
+                                <span>AI-Powered Coaching</span>
+                            </span>
+                        </div>
 
-                            <h1
-                                id='hero-heading'
-                                className='animate-fade-up animate-fade-up-delay-1 text-4xl sm:text-5xl lg:text-[3.9rem] font-bold text-slate-900 tracking-tight leading-[1.05] text-center lg:text-left'>
-                                Your AI-Powered{' '}
-                                <span className='block sm:inline'>English</span>{' '}
-                                <span className='block sm:inline-block min-h-[1.15em]'>
-                                    <span className='animate-gradient-text bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500'>
-                                        {typedText}
+                        {/* Each complete line rises through its own stationary mask. */}
+                        <h1
+                            id='hero-heading'
+                            className='text-4xl sm:text-6xl lg:text-[4.5rem] xl:text-[5.2rem] font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto'>
+                            <span className='hero-line-mask'>
+                                <span className='hero-motion hero-headline-line hero-headline-first'>
+                                    Your AI-Powered{' '}
+                                    <span className='inline'>English</span>
+                                </span>
+                            </span>
+                            <span className='hero-line-mask'>
+                                <span className='hero-motion hero-headline-line hero-headline-second'>
+                                    <span className='sr-only'>Writing Coach</span>
+                                    <span className='hero-typewriter' aria-hidden='true'>
+                                        <span className='hero-typewriter-measure'>Writing Coach</span>
+                                        <span className='hero-typewriter-text'>
+                                            <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
+                                            <span className='hero-typewriter-cursor' />
+                                        </span>
                                     </span>
-                                    <span
-                                        aria-hidden='true'
-                                        className='inline-block w-[3px] h-[0.85em] ml-1 align-middle rounded-sm bg-brand-500 animate-[blink_1s_step-end_infinite]'
-                                    />
                                 </span>
-                            </h1>
+                            </span>
+                        </h1>
 
+                        {/* Subtitle with masked slide-up */}
+                        <div className='overflow-hidden mt-5 max-w-xl mx-auto'>
                             <p
                                 id='hero-description'
-                                className='animate-fade-up animate-fade-up-delay-2 text-xl text-slate-600 leading-relaxed text-center lg:text-left md:px-10 lg:px-0'>
+                                className='hero-motion hero-description text-base sm:text-lg text-slate-600 leading-relaxed'>
                                 Stop using software as a crutch. SabiWrite AI
                                 doesn't just fix your typos—it acts as an elite
                                 personal tutor, analyzing your weaknesses and
                                 generating dynamic lessons to elevate your
                                 communication.
                             </p>
+                        </div>
 
-                            <div className='animate-fade-up animate-fade-up-delay-3 flex flex-col sm:flex-row justify-center lg:justify-start gap-3'>
-                                <Link to='/login' aria-label='Create a free Sabiwrite AI account'>
-                                    <Button
-                                        type='button'
-                                        className='w-full text-[17px] transition-transform duration-200 hover:scale-[1.03] active:scale-95'
-                                        size='lg'
-                                        rightIcon={<ArrowRight aria-hidden='true' className='w-4 h-4' />}>
-                                        Start Improving Now
-                                    </Button>
-                                </Link>
-                                <a href='#demo' aria-label='Try the SabiWrite AI interactive demo'>
-                                    <Button
-                                        className='border border-gray-200 text-gray-700 hover:bg-slate-100 w-full text-[17px] transition-transform duration-200 hover:scale-[1.03] active:scale-95'
-                                        variant='ghost'
-                                        size='lg'>
-                                        Try the Demo ↓
-                                    </Button>
-                                </a>
+                        {/* Keep the buttons and their shadows clear of the text masks. */}
+                        <div className='hero-motion hero-actions mt-8 flex flex-nowrap items-center justify-center gap-2 sm:gap-4'>
+                            <Link
+                                to='/login'
+                                aria-label='Create a free SabiWrite AI account'
+                                className='inline-flex shrink-0 items-center justify-center gap-1.5 sm:gap-2 min-h-11 rounded-full px-3 py-2.5 sm:px-7 sm:py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs min-[375px]:text-sm sm:text-[15px] font-medium shadow-md shadow-slate-900/10 hover:shadow-lg transition duration-200 hover:scale-[1.03] active:scale-95 whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
+                                Start Improving Now
+                                <ArrowRight aria-hidden='true' className='w-3.5 h-3.5 shrink-0 sm:w-4 sm:h-4' />
+                            </Link>
+                            <a
+                                href='#demo'
+                                aria-label='Try the SabiWrite AI interactive demo'
+                                className='inline-flex shrink-0 items-center justify-center min-h-11 rounded-full px-3 py-2.5 sm:px-6 sm:py-3 border border-slate-200 text-slate-700 bg-white hover:bg-slate-100 text-xs min-[375px]:text-sm sm:text-[15px] font-medium shadow-sm transition duration-200 hover:scale-[1.03] active:scale-95 whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
+                                Try the Demo ↓
+                            </a>
+                        </div>
+
+                        {/* Dashboard Preview Image (responsive: phone mockup on mobile, window mockup on tablet/desktop) */}
+                        <div className='hero-motion hero-dashboard w-full max-w-7xl mx-auto mt-10 sm:mt-16 px-2 sm:px-6 relative'>
+                            {/* Mobile Phone Mockup (visible on mobile only) */}
+                            <div className='hero-preview-fade hero-preview-fade-mobile block sm:hidden w-full max-w-[280px] mx-auto'>
+                                <img
+                                    src='/hero-dashboard-mobile-cutout.png'
+                                    alt='SabiWrite AI Mobile Progress Dashboard'
+                                    className='w-full h-auto block drop-shadow-2xl select-none pointer-events-none'
+                                    width='887'
+                                    height='1774'
+                                    loading='eager'
+                                />
+                            </div>
+
+                            {/* Desktop Dashboard Mockup (visible on tablet and desktop) */}
+                            <div className='hero-preview-fade hidden sm:block rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08),0_0_1px_1px_rgba(0,0,0,0.02)] overflow-hidden'>
+                                {/* Window Chrome Header */}
+                                <div className='flex items-center gap-1.5 px-4 py-2.5 bg-slate-100/90 border-b border-slate-200/80'>
+                                    <span className='w-2.5 h-2.5 rounded-full bg-red-400' />
+                                    <span className='w-2.5 h-2.5 rounded-full bg-amber-400' />
+                                    <span className='w-2.5 h-2.5 rounded-full bg-emerald-400' />
+                                </div>
+
+                                {/* Dashboard Image */}
+                                <img
+                                    src='/hero-dashboard.png'
+                                    alt='SabiWrite AI Progress Dashboard'
+                                    className='w-full h-auto block select-none pointer-events-none'
+                                    width='1024'
+                                    height='516'
+                                    loading='eager'
+                                />
                             </div>
                         </div>
 
-                        {/* Right — floating mock card */}
-                        <div className='animate-fade-up animate-fade-up-delay-4 lg:col-span-5'>
-                            <div className='animate-float bg-white border border-slate-200 rounded-2xl shadow-brand-soft overflow-hidden'>
-                                <div className='flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200'>
-                                    <div className='flex items-center gap-1.5 py-2.5'>
-                                        <span className='w-2.5 h-2.5 rounded-full bg-red-600' />
-                                        <span className='w-2.5 h-2.5 rounded-full bg-yellow-600' />
-                                        <span className='w-2.5 h-2.5 rounded-full bg-green-500' />
-                                    </div>
-                                    <span className='text-[13px] font-medium text-slate-400'>
-                                        Writing Analysis Mock
-                                    </span>
-                                </div>
-                                <div className='p-5 space-y-3 py-7 px-5'>
-                                    <div className='p-4 rounded-xl border border-red-200/60 bg-red-50/40'>
-                                        <p className='text-[12px] font-bold text-red-600 uppercase tracking-wider mb-1.5'>
-                                            Your Draft
-                                        </p>
-                                        <p className='text-sm text-slate-600 leading-relaxed'>
-                                            The company{' '}
-                                            <span className='line-through text-error decoration-wavy'>does tried</span>{' '}
-                                            to reach new clients but{' '}
-                                            <span className='line-through text-error decoration-wavy'>they has</span>{' '}
-                                            failed.
-                                        </p>
-                                    </div>
-                                    <div className='p-4 rounded-xl border border-emerald-200/60 bg-emerald-50/40'>
-                                        <p className='text-[12px] font-bold text-emerald-600 uppercase tracking-wider mb-1.5'>
-                                            Coach Correction
-                                        </p>
-                                        <p className='text-sm text-slate-700 leading-relaxed'>
-                                            The company{' '}
-                                            <span className='text-emerald-600 font-semibold underline decoration-2'>has tried</span>{' '}
-                                            to reach new clients but{' '}
-                                            <span className='text-emerald-600 font-semibold underline decoration-2'>they have</span>{' '}
-                                            failed.
-                                        </p>
-                                    </div>
-                                    <div className='p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5'>
-                                        <div className='p-1 bg-brand-50 text-brand-500 rounded-md flex-shrink-0'>
-                                            <Info className='w-3.5 h-3.5' />
-                                        </div>
-                                        <div>
-                                            <p className='text-xs font-semibold text-slate-900'>
-                                                Subject-verb agreement
-                                            </p>
-                                            <p className='text-xs text-slate-500 leading-relaxed mt-0.5'>
-                                                "They" is plural — it takes "have", not "has".
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
-                    {/* Scroll cue */}
-                    <a
-                        href='#demo'
-                        aria-label='Scroll to demo'
-                        className='animate-fade-up animate-fade-up-delay-5 absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-500 transition-colors duration-200'>
-                        <span className='text-[11px] font-medium tracking-widest uppercase'>Scroll</span>
-                        <ChevronDown className='w-4 h-4 animate-bounce' />
-                    </a>
                 </section>
 
                 {/* ═══════════════════════════════════════
@@ -393,17 +383,6 @@ export function LandingPage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Scroll cue */}
-                    <a
-                        href='#features'
-                        aria-label='Scroll to features'
-                        className='absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-400 hover:text-brand-500 transition-colors duration-200'>
-                        <span className='text-[11px] font-medium tracking-widest uppercase'>Features</span>
-                        <ChevronDown className='w-4 h-4 animate-bounce' />
-                    </a>
-
-                    <div aria-hidden='true' className='absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent' />
                 </section>
 
                 {/* ═══════════════════════════════════════
