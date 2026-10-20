@@ -30,9 +30,14 @@ export function AppShell() {
   }, [pathname]);
 
   if (isFullBleed) {
+    const isLanding = pathname === "/";
     return (
       <div className="flex h-full overflow-hidden">
-        <main className="flex-1 flex flex-col h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
+        <main
+          className={`flex-1 flex flex-col h-full overflow-y-auto custom-scrollbar ${
+            isLanding ? "bg-slate-50 text-slate-800" : "bg-slate-50 dark:bg-slate-950"
+          }`}
+        >
           <Outlet />
         </main>
       </div>

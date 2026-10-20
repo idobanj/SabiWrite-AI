@@ -100,6 +100,20 @@ export function LandingPage() {
     const pageRef = useReveal();
     const typedText = useTypewriter('Writing Coach', {typeSpeed: 120, eraseSpeed: 70, pauseMs: 3000});
 
+    // Landing page is strictly light mode alone
+    useEffect(() => {
+        const root = document.documentElement;
+        const wasDark = root.classList.contains('dark');
+        if (wasDark) {
+            root.classList.remove('dark');
+        }
+        return () => {
+            if (wasDark) {
+                root.classList.add('dark');
+            }
+        };
+    }, []);
+
     const handleTemplateClick = (key) => {
         setDraft(templates[key]);
         show(`Loaded the ${key} draft.`);
@@ -169,7 +183,7 @@ export function LandingPage() {
                 </script>
             </Helmet>
 
-            <main ref={pageRef}>
+            <main ref={pageRef} className='bg-slate-50 text-slate-800'>
 
                 {/* ═══════════════════════════════════════
                     SECTION 1 — HERO  (full-screen)
@@ -194,7 +208,7 @@ export function LandingPage() {
 
                             {/* Badge */}
                             <div className='animate-fade-up flex justify-center lg:justify-start'>
-                                <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 text-brand-500 text-xs font-semibold tracking-wide'>
+                                <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-500 text-xs font-semibold tracking-wide'>
                                     <Sparkles className='w-3 h-3' aria-hidden='true' />
                                     AI-Powered Coaching
                                 </span>
@@ -202,7 +216,7 @@ export function LandingPage() {
 
                             <h1
                                 id='hero-heading'
-                                className='animate-fade-up animate-fade-up-delay-1 text-4xl sm:text-5xl lg:text-[3.9rem] font-bold text-slate-900 dark:text-white tracking-tight leading-[1.05] text-center lg:text-left'>
+                                className='animate-fade-up animate-fade-up-delay-1 text-4xl sm:text-5xl lg:text-[3.9rem] font-bold text-slate-900 tracking-tight leading-[1.05] text-center lg:text-left'>
                                 Your AI-Powered{' '}
                                 <span className='block sm:inline'>English</span>{' '}
                                 <span className='block sm:inline-block min-h-[1.15em]'>
@@ -218,7 +232,7 @@ export function LandingPage() {
 
                             <p
                                 id='hero-description'
-                                className='animate-fade-up animate-fade-up-delay-2 text-xl text-slate-600 dark:text-slate-300 leading-relaxed text-center lg:text-left md:px-10 lg:px-0'>
+                                className='animate-fade-up animate-fade-up-delay-2 text-xl text-slate-600 leading-relaxed text-center lg:text-left md:px-10 lg:px-0'>
                                 Stop using software as a crutch. SabiWrite AI
                                 doesn't just fix your typos—it acts as an elite
                                 personal tutor, analyzing your weaknesses and
@@ -238,7 +252,7 @@ export function LandingPage() {
                                 </Link>
                                 <a href='#demo' aria-label='Try the SabiWrite AI interactive demo'>
                                     <Button
-                                        className='border dark:border-gray-700 border-gray-200 text-gray-700 dark:text-gray-300 w-full text-[17px] transition-transform duration-200 hover:scale-[1.03] active:scale-95'
+                                        className='border border-gray-200 text-gray-700 hover:bg-slate-100 w-full text-[17px] transition-transform duration-200 hover:scale-[1.03] active:scale-95'
                                         variant='ghost'
                                         size='lg'>
                                         Try the Demo ↓
@@ -249,8 +263,8 @@ export function LandingPage() {
 
                         {/* Right — floating mock card */}
                         <div className='animate-fade-up animate-fade-up-delay-4 lg:col-span-5'>
-                            <div className='animate-float bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-brand-soft overflow-hidden'>
-                                <div className='flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700'>
+                            <div className='animate-float bg-white border border-slate-200 rounded-2xl shadow-brand-soft overflow-hidden'>
+                                <div className='flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200'>
                                     <div className='flex items-center gap-1.5 py-2.5'>
                                         <span className='w-2.5 h-2.5 rounded-full bg-red-600' />
                                         <span className='w-2.5 h-2.5 rounded-full bg-yellow-600' />
@@ -261,11 +275,11 @@ export function LandingPage() {
                                     </span>
                                 </div>
                                 <div className='p-5 space-y-3 py-7 px-5'>
-                                    <div className='p-4 rounded-xl border border-red-200/60 dark:border-red-500/20 bg-red-50/40 dark:bg-red-500/5'>
-                                        <p className='text-[12px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1.5'>
+                                    <div className='p-4 rounded-xl border border-red-200/60 bg-red-50/40'>
+                                        <p className='text-[12px] font-bold text-red-600 uppercase tracking-wider mb-1.5'>
                                             Your Draft
                                         </p>
-                                        <p className='text-sm text-slate-600 dark:text-slate-300 leading-relaxed'>
+                                        <p className='text-sm text-slate-600 leading-relaxed'>
                                             The company{' '}
                                             <span className='line-through text-error decoration-wavy'>does tried</span>{' '}
                                             to reach new clients but{' '}
@@ -273,27 +287,27 @@ export function LandingPage() {
                                             failed.
                                         </p>
                                     </div>
-                                    <div className='p-4 rounded-xl border border-emerald-200/60 dark:border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-500/5'>
-                                        <p className='text-[12px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1.5'>
+                                    <div className='p-4 rounded-xl border border-emerald-200/60 bg-emerald-50/40'>
+                                        <p className='text-[12px] font-bold text-emerald-600 uppercase tracking-wider mb-1.5'>
                                             Coach Correction
                                         </p>
-                                        <p className='text-sm text-slate-700 dark:text-slate-200 leading-relaxed'>
+                                        <p className='text-sm text-slate-700 leading-relaxed'>
                                             The company{' '}
-                                            <span className='text-emerald-600 dark:text-emerald-400 font-semibold underline decoration-2'>has tried</span>{' '}
+                                            <span className='text-emerald-600 font-semibold underline decoration-2'>has tried</span>{' '}
                                             to reach new clients but{' '}
-                                            <span className='text-emerald-600 dark:text-emerald-400 font-semibold underline decoration-2'>they have</span>{' '}
+                                            <span className='text-emerald-600 font-semibold underline decoration-2'>they have</span>{' '}
                                             failed.
                                         </p>
                                     </div>
-                                    <div className='p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 flex items-start gap-2.5'>
+                                    <div className='p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5'>
                                         <div className='p-1 bg-brand-50 text-brand-500 rounded-md flex-shrink-0'>
                                             <Info className='w-3.5 h-3.5' />
                                         </div>
                                         <div>
-                                            <p className='text-xs font-semibold text-slate-900 dark:text-white'>
+                                            <p className='text-xs font-semibold text-slate-900'>
                                                 Subject-verb agreement
                                             </p>
-                                            <p className='text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5'>
+                                            <p className='text-xs text-slate-500 leading-relaxed mt-0.5'>
                                                 "They" is plural — it takes "have", not "has".
                                             </p>
                                         </div>
@@ -319,25 +333,25 @@ export function LandingPage() {
                 <section
                     id='demo'
                     aria-labelledby='demo-heading'
-                    className='relative flex flex-col justify-center min-h-screen px-4 sm:px-12 bg-slate-50/60 dark:bg-slate-900/40'>
+                    className='relative flex flex-col justify-center min-h-screen px-4 sm:px-12 bg-slate-100/60'>
 
                     {/* Subtle divider top */}
-                    <div aria-hidden='true' className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent' />
+                    <div aria-hidden='true' className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent' />
 
                     <div className='w-full max-w-7xl mx-auto py-24 lg:py-0 space-y-10'>
 
                         {/* Heading */}
                         <div className='reveal text-center space-y-2'>
-                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20 text-brand-500 text-xs font-semibold tracking-wide mb-2'>
+                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-500 text-xs font-semibold tracking-wide mb-2'>
                                 <Sparkles className='w-3 h-3' aria-hidden='true' />
                                 Live Playground
                             </span>
                             <h2
                                 id='demo-heading'
-                                className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight'>
+                                className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
                                 Try It Out Right Now
                             </h2>
-                            <p className='text-[16px] text-slate-500 dark:text-slate-400 max-w-lg mx-auto'>
+                            <p className='text-[16px] text-slate-500 max-w-lg mx-auto'>
                                 Pick a sample draft or type your own. See how SabiWrite AI
                                 flags patterns and explains every correction.
                             </p>
@@ -357,12 +371,12 @@ export function LandingPage() {
                         </div>
 
                         {/* Textarea card */}
-                        <div className='reveal reveal-delay-2 hover-lift bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5'>
+                        <div className='reveal reveal-delay-2 hover-lift bg-white border border-slate-200 rounded-2xl p-5'>
                             <textarea
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
                                 rows={6}
-                                className='w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none'
+                                className='w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none'
                                 placeholder='Type or paste your text here…'
                             />
                             <div className='flex items-center justify-between pt-3'>
@@ -389,7 +403,7 @@ export function LandingPage() {
                         <ChevronDown className='w-4 h-4 animate-bounce' />
                     </a>
 
-                    <div aria-hidden='true' className='absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent' />
+                    <div aria-hidden='true' className='absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent' />
                 </section>
 
                 {/* ═══════════════════════════════════════
@@ -408,15 +422,15 @@ export function LandingPage() {
 
                         {/* Heading */}
                         <div className='reveal text-center space-y-3'>
-                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-500 text-xs font-semibold tracking-wide'>
+                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-500 text-xs font-semibold tracking-wide'>
                                 Why SabiWrite AI
                             </span>
                             <h2
                                 id='features-heading'
-                                className='text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight'>
+                                className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
                                 Built to Make You Actually Improve
                             </h2>
-                            <p className='text-[16px] text-slate-500 dark:text-slate-400 max-w-xl mx-auto'>
+                            <p className='text-[16px] text-slate-500 max-w-xl mx-auto'>
                                 Four pillars that separate a real coach from a spell-checker.
                             </p>
                         </div>
@@ -459,7 +473,7 @@ export function LandingPage() {
                     {/* Footer */}
                     <footer
                         role='contentinfo'
-                        className='absolute bottom-0 inset-x-0 py-6 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 text-center'>
+                        className='absolute bottom-0 inset-x-0 py-6 border-t border-slate-200 text-xs text-slate-400 text-center'>
                         © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
                     </footer>
                 </section>
@@ -473,7 +487,7 @@ function TemplateButton({onClick, children}) {
     return (
         <button
             onClick={onClick}
-            className='px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500/50 dark:hover:border-brand-500/40 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-full transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm'>
+            className='px-4 py-2 bg-white border border-slate-200 hover:border-brand-500/50 text-slate-700 text-xs font-medium rounded-full transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm'>
             {children}
         </button>
     );
@@ -481,10 +495,10 @@ function TemplateButton({onClick, children}) {
 
 function ValueProp({icon, tone, title, body, delay}) {
     const toneClass = {
-        brand: 'bg-brand-50 text-brand-500 dark:bg-brand-500/10',
-        indigo: 'bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10',
-        emerald: 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10',
-        amber: 'bg-amber-50 text-amber-500 dark:bg-amber-500/10',
+        brand: 'bg-brand-50 text-brand-500',
+        indigo: 'bg-indigo-50 text-indigo-500',
+        emerald: 'bg-emerald-50 text-emerald-500',
+        amber: 'bg-amber-50 text-amber-500',
     }[tone];
 
     const delayClass = {
@@ -495,10 +509,10 @@ function ValueProp({icon, tone, title, body, delay}) {
     }[delay] ?? '';
 
     return (
-        <div className={`reveal ${delayClass} hover-lift p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-4`}>
+        <div className={`reveal ${delayClass} hover-lift p-6 bg-white border border-slate-200 rounded-2xl space-y-4`}>
             <div className={`p-2.5 rounded-xl w-fit ${toneClass}`}>{icon}</div>
-            <h3 className='font-semibold text-slate-900 dark:text-white text-[15px]'>{title}</h3>
-            <p className='text-sm text-slate-500 dark:text-slate-400 leading-relaxed'>{body}</p>
+            <h3 className='font-semibold text-slate-900 text-[15px]'>{title}</h3>
+            <p className='text-sm text-slate-500 leading-relaxed'>{body}</p>
         </div>
     );
 }
