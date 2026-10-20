@@ -362,7 +362,7 @@ export function LandingPage() {
                             <h2
                                 id='faq-heading'
                                 className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
-                                Frequently Asked <span className='text-brand-500'>Questions</span>
+                                <span className='text-brand-500'>Frequently</span> Asked Questions
                             </h2>
                             <p className='mx-auto max-w-xl text-base leading-relaxed text-slate-600'>
                                 Everything you need to know about feedback, practice, and improving your writing with SabiWrite AI.
