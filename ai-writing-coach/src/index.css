@@ -305,6 +305,19 @@
   .reveal-delay-3 { --reveal-delay: 0.42s; }
   .reveal-delay-4 { --reveal-delay: 0.56s; }
 
+  .faq-answer {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.32s cubic-bezier(0.2, 0.65, 0.3, 1),
+                opacity 0.24s ease;
+  }
+
+  .faq-answer[data-open='true'] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
   /* Card hover lift */
   .hover-lift {
     transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
@@ -428,6 +441,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .faq-answer {
+    transition: none;
+  }
+
   .landing-hero .hero-motion,
   .landing-hero .hero-motion:not(.is-visible) {
     animation: none;

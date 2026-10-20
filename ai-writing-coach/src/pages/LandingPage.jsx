@@ -81,6 +81,7 @@ function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, e
 export function LandingPage() {
     const {pageRef, heroActive} = useLandingMotion();
     const typedText = useTypewriter('Writing Coach', {active: heroActive});
+    const [openFaq, setOpenFaq] = useState(null);
 
     // Landing page is strictly light mode alone
     useEffect(() => {
@@ -309,7 +310,7 @@ export function LandingPage() {
                             <h2
                                 id='features-heading'
                                 className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
-                                Built to Make You Actually Improve
+                                Built to Make You <span className='text-brand-500'>Actually Improve</span>
                             </h2>
                             <p className='text-[16px] text-slate-600 max-w-xl mx-auto'>
                                 Four pillars that separate a real coach from a spell-checker.
@@ -361,22 +362,45 @@ export function LandingPage() {
                             <h2
                                 id='faq-heading'
                                 className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
-                                Frequently Asked Questions
+                                Frequently Asked <span className='text-brand-500'>Questions</span>
                             </h2>
                         </div>
 
                         <div className='divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white'>
-                            {faqs.map(({question, answer}) => (
-                                <details key={question} name='faq' className='reveal group'>
-                                    <summary className='flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-xl px-5 py-5 text-left text-sm sm:text-base font-semibold text-slate-800 transition-colors hover:text-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 [&::-webkit-details-marker]:hidden'>
-                                        <span>{question}</span>
-                                        <ChevronDown aria-hidden='true' className='h-5 w-5 shrink-0 text-slate-400 transition-transform group-open:rotate-180 motion-reduce:transition-none' />
-                                    </summary>
-                                    <div className='px-5 pb-5 text-sm sm:text-base text-slate-500 leading-relaxed'>
-                                        {answer}
+                            {faqs.map(({question, answer}, index) => {
+                                const isOpen = openFaq === index;
+
+                                return (
+                                    <div key={question} className='reveal'>
+                                        <h3>
+                                            <button
+                                                type='button'
+                                                id={`faq-question-${index}`}
+                                                aria-expanded={isOpen}
+                                                aria-controls={`faq-answer-${index}`}
+                                                onClick={() => setOpenFaq((current) => current === index ? null : index)}
+                                                className='flex w-full min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl px-5 py-5 text-left text-sm sm:text-base font-semibold text-slate-800 transition-colors hover:text-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
+                                                <span>{question}</span>
+                                                <ChevronDown aria-hidden='true' className={`h-5 w-5 shrink-0 text-slate-400 transition-transform duration-300 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                        </h3>
+                                        <div
+                                            id={`faq-answer-${index}`}
+                                            role='region'
+                                            aria-labelledby={`faq-question-${index}`}
+                                            aria-hidden={!isOpen}
+                                            inert={!isOpen}
+                                            data-open={isOpen}
+                                            className='faq-answer'>
+                                            <div className='min-h-0 overflow-hidden'>
+                                                <div className='px-5 pb-5 text-sm sm:text-base text-slate-500 leading-relaxed'>
+                                                    {answer}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </details>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </section>

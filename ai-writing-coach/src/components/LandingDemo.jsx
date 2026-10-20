@@ -83,7 +83,7 @@ export function LandingDemo() {
             <div className='demo-container'>
                 <div className='demo-intro reveal'>
                     <span className='demo-eyebrow'><Sparkles size={14} aria-hidden='true' /> Live Playground</span>
-                    <h2 id='demo-heading'>Try It Out Right Now</h2>
+                    <h2 id='demo-heading'><span className='text-brand-500'>Try It</span> Out Right Now</h2>
                     <p>Pick a sample draft or type your own. See how SabiWrite AI flags patterns and explains every correction.</p>
                 </div>
 
