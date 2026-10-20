@@ -318,6 +318,20 @@
     opacity: 1;
   }
 
+  .faq-list .faq-item {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.55s cubic-bezier(0.2, 0.65, 0.3, 1),
+                transform 0.55s cubic-bezier(0.2, 0.65, 0.3, 1),
+                background-color 0.3s ease;
+    transition-delay: var(--faq-item-delay, 0s);
+  }
+
+  .faq-list.is-visible .faq-item {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   /* Card hover lift */
   .hover-lift {
     transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
@@ -442,6 +456,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .faq-answer {
+    transition: none;
+  }
+
+  .faq-list .faq-item,
+  .faq-list.is-visible .faq-item {
+    opacity: 1;
+    transform: none;
     transition: none;
   }
 

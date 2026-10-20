@@ -16,14 +16,14 @@ import {LandingDemo} from '../components/LandingDemo';
 import {useLandingMotion} from '../hooks/useLandingMotion';
 
 const faqs = [
-    {question: 'What is SabiWrite AI, and how does it work?', answer: 'answer'},
-    {question: 'How is SabiWrite AI different from a regular grammar checker?', answer: 'answer'},
-    {question: 'Can SabiWrite AI identify mistakes I repeatedly make?', answer: 'answer'},
-    {question: 'How do the personalized lessons and practice exercises work?', answer: 'answer'},
-    {question: 'Can beginners use SabiWrite AI?', answer: 'answer'},
-    {question: 'What types of writing can I improve with it?', answer: 'answer'},
-    {question: 'Is SabiWrite AI free?', answer: 'answer'},
-    {question: 'Is my writing data safe?', answer: 'answer'},
+    {question: 'What is SabiWrite AI, and how does it work?', answer: 'SabiWrite AI is an AI-powered English writing coach designed to help you write better and learn from your mistakes. It analyses your writing, provides corrections and explanations, identifies recurring weaknesses, and offers personalized lessons and practice exercises to help you improve over time.'},
+    {question: 'How is SabiWrite AI different from a regular grammar checker?', answer: 'A regular grammar checker primarily focuses on correcting errors in your text. SabiWrite AI goes further by helping you understand why mistakes occur, recognize recurring weaknesses, and practise the skills you need to improve. The goal is not just to correct your writing but to help you become a better writer.'},
+    {question: 'Can SabiWrite AI identify mistakes I repeatedly make?', answer: 'Yes. SabiWrite AI can identify and track recurring weaknesses in your writing, helping you recognize patterns you might otherwise overlook. This allows you to understand which areas need more attention and focus your learning on them.'},
+    {question: 'How do the personalized lessons and practice exercises work?', answer: 'SabiWrite AI uses identified writing weaknesses to guide your learning. It provides relevant lessons to help you understand specific concepts and practice exercises that allow you to apply what you\'ve learned. This helps you focus on the areas where you need the most improvement.'},
+    {question: 'Can beginners use SabiWrite AI?', answer: 'Yes. SabiWrite AI is designed for people who want to improve their English writing, regardless of their current confidence level. Whether you\'re learning the basics or refining your writing skills, it can help you understand mistakes and learn from them.'},
+    {question: 'What types of writing can I improve with it?', answer: 'SabiWrite AI can help you improve everyday written English, including messages, essays, emails, reports, and other forms of writing. You can use it to review your text, understand corrections, and learn ways to communicate more clearly and naturally.'},
+    {question: 'Is SabiWrite AI free?', answer: 'Yes! You can currently use SabiWrite AI for free. We\'re continually improving the platform to provide a better writing and learning experience.'},
+    {question: 'Is my writing data safe?', answer: 'Your privacy matters to us. SabiWrite AI collects your name and email address for account-related purposes. When you submit text for analysis, it is processed by our AI-powered writing system to generate feedback and corrections.\n\nWe aim to handle your information responsibly. For more information about how your information is handled, please read our Privacy Policy.'},
 ];
 
 /** Keep the typing loop synchronized with the hero's scroll entrances. */
@@ -353,8 +353,8 @@ export function LandingPage() {
                 <section
                     id='faq'
                     aria-labelledby='faq-heading'
-                    className='px-4 sm:px-12 py-20 sm:py-24'>
-                    <div className='w-full max-w-3xl mx-auto space-y-10'>
+                    className='bg-slate-50 px-4 py-20 sm:px-12 sm:py-24 lg:py-28'>
+                    <div className='w-full max-w-3xl mx-auto space-y-12 sm:space-y-14'>
                         <div className='reveal text-center space-y-3'>
                             <span className='inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-500 text-xs font-semibold tracking-wide'>
                                 FAQ
@@ -364,14 +364,20 @@ export function LandingPage() {
                                 className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
                                 Frequently Asked <span className='text-brand-500'>Questions</span>
                             </h2>
+                            <p className='mx-auto max-w-xl text-base leading-relaxed text-slate-600'>
+                                Everything you need to know about feedback, practice, and improving your writing with SabiWrite AI.
+                            </p>
                         </div>
 
-                        <div className='divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white'>
+                        <div className='reveal faq-list overflow-hidden divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.35)]'>
                             {faqs.map(({question, answer}, index) => {
                                 const isOpen = openFaq === index;
 
                                 return (
-                                    <div key={question} className='reveal'>
+                                    <div
+                                        key={question}
+                                        style={{'--faq-item-delay': `${Math.min(index, 5) * 0.08}s`}}
+                                        className={`faq-item transition-colors duration-300 ${isOpen ? 'bg-brand-50/70' : 'hover:bg-brand-50/40'}`}>
                                         <h3>
                                             <button
                                                 type='button'
@@ -379,9 +385,11 @@ export function LandingPage() {
                                                 aria-expanded={isOpen}
                                                 aria-controls={`faq-answer-${index}`}
                                                 onClick={() => setOpenFaq((current) => current === index ? null : index)}
-                                                className='flex w-full min-h-16 cursor-pointer items-center justify-between gap-4 rounded-xl px-5 py-5 text-left text-sm sm:text-base font-semibold text-slate-800 transition-colors hover:text-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
+                                                className={`group flex w-full min-h-16 cursor-pointer items-center justify-between gap-4 px-5 py-5 text-left text-sm sm:px-6 sm:text-base font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500 ${isOpen ? 'text-brand-700' : 'text-slate-800 hover:text-brand-600'}`}>
                                                 <span>{question}</span>
-                                                <ChevronDown aria-hidden='true' className={`h-5 w-5 shrink-0 text-slate-400 transition-transform duration-300 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
+                                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-300 ${isOpen ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-100 group-hover:text-brand-600'}`}>
+                                                    <ChevronDown aria-hidden='true' className={`h-4 w-4 transition-transform duration-300 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
+                                                </span>
                                             </button>
                                         </h3>
                                         <div
@@ -393,7 +401,7 @@ export function LandingPage() {
                                             data-open={isOpen}
                                             className='faq-answer'>
                                             <div className='min-h-0 overflow-hidden'>
-                                                <div className='px-5 pb-5 text-sm sm:text-base text-slate-500 leading-relaxed'>
+                                                <div className='whitespace-pre-line px-5 pb-6 pr-14 text-sm leading-relaxed text-slate-600 sm:px-6 sm:pr-16 sm:text-base'>
                                                     {answer}
                                                 </div>
                                             </div>
@@ -402,12 +410,13 @@ export function LandingPage() {
                                 );
                             })}
                         </div>
+
                     </div>
                 </section>
 
                 <footer
                     role='contentinfo'
-                    className='py-6 border-t border-slate-200 text-xs text-slate-400 text-center'>
+                    className='border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-400'>
                     © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
                 </footer>
 
