@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { generate } from "../_shared/ai/index.ts";
+import { generateVerifiedQuestions, QuizQualityError } from "./quiz-quality.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -60,7 +61,7 @@ const TYPE_TO_TOPIC: Record<string, { label: string; guidance: string }> = {
   spelling: {
     label: "Spelling",
     guidance:
-      "Common misspellings for non-native English writers: 'recieve' (i before e), 'seperate' (separate), 'definately' (definitely). When in doubt, slow down and sound it out.",
+      "Practise standard spellings such as 'receive', 'separate', and 'definitely'. For homophones such as 'their', 'there', and 'they\'re', the entire sentence must make the intended meaning clear.",
   },
   punctuation: {
     label: "Punctuation",
@@ -86,15 +87,7 @@ interface MistakeRow {
   explanation: string | null;
 }
 
-interface QuizQuestion {
-  id: string;
-  prompt: string;
-  options: string[];
-  answer_index: number;
-  explanation: string;
-}
-
-async function rest<T>(path: string, init: RequestInit): Promise<T> {
+async function rest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const initHeaders = (init?.headers as Record<string, string> | undefined) ?? {};
   const headers: Record<string, string> = {
     Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
@@ -167,6 +160,10 @@ ${exampleBlock}
 CRITICAL RULES FOR GRAMMAR, SYNTAX, AND QUESTION VALIDITY:
 1. Standard English Grammar is Absolute: The correct answer MUST adhere to standard, uncontroversial English grammar. If any example from the writer's past log is ungrammatical, inverted, or malformed, DO NOT replicate that error—always default to standard English.
 2. Full Sentence Coherence: When the correct option (at "answer_index") replaces "___" in the prompt, the resulting sentence MUST be 100% complete, natural, and grammatically flawless.
+   - For fill-in-the-blank questions, use exactly ONE blank (___). First write a correct full sentence, then remove only the target word or phrase.
+   - For full-sentence choices, use an instruction such as "Choose the grammatically correct sentence." WITHOUT a blank; every option must be a complete sentence.
+   - Substitute EVERY option back into the sentence. There must be exactly one valid answer; reject the question if none or several fit.
+   - Never write "Can you pass me the ___?" with "their", "there", or "they're" as the answer. A spelling fact does not make an option fit a broken sentence.
    - NEVER create broken prompts where substituting the answer leaves residual bad grammar (e.g. NEVER write prompt "She ___ good of an example." with answer "is good").
    - Correct prompt format: "She is ___ example for the team." with options ["a good", "good a", "an good", "good an"] and correct answer "a good".
 3. Strict Article, Determiner & Word Order Rules:
@@ -191,7 +188,7 @@ Return ONLY a JSON object with this exact shape — no markdown, no commentary:
   "questions": [
     {
       "id": "q1",
-      "prompt": "<a single short sentence with a blank (___) or 'Choose the correct sentence: ___'>",
+      "prompt": "<a short sentence with exactly one blank (___), or a full-sentence-choice instruction with no blank>",
       "options": ["<choice A>", "<choice B>", "<choice C>", "<choice D>"],
       "answer_index": <0..3, the index of the correct option>,
       "explanation": "<one short sentence explaining the rule in plain English, ≤ 20 words>"
@@ -199,62 +196,6 @@ Return ONLY a JSON object with this exact shape — no markdown, no commentary:
   ]
 }
 `;
-}
-
-function normaliseQuestion(raw: any, idx: number): QuizQuestion | null {
-  if (!raw || typeof raw !== "object") return null;
-  if (typeof raw.prompt !== "string" || !raw.prompt.trim()) return null;
-  if (
-    !Array.isArray(raw.options) ||
-    raw.options.length !== 4 ||
-    !raw.options.every((o: unknown) => typeof o === "string" && o.trim())
-  ) {
-    return null;
-  }
-  const ai = Number(raw.answer_index);
-  if (!Number.isInteger(ai) || ai < 0 || ai > 3) return null;
-
-  const prompt = raw.prompt.trim();
-  const options = raw.options.map((o: string) => o.trim());
-  const correctOption = options[ai];
-
-  // Automated sanity checks for common LLM grammatical glitches:
-  if (prompt.includes("___")) {
-    const fullSentence = prompt.replace("___", correctOption);
-
-    // Glitch A: "a/an + plural noun" (e.g. "a contributions", "a mistakes")
-    const nonPluralSEndings = /\b(analysis|status|process|series|species|canvas|lens|business|address|class|success|basis|crisis|hypothesis|news|thesis)\b/i;
-    const aPluralMatch = fullSentence.match(/\ba\s+([a-z]{3,}s)\b/i);
-    if (aPluralMatch && !nonPluralSEndings.test(aPluralMatch[1])) {
-      return null;
-    }
-
-    // Glitch B: "good an" or "good of an" without degree modifiers (as, so, too, how)
-    if (/\b(?:good|great|bad|large|small)\s+(?:of\s+)?an?\s+[a-z]+/i.test(fullSentence)) {
-      if (!/\b(?:as|so|too|how)\s+(?:good|great|bad|large|small)\s+(?:of\s+)?an?\b/i.test(fullSentence)) {
-        return null;
-      }
-    }
-
-    // Glitch C: Missing article before singular countable noun (e.g. "was good idea", "is great plan")
-    if (/\b(?:was|is|became|had)\s+(?:good|bad|great|new|terrible|nice)\s+(?:idea|topic|plan|example|problem|question|mistake|choice)\b/i.test(fullSentence)) {
-      return null;
-    }
-
-    // Glitch D: Repetition artifacts (e.g. repeated multi-word phrase from bad blank placement)
-    if (/\b([a-z]{3,}\s+[a-z]{3,}\s+[a-z]{3,})\s+\1\b/i.test(fullSentence)) {
-      return null;
-    }
-  }
-
-  return {
-    id: typeof raw.id === "string" && raw.id ? raw.id : `q${idx + 1}`,
-    prompt,
-    options,
-    answer_index: ai,
-    explanation:
-      typeof raw.explanation === "string" ? raw.explanation.slice(0, 300) : "",
-  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -339,7 +280,7 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
-    const count = Math.max(3, Math.min(10, Number(body.count) || 5));
+    const count = Math.max(3, Math.min(10, Math.floor(Number(body.count) || 5)));
     const { label, guidance } = TYPE_TO_TOPIC[topic];
 
     // Pull up to 15 of the writer's mistakes for this topic, then randomly
@@ -371,77 +312,29 @@ Deno.serve(async (req: Request) => {
     }
     const examples = shuffled.slice(0, 5);
 
-    // Request count + 2 questions so that if any question is discarded by sanity filters,
-    // we still have at least `count` validated questions for the user.
-    const prompt = buildPrompt(label, guidance, examples, count + 2);
-    // Attempt generation with a higher temperature for variability.
-    // If that fails (e.g., JSON validation), retry with temperature 0 for a deterministic response.
-    const temperatures = [0.7, 0];
-    let rawText: string | undefined;
-    for (const temp of temperatures) {
-      try {
-        rawText = await generate({ prompt, temperature: temp });
-        // Generation succeeded, break out of loop.
-        break;
-      } catch (err) {
-        console.warn(`[generate-quiz] generation failed at temperature ${temp}:`, err instanceof Error ? err.message : err);
-        // Continue to next temperature.
-      }
-    }
-    if (!rawText) {
-      return new Response(
-        JSON.stringify({ error: "AI service failed to generate quiz after retries" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    let parsed: any;
-    try {
-      let cleaned = rawText
-        .replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "")
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```\s*$/i, "")
-        .trim();
-      const firstBrace = cleaned.indexOf("{");
-      const lastBrace = cleaned.lastIndexOf("}");
-      if (firstBrace !== -1 && lastBrace > firstBrace) {
-        cleaned = cleaned.slice(firstBrace, lastBrace + 1);
-      }
-      parsed = JSON.parse(cleaned);
-    } catch {
-      return new Response(
-        JSON.stringify({
-          error: "AI service returned malformed JSON",
-          raw: rawText.slice(0, 500),
-        }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const rawQuestions = Array.isArray(parsed?.questions) ? parsed.questions : [];
-    const questions = rawQuestions
-      .map((q: any, i: number) => normaliseQuestion(q, i))
-      .filter((q: QuizQuestion | null): q is QuizQuestion => q !== null)
-      .slice(0, count);
-
-    if (questions.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "AI service response had no valid questions" }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    const questions = await generateVerifiedQuestions({
+      count,
+      topic: label,
+      generateCandidates: (requested, attempt) => generate({
+        prompt: buildPrompt(label, guidance, examples, requested),
+        temperature: attempt === 0 ? 0.35 : 0,
+      }),
+      reviewCandidates: (prompt) => generate({prompt, temperature: 0}),
+      onAttempt: (stats) => console.info("[generate-quiz] quality review:", stats),
+    });
 
     return new Response(
       JSON.stringify({ topic, topic_label: label, questions }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    if (err instanceof QuizQualityError) {
+      return new Response(JSON.stringify({error: err.message, code: "QUIZ_QUALITY_CHECK_FAILED"}), {
+        status: 503,
+        headers: {...corsHeaders, "Content-Type": "application/json"},
+      });
+    }
+
     // Log the error for debugging
     console.error("Error in generate-quiz function:", err);
 

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:quiz": "node --experimental-vm-modules --test tests/quiz-quality.test.ts tests/quiz-endpoint.test.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

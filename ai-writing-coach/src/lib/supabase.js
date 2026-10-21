@@ -50,7 +50,13 @@ export async function invokeFunction(functionName, body) {
   });
 
   if (error) {
-    // Preserve the original error text so callers see the detail field
+    if (functionName === "generate-quiz" && error.context instanceof Response) {
+      const failure = await error.context.clone().json().catch(() => null);
+      if (failure?.code === "QUIZ_QUALITY_CHECK_FAILED") {
+        throw new Error("We couldn't verify enough practice questions. Please try again in a moment.");
+      }
+    }
+
     const message = error.message ?? String(error);
     throw new Error(`Function ${functionName} failed: ${message}`);
   }
