@@ -10,10 +10,10 @@ import {AIProvider, AIRequest, AIResponse} from '../types.ts';
 // it moves on to the next automatically.
 // ---------------------------------------------------------------------------
 const GROQ_MODELS = [
+    'openai/gpt-oss-120b',
     'openai/gpt-oss-20b',
     'qwen/qwen3.8-27b',
     'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
     'groq/compound',
     'groq/compound-mini',
 ] as const;
