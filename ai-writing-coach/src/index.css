@@ -147,7 +147,7 @@
 
   .hero-dashboard {
     animation-name: heroDashboardEnter;
-    animation-duration: 1100ms;
+    animation-duration: 2200ms;
     animation-delay: 820ms;
   }
 
@@ -441,10 +441,6 @@
 @media (min-width: 640px) {
   .landing-hero {
     --hero-dashboard-distance: clamp(100px, 18vh, 180px);
-  }
-
-  .hero-dashboard {
-    animation-duration: 1100ms;
   }
 
   .hero-correction-example {
