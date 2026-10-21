@@ -352,6 +352,17 @@ Deno.serve(async (req: Request) => {
         `&order=frequency_count.desc&limit=15`
     );
     const pool = allExamples ?? [];
+    if (pool.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "No saved mistakes remain for this topic. Analyse a new draft before starting a personalised quiz.",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     // Fisher-Yates shuffle of a copy, then take the first 5.
     const shuffled = [...pool];
     for (let i = shuffled.length - 1; i > 0; i--) {

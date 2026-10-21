@@ -15,7 +15,11 @@ import { Pill } from "../components/Pill";
 import { IconBadge } from "../components/IconBadge";
 import { Skeleton, TableBodySkeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
-import { getHistoryPage, getHistoryTopics } from "../lib/history";
+import {
+  deleteHistoryEntry,
+  getHistoryPage,
+  getHistoryTopics,
+} from "../lib/history";
 import { fmtRelative } from "../lib/format";
 
 const PAGE_SIZE = 25;
@@ -47,6 +51,8 @@ export function HistoryPage() {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("all");
   const [topics, setTopics] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // First load: history + topic list
   useEffect(() => {
@@ -114,11 +120,40 @@ export function HistoryPage() {
     navigate("/app/workspace", { state: { reviewLogId: row.id } });
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget || deletingId) return;
+    const id = deleteTarget.id;
+    setDeletingId(id);
+    try {
+      await deleteHistoryEntry(id);
+      try {
+        const page = await getHistoryPage({ pageSize: PAGE_SIZE });
+        setEntries(page.entries);
+        setCursor(page.nextCursor);
+        setDone(page.nextCursor === null);
+      } catch {
+        // The delete was already verified against the database. Keep the UI
+        // accurate even if the immediate list refresh has a network issue.
+        setEntries((current) => current.filter((entry) => entry.id !== id));
+      }
+      setDeleteTarget(null);
+      show(`History entry deleted. Progress and practice have been updated.`, {
+        tone: "success",
+      });
+    } catch (err) {
+      show(err?.message ?? "Couldn't delete this history entry.", {
+        tone: "error",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="py-5 sm:py-6 px-3 sm:px-4 md:px-6 max-w-6xl mx-auto space-y-5 sm:space-y-6">
       {/* Header card with summary + filter controls */}
       <Card className="p-4 sm:p-5 lg:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <IconBadge tone="brand">
               <History className="w-5 h-5" />
@@ -139,15 +174,6 @@ export function HistoryPage() {
               </div>
             </div>
           </div>
-          <Button
-            variant="secondary"
-            size="md"
-            leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-            disabled
-            title="Coming soon"
-          >
-            Clear all history
-          </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5">
@@ -188,6 +214,8 @@ export function HistoryPage() {
                         key={row.id}
                         row={row}
                         onReview={() => handleReview(row)}
+                        onDelete={() => setDeleteTarget(row)}
+                        deleting={deletingId === row.id}
                       />
                     ))}
                   </tbody>
@@ -203,6 +231,8 @@ export function HistoryPage() {
                 key={row.id}
                 row={row}
                 onReview={() => handleReview(row)}
+                onDelete={() => setDeleteTarget(row)}
+                deleting={deletingId === row.id}
               />
             ))}
           </div>
@@ -228,6 +258,13 @@ export function HistoryPage() {
           </Button>
         </div>
       ) : null}
+
+      <DeleteHistoryDialog
+        row={deleteTarget}
+        deleting={deletingId === deleteTarget?.id}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
@@ -236,7 +273,7 @@ export function HistoryPage() {
 /*  Rows                                                              */
 /* ------------------------------------------------------------------ */
 
-function HistoryTableRow({ row, onReview }) {
+function HistoryTableRow({ row, onReview, onDelete, deleting }) {
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
       <td className="p-4 w-20 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
@@ -258,20 +295,38 @@ function HistoryTableRow({ row, onReview }) {
         {row.accuracy_score}%
       </td>
       <td className="p-4 w-10 text-right whitespace-nowrap">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onReview}
-          className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
-        >
-          Review session
-        </Button>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onReview}
+            className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+          >
+            Review session
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDelete}
+            disabled={deleting}
+            leftIcon={
+              deleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )
+            }
+            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </Button>
+        </div>
       </td>
     </tr>
   );
 }
 
-function HistoryMobileRow({ row, onReview }) {
+function HistoryMobileRow({ row, onReview, onDelete, deleting }) {
   return (
     <Card className="p-3.5 space-y-2.5">
       <div className="flex items-start justify-between gap-2">
@@ -292,16 +347,112 @@ function HistoryMobileRow({ row, onReview }) {
           <span className="text-emerald-600 whitespace-nowrap">Clean</span>
         )}
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={onReview}
-        fullWidth
-        className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
-      >
-        Review session
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onReview}
+          fullWidth
+          className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+        >
+          Review session
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDelete}
+          disabled={deleting}
+          fullWidth
+          leftIcon={
+            deleting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
+            )
+          }
+          className="border-red-100 text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+        >
+          {deleting ? "Deleting…" : "Delete"}
+        </Button>
+      </div>
     </Card>
+  );
+}
+
+function DeleteHistoryDialog({ row, deleting, onCancel, onConfirm }) {
+  if (!row) return null;
+  const text = row.original_text ?? "";
+  const preview = text.length > 120 ? `${text.slice(0, 119)}…` : text;
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !deleting) onCancel();
+      }}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-history-title"
+        aria-describedby="delete-history-description"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:p-6"
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+            <Trash2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2
+              id="delete-history-title"
+              className="text-base font-extrabold text-slate-900 dark:text-white"
+            >
+              Delete this history entry?
+            </h2>
+            <p
+              id="delete-history-description"
+              className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400"
+            >
+              This removes the selected analysis and its mistakes from your history, progress, and personalised practice. This action cannot be undone.
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+          “{preview}”
+        </p>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="md"
+            onClick={onCancel}
+            disabled={deleting}
+            autoFocus
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            size="md"
+            onClick={onConfirm}
+            disabled={deleting}
+            leftIcon={
+              deleting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )
+            }
+          >
+            {deleting ? "Deleting…" : "Delete entry"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -426,6 +577,7 @@ function summarize(entries) {
 
 function fmtTableDate(iso) {
   if (!iso) return "—";
-  // YYYY-MM-DD HH:MM, matching the reference's dateStr shape
-  return iso.replace("T", " ").slice(0, 16);
+  // Include seconds so duplicate submissions made in the same minute can be
+  // distinguished before the user chooses one to review or delete.
+  return iso.replace("T", " ").slice(0, 19);
 }

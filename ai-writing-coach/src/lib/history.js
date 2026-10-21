@@ -107,6 +107,71 @@ export async function getHistoryEntry(id) {
 }
 
 /**
+ * Delete one history entry owned by the current user.
+ *
+ * The user_id filter is deliberate defense in depth alongside the database
+ * RLS policy: a client can only remove the exact row it owns.
+ *
+ * @param {string} id
+ * @returns {Promise<string>} the deleted entry id
+ */
+export async function deleteHistoryEntry(id) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  if (!id) throw new Error("Choose a history entry to delete.");
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user?.id) {
+    throw new Error("Your session has expired. Sign in again to delete this history entry.");
+  }
+
+  const removeOwnedEntry = () =>
+    supabase
+      .from("analysis_logs")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("id")
+      .maybeSingle();
+
+  let { data, error } = await removeOwnedEntry();
+
+  // A tab can retain rendered history after its access token has become stale.
+  // Refresh once, then retry the exact owner-scoped operation.
+  if (error?.code === "42501") {
+    const { data: refreshed, error: refreshError } =
+      await supabase.auth.refreshSession();
+    if (refreshError || !refreshed.session) {
+      throw new Error("Your session has expired. Sign in again to delete this history entry.");
+    }
+    ({ data, error } = await removeOwnedEntry());
+  }
+
+  if (error?.code === "42501") {
+    throw new Error("Your session could not be authorized. Sign out, sign in again, and retry.");
+  }
+  if (error) throw error;
+  if (!data?.id) {
+    throw new Error("This history entry could not be deleted. Refresh and try again.");
+  }
+
+  const { data: remaining, error: verifyError } = await supabase
+    .from("analysis_logs")
+    .select("id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (verifyError) throw verifyError;
+  if (remaining) {
+    throw new Error("The history entry is still in the database. Please try again.");
+  }
+  return data.id;
+}
+
+/**
  * Fetch all distinct focus_area values used in this user's history, so we
  * can populate the topic filter dropdown.
  *
