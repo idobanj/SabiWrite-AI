@@ -4,7 +4,6 @@ import {
   User,
   Edit3,
   Compass,
-  GraduationCap,
   LogOut,
   Save,
   X,
@@ -19,7 +18,7 @@ import { supabase } from "../lib/supabase";
 
 /**
  * Phase 1: shows real auth profile, lets user edit full_name,
- * target_goal, cgpa; sign out.
+ * target_goal; sign out.
  */
 export function ProfilePage() {
   const { profile, session, refreshProfile, signOut } = useAuth();
@@ -37,7 +36,6 @@ export function ProfilePage() {
   const blankForm = {
     full_name: profile?.full_name || "",
     target_goal: profile?.target_goal || "",
-    cgpa: profile?.cgpa ?? "",
   };
 
   const [editing, setEditing] = useState(false);
@@ -59,20 +57,10 @@ export function ProfilePage() {
     }
     setSaving(true);
     try {
-      // cgpa is numeric in the schema. Coerce empty string -> null, anything
-      // else -> number. Anything non-numeric will be rejected by Postgres.
-      const cgpaRaw = String(form.cgpa).trim();
-      const cgpa = cgpaRaw === "" ? null : Number(cgpaRaw);
-      if (cgpaRaw !== "" && Number.isNaN(cgpa)) {
-        show("CGPA needs to be a number (or leave it blank).");
-        setSaving(false);
-        return;
-      }
       const updates = {
         id: session.user.id,
         full_name: form.full_name.trim() || null,
         target_goal: form.target_goal.trim() || null,
-        cgpa,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -185,13 +173,6 @@ export function ProfilePage() {
                 onChange={(v) => setForm({ ...form, target_goal: v })}
                 placeholder="e.g. Pass IELTS, write better emails…"
               />
-              <ProfileField
-                label="CGPA (optional)"
-                value={form.cgpa}
-                onChange={(v) => setForm({ ...form, cgpa: v })}
-                placeholder="4.32"
-                type="number"
-              />
             </div>
           ) : (
             <div className="space-y-4">
@@ -201,16 +182,6 @@ export function ProfilePage() {
                 title="Goal"
                 value={profile?.target_goal || "Not set yet."}
               />
-              {/* <ProfileRow
-                icon={<GraduationCap className="w-4 h-4" />}
-                tone="indigo"
-                title="CGPA"
-                value={
-                  profile?.cgpa != null && profile?.cgpa !== ""
-                    ? String(profile.cgpa)
-                    : "Not set yet."
-                }
-              /> */}
             </div>
           )}
         </Card>
@@ -262,18 +233,17 @@ function ProfileRow({ icon, tone, title, value }) {
   );
 }
 
-function ProfileField({ label, value, onChange, placeholder, type = "text" }) {
+function ProfileField({ label, value, onChange, placeholder }) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
         {label}
       </label>
       <input
-        type={type}
+        type="text"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        step={type === "number" ? "0.01" : undefined}
         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/60 transition"
       />
     </div>
