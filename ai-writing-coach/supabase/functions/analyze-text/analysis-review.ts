@@ -39,7 +39,7 @@ Check these requirements before approving:
 4. Preserve valid scheduled-future statements such as "The train leaves tomorrow at six." or "According to the itinerary, I go there tomorrow." Never add "will" just because a sentence contains "tomorrow". Preserve valid conditionals and future time clauses too.
 5. Do not invent mistakes or swap acceptable words for synonyms. Keep correct British and American variants. If the original is already correct, approve unchanged text with no mistakes.
 6. Every reported mistake must be a genuine correction or a clearly explained contextual phrasing improvement. Explanations must match the actual edit and acknowledge relevant context instead of teaching a false absolute rule.
-7. Every edit must quote a nonempty, exact substring of the ORIGINAL. Edits must not overlap or duplicate each other. If changes cannot be separated, combine them in one edit and use its main grammar category, rather than labeling a tense/wording correction as punctuation.
+7. Every edit must quote a nonempty, exact substring of original_text, with start/end offsets into original_text. NEVER quote an already-corrected word or phrase from proposed_analysis as wrong_text. For example, if original_text contains "aare", quote "aare", not "are". Edits must not overlap or duplicate each other. If changes cannot be separated, combine them in one edit and use its main grammar category, rather than labeling a tense/wording correction as punctuation.
 8. The complete corrected_sentence must match what applying ALL edits to the original produces. Check the full result again after making changes.
 9. Complete prose sentences MUST have terminal punctuation: supply a period, question mark, or exclamation mark as appropriate. In particular, "I am going there tomorrow" still needs its final period; revise it rather than approving it. Capitalize the pronoun I and sentence starts. Preserve headings, labels, URLs, and code without imposing sentence punctuation on them.
 10. Do not invent a scheduled context for a standalone personal-plan sentence. Explain a naturalness improvement as "more natural for a personal plan", while acknowledging that explicit timetables can use present simple.
@@ -52,7 +52,7 @@ Return ONLY JSON in one of these forms:
 {"verdict":"revise","analysis":{"corrected_sentence":"<full corrected text>","mistakes":[{"type":"<subject_verb_agreement|tense|article|preposition|word_choice|spelling|punctuation|sentence_structure|other>","wrong_text":"<exact original substring>","correct_text":"<replacement>","start":0,"end":1,"explanation":"<short, accurate reason>","tip":"<optional short tip>"}],"explanation":"<brief contextual coaching note>"}}
 - If the intended meaning cannot be preserved reliably: {"verdict":"reject"}
 
-When validation_failed is true, you MUST revise or reject; never approve that draft.
+When validation_failed is true, you MUST revise or reject; never approve that draft. Use validation_issue to repair the complete edit list. For unmatched_source_span, re-read original_text and quote its exact spelling and punctuation; do not copy spans from the proposed correction.
 Data:
 ${JSON.stringify({
     original_text: original,
@@ -77,9 +77,10 @@ interface ReviewOptions {
 }
 
 export async function reviewAnalysis({original, draft, candidate, generateReview, parse, normalise, validationIssue}: ReviewOptions): Promise<AnalysisResponse> {
-  // One review can propose a repair; the following review must approve it.
+  // Allow up to two repairs, including an invalid edit list from the reviewer,
+  // and reserve the last pass for approval. At most four AI calls in total.
   // A revised or structurally invalid response is never returned unchecked.
-  for (let pass = 0; pass < 2; pass++) {
+  for (let pass = 0; pass < 3; pass++) {
     let review: unknown;
     try {
       review = parse(await generateReview(buildReviewPrompt(original, draft, candidate, validationIssue?.())));
@@ -96,7 +97,7 @@ export async function reviewAnalysis({original, draft, candidate, generateReview
     if (result.verdict !== "revise") throw new AnalysisQualityError("review_rejected");
     draft = result.analysis;
     candidate = normalise(draft);
-    if (!candidate) throw new AnalysisQualityError("invalid_revision", validationIssue?.());
+    if (!candidate && pass === 2) throw new AnalysisQualityError("invalid_revision", validationIssue?.());
   }
   throw new AnalysisQualityError("repair_not_approved");
 }

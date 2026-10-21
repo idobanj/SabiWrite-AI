@@ -211,11 +211,94 @@ for (const response of [
   });
 }
 
-test("a repair is not accepted until approved, with a bounded three-call limit", async () => {
-  const endpoint = await loadEndpoint([superficial, revision, revision]);
+test("a repair is not accepted until approved, with a bounded four-call limit", async () => {
+  const endpoint = await loadEndpoint([superficial, revision, revision, revision]);
   const response = await endpoint.handler(request());
   assert.equal(response.status, 503);
-  assert.equal(endpoint.prompts.length, 3);
+  assert.equal(endpoint.prompts.length, 4);
+});
+
+const greeting = "hi there how aare you";
+const greetingAnalysis = {
+  corrected_sentence: "Hi there, how are you?",
+  mistakes: [
+    {type: "punctuation", wrong_text: "hi", correct_text: "Hi", explanation: "Capitalize the first word."},
+    {type: "punctuation", wrong_text: "there", correct_text: "there,", explanation: "Separate the greeting from the question."},
+    {type: "spelling", wrong_text: "aare", correct_text: "are", explanation: "Remove the extra a."},
+    {type: "punctuation", wrong_text: "you", correct_text: "you?", explanation: "End the question with a question mark."},
+  ],
+  explanation: "Fix the typo and punctuate the greeting and question.",
+};
+const invalidGreetingRevision = {
+  verdict: "revise",
+  analysis: {
+    ...greetingAnalysis,
+    mistakes: [
+      ...greetingAnalysis.mistakes.slice(0, 2),
+      {type: "punctuation", wrong_text: "how are you", correct_text: "how are you?", explanation: "End with a question mark."},
+    ],
+  },
+};
+
+for (const stream of [false, true]) {
+  test(`repairs a reviewer edit quoted from the correction instead of the original greeting (${stream ? "streaming" : "JSON"})`, async () => {
+    const endpoint = await loadEndpoint([
+      greetingAnalysis,
+      invalidGreetingRevision,
+      {verdict: "revise", analysis: greetingAnalysis},
+      approval(greetingAnalysis.corrected_sentence),
+    ]);
+    const response = await endpoint.handler(request(greeting, stream));
+    assert.equal(response.status, 200);
+    let body;
+    if (stream) {
+      const events = (await response.text()).trim().split("\n\n").map((line) => JSON.parse(line.slice(6)));
+      assert.equal(events.some((event) => event.type === "error"), false);
+      body = events.find((event) => event.type === "complete")?.result;
+    } else {
+      body = await response.json();
+    }
+    assert.equal(body.corrected_sentence, greetingAnalysis.corrected_sentence);
+    assert.equal(body.mistakes.length, 4);
+    assert.ok(body.accuracyScore < 100);
+    for (const mistake of body.mistakes) {
+      assert.equal(greeting.slice(mistake.start, mistake.end), mistake.wrong_text);
+    }
+    assert.equal(endpoint.prompts.length, 4);
+    const retryData = JSON.parse(endpoint.prompts[2].split("Data:\n")[1]);
+    assert.equal(retryData.original_text, greeting);
+    assert.equal(retryData.validation_failed, true);
+    assert.equal(retryData.validation_issue, "unmatched_source_span");
+    const finalData = JSON.parse(endpoint.prompts[3].split("Data:\n")[1]);
+    assert.equal(finalData.validation_failed, false);
+  });
+}
+
+test("repeated invalid reviewer edits exhaust the repair limit without returning a grade", async () => {
+  const endpoint = await loadEndpoint([
+    greetingAnalysis, invalidGreetingRevision, invalidGreetingRevision, invalidGreetingRevision,
+  ]);
+  const response = await endpoint.handler(request(greeting));
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(body.reason, "invalid_revision");
+  assert.equal(body.validationIssue, "unmatched_source_span");
+  assert.equal("accuracyScore" in body, false);
+  assert.equal("corrected_sentence" in body, false);
+  assert.equal(endpoint.prompts.length, 4);
+});
+
+test("a repaired invalid review still cannot be returned without final approval", async () => {
+  const endpoint = await loadEndpoint([
+    greetingAnalysis,
+    invalidGreetingRevision,
+    {verdict: "revise", analysis: greetingAnalysis},
+    {verdict: "reject"},
+  ]);
+  const response = await endpoint.handler(request(greeting));
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).code, "ANALYSIS_QUALITY_CHECK_FAILED");
+  assert.equal(endpoint.prompts.length, 4);
 });
 
 test("streaming returns the same reviewed result and includes a reviewing progress message", async () => {

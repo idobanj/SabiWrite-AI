@@ -1,4 +1,4 @@
-// Manual smoke check: sends six short, non-private examples to the configured
+// Manual smoke check: sends seven short, non-private examples to the configured
 // deployed function. Run with Node.js 24 and --env-file=.env. Keys are never logged.
 const base = process.env.VITE_SUPABASE_URL;
 const key = process.env.VITE_SUPABASE_ANON_KEY;
@@ -10,6 +10,7 @@ const plans = new Set([
   "I'm going to go there tomorrow.", "I am going to go there tomorrow.",
 ]);
 const cases = [
+  {name: "reported greeting", input: "hi there how aare you", valid: (body) => /^Hi there[,.!] [Hh]ow are you\?$/.test(body.corrected_sentence)},
   {name: "reported future plan", input: "i go there tomorrow", valid: (body) => plans.has(body.corrected_sentence?.replace(/[‘’]/g, "'"))},
   {name: "past-tense correction", input: "Yesterday, he go to school.", valid: (body) => body.corrected_sentence === "Yesterday, he went to school."},
   ...[

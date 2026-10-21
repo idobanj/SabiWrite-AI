@@ -40,14 +40,17 @@ export const FUNCTIONS_BASE = supabaseUrl ? `${supabaseUrl}/functions/v1` : "";
  * Uses supabase.functions.invoke() which automatically refreshes the JWT
  * before every call — prevents "Invalid or expired token" errors.
  */
-export async function invokeFunction(functionName, body) {
+export async function invokeFunction(functionName, body, { signal } = {}) {
   if (!supabase) {
     throw new Error("Supabase is not configured. Check your .env file.");
   }
 
+  signal?.throwIfAborted();
   const { data, error } = await supabase.functions.invoke(functionName, {
     body,
+    signal,
   });
+  signal?.throwIfAborted();
 
   if (error) {
     if (functionName === "generate-quiz" && error.context instanceof Response) {

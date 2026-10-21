@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -77,8 +77,17 @@ function PracticeFlow() {
   const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const quizRequest = useRef(null);
+
+  useEffect(() => () => {
+    quizRequest.current?.abort();
+    quizRequest.current = null;
+  }, []);
 
   const startQuiz = async (t, label, count) => {
+    if (quizRequest.current) return;
+    const request = new AbortController();
+    quizRequest.current = request;
     setTopic(t);
     setTopicLabel(label);
     setTopicCount(count);
@@ -87,16 +96,20 @@ function PracticeFlow() {
     setQuiz(null);
     setAnswers([]);
     try {
-      const q = await generateQuiz(t, QUIZ_LENGTH);
+      const q = await generateQuiz(t, QUIZ_LENGTH, { signal: request.signal });
+      if (request.signal.aborted) return;
       setQuiz(q);
       setAnswers(new Array(q.questions.length).fill(null));
       setPhase("active");
     } catch (err) {
+      if (request.signal.aborted) return;
       // eslint-disable-next-line no-console
       console.error("[practice] generateQuiz failed:", err);
       setError(err?.message ?? "Couldn't generate a quiz.");
       setPhase("landing");
       show("Couldn't generate a quiz right now. Try again in a moment.");
+    } finally {
+      if (quizRequest.current === request) quizRequest.current = null;
     }
   };
 

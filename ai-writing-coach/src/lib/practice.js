@@ -37,15 +37,14 @@ import { invokeFunction } from "./supabase";
  *
  * @param {string} topic
  * @param {number} [count=5]
+ * @param {{ signal?: AbortSignal }} [options]
  * @returns {Promise<Quiz>}
  */
-export async function generateQuiz(topic, count = 5) {
+export async function generateQuiz(topic, count = 5, { signal } = {}) {
   if (!supabase) throw new Error("Supabase is not configured.");
   if (!topic) throw new Error("Topic is required.");
 
-  const result = await invokeFunction("generate-quiz", { topic, count });
-
-  console.log("genrateQuiz response:", result);
+  const result = await invokeFunction("generate-quiz", { topic, count }, { signal });
 
   if (result && typeof result === "object" && "error" in result) {
     throw new Error(String(result.error));
