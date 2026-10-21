@@ -20,8 +20,8 @@ const titleMap = {
         subtitle: 'Short drills built from your recurring slips.',
     },
     '/app/history': {
-        title: 'History',
-        subtitle: 'Review and reference previous analyses sessions.',
+        title: 'Writing History',
+        subtitle: 'Review past drafts, corrections, and progress.',
     },
     '/app/profile': {
         title: 'Account',

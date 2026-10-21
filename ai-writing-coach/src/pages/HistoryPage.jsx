@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
   Filter,
   History,
   Loader2,
@@ -11,7 +14,6 @@ import {
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
-import { Pill } from "../components/Pill";
 import { IconBadge } from "../components/IconBadge";
 import { Skeleton, TableBodySkeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
@@ -20,22 +22,13 @@ import {
   getHistoryPage,
   getHistoryTopics,
 } from "../lib/history";
-import { fmtRelative } from "../lib/format";
 
 const PAGE_SIZE = 25;
 
-function accuracyPillColor(score) {
-  if (score >= 80) return "emerald";
-  if (score >= 50) return "amber";
-  return "red";
-}
-
 /**
- * Phase 4: History page. Mirrors the reference design — a 5-column table
- * (Date · Snippet · Mistakes · Score · Actions) on tablet/desktop and a
- * stacked-card list on mobile. Each row has a "Review Session" button
- * that re-opens the saved analysis in the Writing Desk without re-calling
- * Gemini.
+ * History page. Uses a compact summary and result-first filters, a flexible
+ * four-column table on larger screens, and stacked cards on mobile. Reviewing
+ * a row re-opens its saved analysis without re-calling the AI service.
  */
 export function HistoryPage() {
   const { show } = useToast();
@@ -49,6 +42,7 @@ export function HistoryPage() {
   const [error, setError] = useState("");
 
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
   const [topic, setTopic] = useState("all");
   const [topics, setTopics] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -104,6 +98,8 @@ export function HistoryPage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((row) => {
+      if (status === "issues" && row.mistake_count === 0) return false;
+      if (status === "clean" && row.mistake_count > 0) return false;
       if (topic !== "all" && row.focus_area !== topic) return false;
       if (!q) return true;
       return (
@@ -112,7 +108,7 @@ export function HistoryPage() {
         (row.focus_area ?? "").toLowerCase().includes(q)
       );
     });
-  }, [entries, query, topic]);
+  }, [entries, query, status, topic]);
 
   const stats = useMemo(() => summarize(entries), [entries]);
 
@@ -150,35 +146,38 @@ export function HistoryPage() {
   };
 
   return (
-    <div className="py-5 sm:py-6 px-3 sm:px-4 md:px-6 max-w-6xl mx-auto space-y-5 sm:space-y-6">
-      {/* Header card with summary + filter controls */}
-      <Card className="p-4 sm:p-5 lg:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <IconBadge tone="brand">
+    <div className="py-5 sm:py-6 px-3 sm:px-4 md:px-6 max-w-6xl mx-auto space-y-4 sm:space-y-5">
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <IconBadge tone="brand" size="lg">
               <History className="w-5 h-5" />
             </IconBadge>
             <div className="min-w-0">
-              <h3 className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg">
-                Writing history logs
-              </h3>
-              <div className="text-xs text-slate-500 dark:text-slate-400 min-h-[1.25rem]">
-                {loading ? (
-                  <Skeleton w="w-56" h="h-2.5" />
-                ) : (
-                  <>
-                    {stats.total} {stats.total === 1 ? "draft" : "drafts"} ·
-                    avg {stats.avgAccuracy}% accuracy
-                  </>
-                )}
-              </div>
+              <h2 className="font-black tracking-tight text-slate-950 dark:text-white text-xl sm:text-2xl">
+                Your drafts at a glance
+              </h2>
+              <p className="mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                Find a draft by result, topic, or text.
+              </p>
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-3">
+            <SummaryMetric loading={loading} value={stats.total} label="Drafts" />
+            <SummaryMetric loading={loading} value={stats.needsReview} label="With issues" tone="amber" />
+            <SummaryMetric loading={loading} value={`${stats.avgAccuracy}%`} label="Avg. score" tone="brand" />
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <SearchBox value={query} onChange={setQuery} />
-          <TopicFilter value={topic} onChange={setTopic} topics={topics} />
+        <div className="border-t border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-900/35 sm:p-4">
+          <div className="flex flex-col gap-3">
+            <StatusFilter value={status} onChange={setStatus} stats={stats} />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <SearchBox value={query} onChange={setQuery} />
+              <TopicFilter value={topic} onChange={setTopic} topics={topics} />
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -191,24 +190,33 @@ export function HistoryPage() {
       {loading ? (
         <HistoryTableSkeleton />
       ) : visible.length === 0 ? (
-        <EmptyState hasAny={entries.length > 0} query={query} topic={topic} />
+        <EmptyState
+          hasAny={entries.length > 0}
+          query={query}
+          status={status}
+          topic={topic}
+          onClear={() => {
+            setQuery("");
+            setStatus("all");
+            setTopic("all");
+          }}
+          onWrite={() => navigate("/app/workspace")}
+        />
       ) : (
         <>
-          {/* Desktop / tablet: classic table matching the reference */}
-          <div className="hidden md:block">
+          {/* Desktop / tablet */}
+          <div className="hidden lg:block">
             <Card padded={false} className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full table-fixed text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold">
-                      <th className="p-4 w-20 whitespace-nowrap">Submission Date</th>
-                      <th className="p-4 w-40 whitespace-nowrap">Text Snippet Preview</th>
-                      <th className="p-4 w-20 whitespace-nowrap">Mistakes Identified</th>
-                      <th className="p-4 w-10 whitespace-nowrap">Accuracy Score</th>
-                      <th className="p-4 w-10 text-right whitespace-nowrap">Actions</th>
+                    <tr className="bg-slate-50/80 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
+                      <th className="px-4 py-3 w-[17%]">Date</th>
+                      <th className="px-4 py-3 w-[43%]">Draft preview</th>
+                      <th className="px-4 py-3 w-[18%]">Result</th>
+                      <th className="px-4 py-3 w-[22%] text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-600 text-slate-700 font-medium">
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 font-medium">
                     {visible.map((row) => (
                       <HistoryTableRow
                         key={row.id}
@@ -220,12 +228,11 @@ export function HistoryPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
             </Card>
           </div>
 
           {/* Mobile: stacked cards, same data, same Review button */}
-          <div className="md:hidden space-y-2">
+          <div className="space-y-2 lg:hidden">
             {visible.map((row) => (
               <HistoryMobileRow
                 key={row.id}
@@ -238,6 +245,27 @@ export function HistoryPage() {
           </div>
         </>
       )}
+
+      {!loading && entries.length > 0 ? (
+        <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div>
+            <p className="text-sm font-extrabold text-slate-900 dark:text-white">
+              Ready to analyse another draft?
+            </p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              New analyses will appear here and update your progress automatically.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate("/app/workspace")}
+            rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+            className="self-start sm:self-auto"
+          >
+            Go to Writing Desk
+          </Button>
+        </Card>
+      ) : null}
 
       {!loading && !done && cursor ? (
         <div className="flex justify-center pt-1">
@@ -274,52 +302,72 @@ export function HistoryPage() {
 /* ------------------------------------------------------------------ */
 
 function HistoryTableRow({ row, onReview, onDelete, deleting }) {
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onReview();
+    }
+  };
+
   return (
-    <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-      <td className="p-4 w-20 text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap">
-        {fmtTableDate(row.created_at)}
-      </td>
-      <td className="p-4 w-40 text-slate-800 dark:text-slate-200 font-bold max-w-md">
-        <p className="truncate" title={row.original_text}>
-          {row.original_text}
+    <tr
+      tabIndex={0}
+      onClick={onReview}
+      onKeyDown={handleKeyDown}
+      aria-label={`Review draft from ${fmtDate(row.created_at)}`}
+      className="group cursor-pointer transition-colors hover:bg-brand-50/40 focus:bg-brand-50/50 focus:outline-none dark:hover:bg-brand-500/5 dark:focus:bg-brand-500/10"
+    >
+      <td className="px-4 py-4 align-middle">
+        <p className="font-bold text-slate-700 dark:text-slate-200">
+          {fmtDate(row.created_at)}
+        </p>
+        <p className="mt-0.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+          {fmtTime(row.created_at)}
         </p>
       </td>
-      <td className="p-4 w-20 whitespace-nowrap">
-        {row.mistake_count > 0 ? (
-          <span className="text-red-600">{row.mistake_count} {row.mistake_count === 1 ? 'error' : 'errors'}</span>
-        ) : (
-          <span className="text-emerald-600">No errors</span>
-        )}
+      <td className="px-4 py-4 align-middle">
+        <p className="truncate text-sm font-bold text-slate-900 dark:text-white" title={row.original_text}>
+          {row.original_text}
+        </p>
+        <p className="mt-1 truncate text-[11px] font-medium text-slate-400 dark:text-slate-500">
+          {row.focus_area && row.focus_area !== "General"
+            ? humanizeTopic(row.focus_area)
+            : "General writing"}
+        </p>
       </td>
-      <td className="p-4 w-10 text-slate-900 dark:text-white font-extrabold whitespace-nowrap">
-        {row.accuracy_score}%
+      <td className="px-4 py-4 align-middle">
+        <ResultBadge row={row} />
       </td>
-      <td className="p-4 w-10 text-right whitespace-nowrap">
-        <div className="flex items-center justify-end gap-2">
+      <td className="px-4 py-4 align-middle">
+        <div className="flex items-center justify-end gap-1.5">
           <Button
             size="sm"
             variant="outline"
-            onClick={onReview}
-            className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+            onClick={(event) => {
+              event.stopPropagation();
+              onReview();
+            }}
+            className="px-2.5 text-brand-600 border-brand-100 group-hover:border-brand-200 dark:text-brand-400 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
           >
-            Review session
+            Review
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onDelete}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
             disabled={deleting}
-            leftIcon={
-              deleting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )
-            }
-            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+            aria-label={`Delete draft from ${fmtDate(row.created_at)}`}
+            title="Delete draft"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 disabled:pointer-events-none disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
           >
-            {deleting ? "Deleting…" : "Delete"}
-          </Button>
+            {deleting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+          </button>
         </div>
       </td>
     </tr>
@@ -328,54 +376,75 @@ function HistoryTableRow({ row, onReview, onDelete, deleting }) {
 
 function HistoryMobileRow({ row, onReview, onDelete, deleting }) {
   return (
-    <Card className="p-3.5 space-y-2.5">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-slate-700 dark:text-slate-200 line-clamp-2 break-words flex-1 min-w-0">
-          {row.original_text}
-        </p>
-        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest whitespace-nowrap flex-shrink-0">
-          {fmtRelative(new Date(row.created_at))}
-        </span>
+    <Card className="p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold leading-relaxed text-slate-900 dark:text-white line-clamp-2 break-words">
+            {row.original_text}
+          </p>
+          <p className="mt-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+            {fmtDate(row.created_at)} · {fmtTime(row.created_at)}
+          </p>
+        </div>
+        <ResultBadge row={row} compact />
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Pill color={accuracyPillColor(row.accuracy_score)}>
-          {row.accuracy_score}%
-        </Pill>
-        {row.mistake_count > 0 ? (
-          <span className="text-red-600 whitespace-nowrap">{row.mistake_count} {row.mistake_count === 1 ? "error" : "errors"}</span>
-        ) : (
-          <span className="text-emerald-600 whitespace-nowrap">Clean</span>
-        )}
-      </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
         <Button
           size="sm"
           variant="outline"
           onClick={onReview}
-          fullWidth
-          className="text-brand-500 border-brand-100 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+          className="flex-1 text-brand-600 border-brand-100 dark:text-brand-400 dark:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-500/10"
         >
-          Review session
+          Review draft
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
+        <button
+          type="button"
           onClick={onDelete}
           disabled={deleting}
-          fullWidth
-          leftIcon={
-            deleting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="w-3.5 h-3.5" />
-            )
-          }
-          className="border-red-100 text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+          aria-label={`Delete draft from ${fmtDate(row.created_at)}`}
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-700 dark:text-slate-500 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
         >
-          {deleting ? "Deleting…" : "Delete"}
-        </Button>
+          {deleting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="h-3.5 w-3.5" />
+          )}
+        </button>
       </div>
     </Card>
+  );
+}
+
+function ResultBadge({ row, compact = false }) {
+  const clean = row.mistake_count === 0;
+  return (
+    <div
+      className={`inline-flex flex-shrink-0 items-center gap-2 rounded-xl border ${
+        compact ? "px-2 py-1.5" : "px-2.5 py-2"
+      } ${
+        clean
+          ? "border-emerald-100 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+          : "border-amber-100 bg-amber-50/80 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+      }`}
+    >
+      {clean ? (
+        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+      ) : (
+        <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+      )}
+      <div className="leading-none">
+        <p className="whitespace-nowrap text-[11px] font-extrabold">
+          {clean
+            ? "Clean"
+            : `${row.mistake_count} ${row.mistake_count === 1 ? "issue" : "issues"}`}
+        </p>
+        {!compact ? (
+          <p className="mt-1 text-[10px] font-bold opacity-75">
+            {row.accuracy_score}% score
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -460,6 +529,70 @@ function DeleteHistoryDialog({ row, deleting, onCancel, onConfirm }) {
 /*  Filter controls                                                   */
 /* ------------------------------------------------------------------ */
 
+function SummaryMetric({ loading, value, label, tone = "slate" }) {
+  const tones = {
+    slate: "text-slate-900 dark:text-white",
+    amber: "text-amber-600 dark:text-amber-300",
+    brand: "text-brand-600 dark:text-brand-300",
+  };
+
+  return (
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center dark:border-slate-700 dark:bg-slate-900/60 sm:min-w-[82px]">
+      {loading ? (
+        <Skeleton w="w-8" h="h-4" className="mx-auto" />
+      ) : (
+        <p className={`text-sm font-black ${tones[tone]}`}>{value}</p>
+      )}
+      <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function StatusFilter({ value, onChange, stats }) {
+  const items = [
+    { value: "all", label: "All", count: stats.total },
+    { value: "issues", label: "Needs review", count: stats.needsReview },
+    { value: "clean", label: "Clean", count: stats.clean },
+  ];
+
+  return (
+    <div
+      className="grid w-full grid-cols-3 gap-1 rounded-xl bg-slate-200/60 p-1 dark:bg-slate-950/50 sm:flex sm:w-fit"
+      aria-label="Filter history by result"
+    >
+      {items.map((item) => {
+        const active = value === item.value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onChange(item.value)}
+            aria-pressed={active}
+            className={`flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-2 text-[11px] font-bold transition-colors sm:min-w-max sm:px-3 ${
+              active
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+            }`}
+          >
+            {item.label}
+            <span
+              className={`rounded-full px-1.5 py-0.5 text-[9px] ${
+                active
+                  ? "bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300"
+                  : "bg-slate-300/60 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+              }`}
+            >
+              {item.count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SearchBox({ value, onChange }) {
   return (
     <div className="relative flex-1 min-w-0">
@@ -497,7 +630,7 @@ function TopicFilter({ value, onChange, topics }) {
         <option value="all">All topics</option>
         {topics.map((t) => (
           <option key={t} value={t}>
-            {t}
+            {humanizeTopic(t)}
           </option>
         ))}
       </select>
@@ -509,18 +642,22 @@ function TopicFilter({ value, onChange, topics }) {
 /*  Empty + loading                                                   */
 /* ------------------------------------------------------------------ */
 
-function EmptyState({ hasAny, query, topic }) {
+function EmptyState({ hasAny, query, status, topic, onClear, onWrite }) {
   if (hasAny) {
     return (
-      <Card className="py-12 text-center space-y-2">
+      <Card className="py-12 text-center space-y-3">
         <p className="text-sm font-semibold text-slate-900 dark:text-white">
           No drafts match your filters.
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
           {query && `Search: "${query}". `}
-          {topic !== "all" && `Topic: ${topic}. `}
+          {status !== "all" && `Status: ${status === "clean" ? "Clean" : "Needs review"}. `}
+          {topic !== "all" && `Topic: ${humanizeTopic(topic)}. `}
           Try clearing the search or selecting a different topic.
         </p>
+        <Button variant="outline" size="sm" onClick={onClear}>
+          Clear filters
+        </Button>
       </Card>
     );
   }
@@ -537,28 +674,44 @@ function EmptyState({ hasAny, query, topic }) {
         Analyse a draft in the Writing Desk and it'll show up here so you can
         revisit and compare versions.
       </p>
+      <Button size="sm" onClick={onWrite} rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>
+        Analyse your first draft
+      </Button>
     </Card>
   );
 }
 
 function HistoryTableSkeleton() {
   return (
-    <Card padded={false} className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold">
-              <th className="p-4">Submission date</th>
-              <th className="p-4">Text snippet preview</th>
-              <th className="p-4">Mistakes identified</th>
-              <th className="p-4">Accuracy score</th>
-              <th className="p-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <TableBodySkeleton rows={6} columns={5} />
-        </table>
+    <>
+      <Card padded={false} className="hidden overflow-hidden lg:block">
+          <table className="w-full table-fixed text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50/80 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
+                <th className="px-4 py-3 w-[17%]">Date</th>
+                <th className="px-4 py-3 w-[43%]">Draft preview</th>
+                <th className="px-4 py-3 w-[18%]">Result</th>
+                <th className="px-4 py-3 w-[22%] text-right">Action</th>
+              </tr>
+            </thead>
+            <TableBodySkeleton rows={6} columns={4} />
+          </table>
+      </Card>
+      <div className="space-y-2 lg:hidden">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="space-y-3 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-2">
+                <Skeleton w="w-full" h="h-3.5" />
+                <Skeleton w="w-32" h="h-2.5" />
+              </div>
+              <Skeleton w="w-16" h="h-8" className="rounded-xl" />
+            </div>
+            <Skeleton w="w-full" h="h-8" className="rounded-lg" />
+          </Card>
+        ))}
       </div>
-    </Card>
+    </>
   );
 }
 
@@ -567,17 +720,40 @@ function HistoryTableSkeleton() {
 /* ------------------------------------------------------------------ */
 
 function summarize(entries) {
-  if (entries.length === 0) return { total: 0, avgAccuracy: 0 };
+  if (entries.length === 0) {
+    return { total: 0, clean: 0, needsReview: 0, avgAccuracy: 0 };
+  }
   const sum = entries.reduce((s, e) => s + (e.accuracy_score ?? 0), 0);
+  const clean = entries.filter((entry) => entry.mistake_count === 0).length;
   return {
     total: entries.length,
+    clean,
+    needsReview: entries.length - clean,
     avgAccuracy: Math.round(sum / entries.length),
   };
 }
 
-function fmtTableDate(iso) {
+function fmtDate(iso) {
   if (!iso) return "—";
-  // Include seconds so duplicate submissions made in the same minute can be
-  // distinguished before the user chooses one to review or delete.
-  return iso.replace("T", " ").slice(0, 19);
+  return new Intl.DateTimeFormat(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+function fmtTime(iso) {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(iso));
+}
+
+function humanizeTopic(topic) {
+  if (!topic) return "General writing";
+  return topic
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

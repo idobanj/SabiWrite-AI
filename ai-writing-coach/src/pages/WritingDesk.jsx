@@ -115,6 +115,7 @@ export function WritingDesk() {
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
+    if (loading) return;
     const trimmed = text.trim();
     if (!trimmed) {
       show("Type or paste something first.");
@@ -175,6 +176,19 @@ export function WritingDesk() {
     }
   };
 
+  const handleDraftKeyDown = (event) => {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing ||
+      event.nativeEvent.keyCode === 229
+    ) return;
+
+    event.preventDefault();
+    if (event.repeat || loading || !text.trim()) return;
+    event.currentTarget.form?.requestSubmit();
+  };
+
   const handleReset = () => {
     setText("");
     setAnalysis(null);
@@ -224,14 +238,21 @@ export function WritingDesk() {
             className="space-y-3 lg:flex-1 lg:flex lg:flex-col lg:gap-3 lg:min-h-0"
           >
             <textarea
+              aria-label="Your draft"
+              aria-describedby="writing-desk-shortcuts"
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleDraftKeyDown}
               disabled={loading}
               rows={5}
               maxLength={4000}
               placeholder="e.g. The team of developers does tried to fix the API modules, but they has failed continuously."
               className="w-full min-h-44 sm:min-h-56 lg:flex-1 lg:min-h-72 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 sm:p-4 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40 resize-none disabled:opacity-60"
             />
+
+            <p id="writing-desk-shortcuts" className="text-xs text-slate-500 dark:text-slate-400">
+              Enter to check · Shift+Enter for a new line.
+            </p>
 
             <div className="flex items-center justify-between text-xs text-slate-400 gap-2">
               <span className="truncate">
