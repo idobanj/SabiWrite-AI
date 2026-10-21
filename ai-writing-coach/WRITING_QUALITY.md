@@ -8,11 +8,15 @@ Malformed analyses, unknown mistake types, invalid empty/no-op edits, unmatched 
 
 If review fails, the JSON endpoint returns HTTP 503 with `ANALYSIS_QUALITY_CHECK_FAILED`; the SSE endpoint emits that code without a completed result. The client displays the quality failure without silently starting another paid analysis. Interrupted streams can still fall back once to the normal endpoint, which also performs review.
 
+Before checking a draft and before saving its history or mistakes, the client verifies the current session against Supabase Auth and checks it matches the displayed account. A rejected token receives one refresh attempt. History and mistake writes explicitly carry the verified token; missing or changed sessions stop those writes instead of using the public key. Feedback stays visible if the user signs out during analysis. `log-mistake` returns an authentication error with HTTP 401 for rejected sessions rather than an internal-server error. Existing row-level security policies remain in force.
+
 Run the regression tests with Node.js 24:
 
 ```sh
 npm run test:analysis
 npm run test:quiz
+npm run test:auth
+npm run test:practice
 npm run build
 ```
 

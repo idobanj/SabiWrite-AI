@@ -38,6 +38,7 @@
  */
 
 import { supabase } from "./supabase";
+import { requireSession } from "./session";
 
 const QUALITY_FAILURE = "ANALYSIS_QUALITY_CHECK_FAILED";
 
@@ -190,9 +191,10 @@ export async function analyzeTextStream(text, onProgress) {
  */
 export async function logAnalysis(userId, originalText, analysis) {
   if (!supabase) throw new Error("Supabase is not configured.");
+  const session = await requireSession(userId);
 
   const baseRow = {
-    user_id: userId,
+    user_id: session.user.id,
     original_text: originalText,
     corrected_text: analysis.corrected_sentence ?? "",
     mistake_count: analysis.mistakes?.length ?? 0,
@@ -207,6 +209,7 @@ export async function logAnalysis(userId, originalText, analysis) {
     .from("analysis_logs")
     .insert(fullRow)
     .select()
+    .setHeader("Authorization", `Bearer ${session.access_token}`)
     .single();
 
   // Fall back to the legacy shape if the mistakes column doesn't exist
@@ -224,6 +227,7 @@ export async function logAnalysis(userId, originalText, analysis) {
       .from("analysis_logs")
       .insert(baseRow)
       .select()
+      .setHeader("Authorization", `Bearer ${session.access_token}`)
       .single();
     if (second.error) throw second.error;
     return /** @type {HistoryLog} */ (second.data);

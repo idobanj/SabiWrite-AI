@@ -32,10 +32,12 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const initialized = useRef(false);
+  const profileRequest = useRef(0);
+  const invalidateProfile = useCallback(() => { profileRequest.current++; }, []);
 
   // Fetch the profile row that matches the current user.
   const fetchProfile = useCallback(async (userId) => {
+    const request = ++profileRequest.current;
     if (!supabase || !userId) {
       setProfile(null);
       return;
@@ -45,6 +47,7 @@ export function AuthProvider({ children }) {
       .select("*")
       .eq("id", userId)
       .single();
+    if (request !== profileRequest.current) return;
     if (error) {
       // If the row doesn't exist yet, that's fine — the trigger should
       // have created it. Log but don't crash.
@@ -63,8 +66,8 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    if (initialized.current) return;
-    initialized.current = true;
+    let cancelled = false;
+    let receivedAuthEvent = false;
 
     // Check if the URL contains auth callback tokens (#access_token or ?code=)
     const hasAuthCallback =
@@ -75,10 +78,13 @@ export function AuthProvider({ children }) {
     // Listen for sign-in / sign-out events.
     const { data: sub } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
+        if (cancelled) return;
+        receivedAuthEvent = true;
         setSession(newSession);
         if (newSession?.user?.id) {
           fetchProfile(newSession.user.id);
         } else {
+          invalidateProfile();
           setProfile(null);
         }
         setLoading(false);
@@ -86,22 +92,31 @@ export function AuthProvider({ children }) {
     );
 
     // Initial session check from localStorage
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (cancelled || receivedAuthEvent) return;
+      if (!error && data?.session) {
         setSession(data.session);
         fetchProfile(data.session.user.id);
         setLoading(false);
       } else if (!hasAuthCallback) {
+        setSession(null);
         // Only mark loading as complete if we are not actively waiting
         // for onAuthStateChange to exchange an OAuth callback from the URL.
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled && !receivedAuthEvent) {
+        setSession(null);
         setLoading(false);
       }
     });
 
     return () => {
+      cancelled = true;
+      invalidateProfile();
       sub?.subscription?.unsubscribe?.();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, invalidateProfile]);
 
   const signIn = useCallback(async (email, password, remember = true) => {
     if (!supabase) throw new Error("Supabase is not configured.");
@@ -177,9 +192,12 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    invalidateProfile();
+    setSession(null);
     setProfile(null);
-  }, []);
+  }, [invalidateProfile]);
 
   const refreshProfile = useCallback(async () => {
     await fetchProfile(session?.user?.id);

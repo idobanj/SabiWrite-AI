@@ -24,6 +24,7 @@ import { analyzeText, analyzeTextStream, logAnalysis } from "../lib/analysis";
 import { logMistakes } from "../lib/mistakes";
 import { getHistoryEntry } from "../lib/history";
 import { bumpMastery } from "../lib/mastery";
+import { requireSession } from "../lib/session";
 import { readPendingDraft, clearPendingDraft } from "../lib/pendingDraft";
 
 /**
@@ -133,6 +134,7 @@ export function WritingDesk() {
       message: "Reading your writing...",
     });
     try {
+      const activeSession = await requireSession(session.user.id);
       const result = await analyzeTextStream(trimmed, (progress) => {
         setProgressState(progress);
       });
@@ -142,7 +144,7 @@ export function WritingDesk() {
       // have to wait for background logging. Failures get logged to the console
       // and surfaced as a non-blocking toast.
       try {
-        await logAnalysis(session.user.id, trimmed, result);
+        await logAnalysis(activeSession.user.id, trimmed, result);
         show("Progress saved.");
       } catch (logErr) {
         // eslint-disable-next-line no-console
@@ -161,12 +163,12 @@ export function WritingDesk() {
       // repeat_milestone notification when frequency_count crosses 3/5/10.
       if (result.mistakes && result.mistakes.length > 0) {
         try {
-          const { tagged } = await logMistakes(result.mistakes);
+          const { tagged } = await logMistakes(result.mistakes, activeSession.user.id);
           setAnalysis({ ...result, mistakes: tagged });
         } catch (memErr) {
           // eslint-disable-next-line no-console
           console.warn("[writing-desk] log-mistake failed:", memErr);
-          show("Couldn't save to your mistake memory this time.");
+          show(memErr?.message ?? "Couldn't save to your mistake memory this time.");
         }
       }
     } catch (err) {

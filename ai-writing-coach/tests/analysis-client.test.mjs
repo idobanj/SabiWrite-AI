@@ -20,13 +20,16 @@ async function loadClient(response, fallbackResult = {data: corrected, error: nu
     functions: {invoke: async () => {fallbacks++; return fallbackResult;}},
   };
   const sdk = new SyntheticModule(["supabase"], function () {this.setExport("supabase", supabase);}, {context});
+  const session = new SyntheticModule(["requireSession"], function () {
+    this.setExport("requireSession", async () => {throw new Error("Unexpected save in analysis request test");});
+  }, {context});
   const client = new SourceTextModule(source, {
     context,
     initializeImportMeta(meta) {
       meta.env = {VITE_SUPABASE_URL: "https://test.example", VITE_SUPABASE_ANON_KEY: "fixture-anon"};
     },
   });
-  await client.link(() => sdk);
+  await client.link((specifier) => specifier === "./session" ? session : sdk);
   await client.evaluate();
   return {client: client.namespace, counts: () => ({fetches, fallbacks})};
 }

@@ -4,6 +4,7 @@
  * Writing Desk can render "×N · seen before" badges.
  */
 import { supabase } from "./supabase";
+import { requireSession } from "./session";
 
 /**
  * @typedef {Object} RawMistake
@@ -49,7 +50,7 @@ import { supabase } from "./supabase";
  * @param {RawMistake[]} mistakes
  * @returns {Promise<{ tagged: TaggedMistake[], summary: LogResult }>}
  */
-export async function logMistakes(mistakes) {
+export async function logMistakes(mistakes, expectedUserId) {
   // Build a quick lookup from the function's response so we can attach
   // counts to the matching mistake in the original list. We match on
   // (type, wrong_text) — that pair is unique within a single response.
@@ -67,11 +68,16 @@ export async function logMistakes(mistakes) {
     };
   }
 
+  const session = await requireSession(expectedUserId);
   const { data, error } = await supabase.functions.invoke("log-mistake", {
     body: { mistakes },
+    headers: { Authorization: `Bearer ${session.access_token}` },
   });
 
   if (error) {
+    if (error.context instanceof Response && error.context.status === 401) {
+      throw new Error("Your session has ended. Please sign in again to save your mistakes.");
+    }
     // Non-fatal: the writing desk still has its analysis on screen. We
     // throw so the caller can decide whether to toast a warning; the
     // caller already has the original `mistakes` to fall back on.

@@ -105,9 +105,16 @@ function ordinal(n: number): string {
  * Resolve the authenticated user from the request's Authorization header.
  * Supabase verifies the JWT and returns the user object.
  */
+class AuthenticationError extends Error {
+  constructor() {
+    super("Your session has ended. Please sign in again to save your mistakes.");
+    this.name = "AuthenticationError";
+  }
+}
+
 async function getAuthedUser(req: Request) {
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth) throw new Error("Missing Authorization header");
+  if (!auth) throw new AuthenticationError();
 
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
@@ -116,8 +123,8 @@ async function getAuthedUser(req: Request) {
     },
   });
   if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Auth lookup failed (${res.status}): ${t.slice(0, 200)}`);
+    if (res.status === 401 || res.status === 403) throw new AuthenticationError();
+    throw new Error("Couldn't verify your sign-in. Please try again in a moment.");
   }
   return (await res.json()) as { id: string; email?: string };
 }
@@ -340,6 +347,12 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    if (err instanceof AuthenticationError) {
+      return new Response(
+        JSON.stringify({ error: err.message, code: "AUTH_SESSION_REQUIRED" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ error: String(err) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

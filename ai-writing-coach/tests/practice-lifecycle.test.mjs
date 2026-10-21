@@ -12,21 +12,25 @@ const corrected = {
 };
 const quiz = {topic: "spelling", topic_label: "Spelling", questions: [{id: "q1"}]};
 
-async function createHarness({pendingQuiz = false, failFirstQuiz = false} = {}) {
+async function createHarness({pendingQuiz = false, failFirstQuiz = false, missingSession = false, accountChanged = false, signOutAfterAnalysis = false} = {}) {
   const calls = [];
   const notices = [];
   const logs = [];
   const cleanups = [];
   const stateChanges = [];
+  const savedRows = [];
+  const saveHeaders = [];
+  const functionHeaders = [];
   let quizSignal;
   let finishQuiz;
   const sdk = {
     auth: {
-      getSession: async () => ({data: {session: {access_token: "fixture-token"}}}),
-      getUser: async () => ({data: {user: {id: "fixture-user"}}}),
+      getSession: async () => ({data: {session: missingSession ? null : {access_token: "fixture-token", user: {id: "fixture-user"}}}}),
+      getUser: async () => ({data: {user: {id: accountChanged ? "different-user" : "fixture-user"}}}),
     },
     functions: {invoke: async (name, options) => {
       calls.push(name);
+      functionHeaders.push({name, headers: options.headers});
       if (name === "generate-quiz") {
         quizSignal = options.signal;
         if (failFirstQuiz && calls.filter((call) => call === name).length === 1) return {data: null, error: {message: "Service unavailable"}};
@@ -38,7 +42,9 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false} = {}) 
     }},
     from: () => {
       const query = {};
-      for (const method of ["insert", "select", "eq", "order", "limit"]) query[method] = () => query;
+      for (const method of ["select", "eq", "order", "limit"]) query[method] = () => query;
+      query.insert = (row) => {savedRows.push(row); return query;};
+      query.setHeader = (name, value) => {saveHeaders.push({name, value}); return query;};
       query.single = async () => ({data: {id: "fixture-log"}, error: null});
       query.maybeSingle = async () => ({data: null, error: null});
       return query;
@@ -49,6 +55,7 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false} = {}) 
     console: Object.fromEntries(["log", "warn", "error"].map((level) => [level, (...args) => logs.push({level, args})])),
     fetch: async (url) => {
       calls.push(new URL(url).pathname.split("/").pop());
+      if (signOutAfterAnalysis) missingSession = true;
       return new Response(`data: ${JSON.stringify({type: "complete", result: corrected})}\n\n`);
     },
   });
@@ -111,7 +118,7 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false} = {}) 
     return mod.namespace[name];
   }
   return {
-    page, calls, notices, logs, stateChanges,
+    page, calls, notices, logs, stateChanges, savedRows, saveHeaders, functionHeaders,
     unmount: () => cleanups.forEach((cleanup) => cleanup()),
     quizSignal: () => quizSignal,
     finishQuiz: () => finishQuiz(),
@@ -144,6 +151,33 @@ test("Check it analyzes and saves writing without generating a quiz", async () =
   await form.props.onSubmit({preventDefault() {}});
   assert.deepEqual(harness.calls, ["analyze-text", "log-mistake"]);
   assert.deepEqual(harness.notices, ["Progress saved."]);
+  assert.equal(harness.savedRows[0].user_id, "fixture-user");
+  assert.deepEqual(harness.saveHeaders, [{name: "Authorization", value: "Bearer fixture-token"}]);
+  assert.equal(harness.functionHeaders[0].headers.Authorization, "Bearer fixture-token");
+});
+
+for (const [options, message] of [
+  [{missingSession: true}, /session has ended/],
+  [{accountChanged: true}, /account changed/],
+]) {
+  test(`Check it stops a stale displayed account before any analysis or save: ${JSON.stringify(options)}`, async () => {
+    const harness = await createHarness(options);
+    const WritingDesk = await harness.page("WritingDesk");
+    await findElement(WritingDesk(), "form").props.onSubmit({preventDefault() {}});
+    assert.deepEqual(harness.calls, []);
+    assert.deepEqual(harness.savedRows, []);
+    assert.match(harness.notices[0], message);
+  });
+}
+
+test("signing out during analysis preserves feedback but sends no anonymous history or mistake writes", async () => {
+  const harness = await createHarness({signOutAfterAnalysis: true});
+  const WritingDesk = await harness.page("WritingDesk");
+  await findElement(WritingDesk(), "form").props.onSubmit({preventDefault() {}});
+  assert.deepEqual(harness.calls, ["analyze-text"]);
+  assert.deepEqual(harness.savedRows, []);
+  assert.equal(harness.notices.includes("Progress saved."), false);
+  assert.ok(harness.notices.every((message) => /sign in again/.test(message)));
 });
 
 test("Practice generates a quiz only after an explicit start", async () => {
