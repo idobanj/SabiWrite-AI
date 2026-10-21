@@ -114,7 +114,7 @@ class AuthenticationError extends Error {
 
 async function getAuthedUser(req: Request) {
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth) throw new AuthenticationError();
+  if (!/^Bearer\s+[^.\s]+\.[^.\s]+\.[^.\s]+$/i.test(auth)) throw new AuthenticationError();
 
   const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: {
@@ -123,7 +123,7 @@ async function getAuthedUser(req: Request) {
     },
   });
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) throw new AuthenticationError();
+    if ([400, 401, 403].includes(res.status)) throw new AuthenticationError();
     throw new Error("Couldn't verify your sign-in. Please try again in a moment.");
   }
   return (await res.json()) as { id: string; email?: string };

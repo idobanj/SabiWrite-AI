@@ -125,11 +125,11 @@ async function logEndpoint(authStatus) {
   return {handler, calls};
 }
 
-for (const status of [401, 403]) {
+for (const status of [400, 401, 403]) {
   test(`log-mistake reports rejected authentication (${status}) as 401 instead of 500`, async () => {
     const endpoint = await logEndpoint(status);
     const response = await endpoint.handler(new Request("https://test.example/log-mistake", {
-      method: "POST", headers: {Authorization: "Bearer expired-token"}, body: JSON.stringify({mistakes: []}),
+      method: "POST", headers: {Authorization: "Bearer fixture.payload.signature"}, body: JSON.stringify({mistakes: []}),
     }));
     assert.equal(response.status, 401);
     const body = await response.json();
@@ -146,10 +146,20 @@ test("log-mistake rejects missing authentication before accessing user data", as
   assert.deepEqual(endpoint.calls, []);
 });
 
+test("log-mistake rejects a public API key used as a user token without looking up an account", async () => {
+  const endpoint = await logEndpoint(200);
+  const response = await endpoint.handler(new Request("https://test.example/log-mistake", {
+    method: "POST", headers: {Authorization: "Bearer sb_publishable_fixture"}, body: "{}",
+  }));
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).code, "AUTH_SESSION_REQUIRED");
+  assert.deepEqual(endpoint.calls, []);
+});
+
 test("log-mistake preserves successful authenticated calls", async () => {
   const endpoint = await logEndpoint(200);
   const response = await endpoint.handler(new Request("https://test.example/log-mistake", {
-    method: "POST", headers: {Authorization: "Bearer valid-token"}, body: JSON.stringify({mistakes: []}),
+    method: "POST", headers: {Authorization: "Bearer fixture.payload.signature"}, body: JSON.stringify({mistakes: []}),
   }));
   assert.equal(response.status, 200);
   assert.deepEqual((await response.json()).upserted, []);
