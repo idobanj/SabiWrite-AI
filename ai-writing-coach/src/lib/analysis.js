@@ -39,6 +39,14 @@
 
 import { supabase } from "./supabase";
 
+const QUALITY_FAILURE = "ANALYSIS_QUALITY_CHECK_FAILED";
+
+function analysisError(payload) {
+  const error = new Error(payload?.error || "Analysis failed. Please try again.");
+  if (payload?.code === QUALITY_FAILURE) error.code = QUALITY_FAILURE;
+  return error;
+}
+
 /**
  * Send text to the analyze-text Edge Function and return a typed
  * AnalysisResponse. Throws if the request fails or the function returns
@@ -61,10 +69,14 @@ export async function analyzeText(text) {
   });
 
   if (error) {
+    if (error.context instanceof Response) {
+      const failure = await error.context.clone().json().catch(() => null);
+      if (failure?.code === QUALITY_FAILURE) throw analysisError(failure);
+    }
     throw new Error(error.message ?? "Couldn't reach the analysis service.");
   }
   if (data && typeof data === "object" && "error" in data) {
-    throw new Error(String(data.error));
+    throw analysisError(data);
   }
   return /** @type {AnalysisResponse} */ (data);
 }
@@ -72,7 +84,8 @@ export async function analyzeText(text) {
 /**
  * Stream text to the analyze-text Edge Function and receive real-time progress events.
  * Returns the final AnalysisResponse. Automatically falls back to standard analyzeText
- * if the stream is interrupted or fails.
+ * if the stream is interrupted or fails. A deliberate quality-check failure
+ * is surfaced directly instead of starting another analysis behind the scenes.
  *
  * @param {string} text
  * @param {(progress: { stage: string, message: string }) => void} [onProgress]
@@ -104,8 +117,9 @@ export async function analyzeTextStream(text, onProgress) {
     });
 
     if (!response.ok || !response.body) {
-      console.warn("[analyzeTextStream] Non-OK stream response, falling back to standard analyzeText");
-      return await analyzeText(text);
+      const failure = await response.clone().json().catch(() => null);
+      if (failure?.code === QUALITY_FAILURE) throw analysisError(failure);
+      throw new Error("Analysis stream was unavailable.");
     }
 
     const reader = response.body.getReader();
@@ -113,43 +127,47 @@ export async function analyzeTextStream(text, onProgress) {
     let buffer = "";
     let finalResult = null;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n\n");
-      buffer = lines.pop() ?? ""; // keep incomplete tail
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() ?? ""; // keep incomplete tail
 
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (!trimmedLine.startsWith("data:")) continue;
-        const jsonStr = trimmedLine.replace(/^data:\s*/, "");
-        if (!jsonStr) continue;
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine.startsWith("data:")) continue;
+          const jsonStr = trimmedLine.replace(/^data:\s*/, "");
+          if (!jsonStr) continue;
 
-        try {
-          const event = JSON.parse(jsonStr);
+          let event;
+          try {
+            event = JSON.parse(jsonStr);
+          } catch {
+            continue;
+          }
           if (event.type === "progress" && onProgress) {
             onProgress({ stage: event.stage, message: event.message });
           } else if (event.type === "complete" && event.result) {
             finalResult = event.result;
           } else if (event.type === "error") {
-            throw new Error(event.error || "Analysis stream encountered an error.");
+            throw analysisError(event);
           }
-        } catch (e) {
-          if (e.message && e.message.includes("Analysis stream encountered")) throw e;
         }
       }
+    } finally {
+      reader.releaseLock();
     }
 
     if (finalResult) {
       return /** @type {AnalysisResponse} */ (finalResult);
     }
 
-    // If stream ended without complete payload, fall back to standard call
-    console.warn("[analyzeTextStream] Stream ended without complete payload, falling back to standard analyzeText");
-    return await analyzeText(text);
+    throw new Error("Analysis stream ended without a result.");
   } catch (err) {
+    if (err?.code === QUALITY_FAILURE) throw err;
     console.warn("[analyzeTextStream] Stream error, falling back to standard analyzeText:", err);
     return await analyzeText(text);
   }

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test:quiz": "node --experimental-vm-modules --test tests/quiz-quality.test.ts tests/quiz-endpoint.test.mjs",
+    "test:analysis": "node --experimental-vm-modules --test tests/analysis-endpoint.test.mjs tests/analysis-client.test.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

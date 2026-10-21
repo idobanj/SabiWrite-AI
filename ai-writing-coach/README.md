@@ -158,9 +158,11 @@ npm run build        # Production build → dist/
 npm run preview      # Preview the production build locally
 npm run lint         # oxlint
 npm run test:quiz    # Quiz quality regression tests (Node.js 24)
+npm run test:analysis # Writing Desk review and streaming regression tests (Node.js 24)
 ```
 
 See [Quiz quality gate](QUIZ_QUALITY.md) for the generation/review checks, release steps, and remaining accuracy limits.
+See [Writing Desk review](WRITING_QUALITY.md) for correction validation and full-text review.
 
 ---
 
