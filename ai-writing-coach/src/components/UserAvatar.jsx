@@ -2,6 +2,26 @@ import { getAvatar } from "../lib/avatars";
 
 /** Original, shared vector portraits. No uploads or remote image requests. */
 export function UserAvatar({ avatarId, className = "w-10 h-10", label }) {
+  // While the profile is still loading, avatarId is undefined.
+  // Render a neutral placeholder so the avatar doesn't flash to the
+  // first avatar (id 0) before the real saved choice arrives.
+  if (avatarId === undefined || avatarId === null) {
+    return (
+      <svg
+        viewBox="0 0 120 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`rounded-full flex-shrink-0 ${className}`}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <circle cx="60" cy="60" r="60" fill="#1e293b" />
+        <circle cx="60" cy="48" r="18" fill="#334155" />
+        <ellipse cx="60" cy="105" rx="30" ry="22" fill="#334155" />
+      </svg>
+    );
+  }
+
   const avatar = getAvatar(avatarId);
   const { id, background, skin, shade, hair, shirt } = avatar;
 
