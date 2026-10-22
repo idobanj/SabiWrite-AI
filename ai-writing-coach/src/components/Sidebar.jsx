@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   GraduationCap,
@@ -6,13 +6,14 @@ import {
   BarChart3,
   BookOpen,
   History,
-  User,
   X,
   Settings,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "./Toast";
+import { UserAvatar } from "./UserAvatar";
+import { AvatarPicker } from "./AvatarPicker";
 
 const navEntries = [
   { to: "/app/workspace", label: "Writing Desk", icon: PenTool, badge: "" },
@@ -44,7 +45,7 @@ export function Sidebar({ mobileOpen = false, onNavigate }) {
     session?.user?.email?.split("@")[0] ||
     "You";
   const email = session?.user?.email ?? "";
-  const initials = displayName.slice(0, 1).toUpperCase();
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
 
   // Lock body scroll while the mobile drawer is open.
   useEffect(() => {
@@ -58,13 +59,13 @@ export function Sidebar({ mobileOpen = false, onNavigate }) {
 
   // Close on Escape.
   useEffect(() => {
-    if (!mobileOpen) return;
+    if (!mobileOpen || avatarPickerOpen) return;
     const onKey = (e) => {
       if (e.key === "Escape") onNavigate?.();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mobileOpen, onNavigate]);
+  }, [mobileOpen, onNavigate, avatarPickerOpen]);
 
   // Close automatically when the route changes (e.g. user tapped a link).
   useEffect(() => {
@@ -128,15 +129,15 @@ export function Sidebar({ mobileOpen = false, onNavigate }) {
       {/* User footer: avatar + name, settings icon, sign out */}
       <div className="p-4 border-t border-slate-800 bg-slate-950/40 space-y-2">
         <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50">
+          <button type="button" onClick={() => setAvatarPickerOpen(true)} aria-label="Change profile avatar" className="rounded-full flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 hover:ring-2 hover:ring-brand-500/60 transition-shadow">
+            <UserAvatar avatarId={profile?.avatar_id} label={`${displayName}'s avatar`} />
+          </button>
           <NavLink
             to="/app/profile"
             onClick={onNavigate}
             className="flex items-center gap-3 flex-1 min-w-0"
             title="Open account"
           >
-            <div className="w-10 h-10 rounded-full border border-slate-700 bg-brand-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {initials}
-            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">
                 {displayName}
@@ -166,6 +167,7 @@ export function Sidebar({ mobileOpen = false, onNavigate }) {
       <aside className="hidden md:flex w-64 bg-slate-900 dark:bg-slate-950 text-slate-300 border-r border-slate-800 flex-shrink-0 z-20 flex-col">
         {inner}
       </aside>
+      <AvatarPicker open={avatarPickerOpen} onClose={() => setAvatarPickerOpen(false)} />
 
       {/* Mobile: fixed drawer, slides in from the left */}
       {/* Backdrop */}

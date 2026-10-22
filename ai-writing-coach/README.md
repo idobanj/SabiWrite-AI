@@ -161,6 +161,7 @@ npm run test:quiz    # Quiz quality regression tests (Node.js 24)
 npm run test:analysis # Writing Desk review and streaming regression tests (Node.js 24)
 npm run test:practice # Writing Desk/Practice request isolation and quiz cancellation (Node.js 24)
 npm run test:auth     # Session verification and authenticated save regression tests (Node.js 24)
+npm run test:avatars  # Avatar choices and authenticated profile saves (Node.js 24)
 ```
 
 See [Quiz quality gate](QUIZ_QUALITY.md) for the generation/review checks, release steps, and remaining accuracy limits.
@@ -180,8 +181,14 @@ See [Writing Desk review](WRITING_QUALITY.md) for correction validation and full
 | Personalized lesson generation | ✅ Live |
 | Adaptive quiz system | ✅ Live |
 | Dark / light mode | ✅ Live |
+| Five built-in profile avatars | ✅ Available |
 | Google Search Console indexing | ✅ Done |
 | Supabase keep-alive (GitHub Actions) | ✅ Done |
+
+Click the profile picture in Settings or the navigation sidebar to choose an
+avatar. The five vector portraits ship with the app; `profiles.avatar_id` stores
+only a small integer from 0 to 4. Apply `0014_profile_avatars.sql` before deploying
+the avatar picker. Existing and new profiles start with avatar 0.
 
 ---
 

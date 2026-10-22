@@ -86,8 +86,9 @@ test("AuthProvider keeps its auth subscription after effect cleanup and setup", 
     onAuthStateChange: (listener) => {listeners.add(listener); return {data: {subscription: {unsubscribe: () => listeners.delete(listener)}}};},
   }, from: () => ({select: () => ({eq: () => ({single: async () => ({data: {id: user.id}})})})})}});
   const jsx = synthetic({jsx: (type, props) => ({type, props})});
+  const profile = synthetic({saveProfileAvatar: async () => {throw new Error("Unexpected avatar save in auth lifecycle test");}});
   const mod = new SourceTextModule(code, {context});
-  await mod.link((specifier) => specifier === "react" ? react : specifier === "react/jsx-runtime" ? jsx : sdk);
+  await mod.link((specifier) => specifier === "react" ? react : specifier === "react/jsx-runtime" ? jsx : specifier === "../lib/profile" ? profile : sdk);
   await mod.evaluate();
   mod.namespace.AuthProvider({children: null});
   const cleanup = effects[0]();

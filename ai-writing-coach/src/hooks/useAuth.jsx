@@ -8,6 +8,7 @@ import {
   useRef,
 } from "react";
 import { supabase } from "../lib/supabase";
+import { saveProfileAvatar } from "../lib/profile";
 
 const AuthContext = createContext(null);
 
@@ -33,6 +34,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const profileRequest = useRef(0);
+  const currentUser = useRef(null);
   const invalidateProfile = useCallback(() => { profileRequest.current++; }, []);
 
   // Fetch the profile row that matches the current user.
@@ -80,6 +82,7 @@ export function AuthProvider({ children }) {
       (_event, newSession) => {
         if (cancelled) return;
         receivedAuthEvent = true;
+        currentUser.current = newSession?.user?.id ?? null;
         setSession(newSession);
         if (newSession?.user?.id) {
           fetchProfile(newSession.user.id);
@@ -95,10 +98,12 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data, error }) => {
       if (cancelled || receivedAuthEvent) return;
       if (!error && data?.session) {
+        currentUser.current = data.session.user.id;
         setSession(data.session);
         fetchProfile(data.session.user.id);
         setLoading(false);
       } else if (!hasAuthCallback) {
+        currentUser.current = null;
         setSession(null);
         // Only mark loading as complete if we are not actively waiting
         // for onAuthStateChange to exchange an OAuth callback from the URL.
@@ -106,6 +111,7 @@ export function AuthProvider({ children }) {
       }
     }).catch(() => {
       if (!cancelled && !receivedAuthEvent) {
+        currentUser.current = null;
         setSession(null);
         setLoading(false);
       }
@@ -195,6 +201,7 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     invalidateProfile();
+    currentUser.current = null;
     setSession(null);
     setProfile(null);
   }, [invalidateProfile]);
@@ -202,6 +209,15 @@ export function AuthProvider({ children }) {
   const refreshProfile = useCallback(async () => {
     await fetchProfile(session?.user?.id);
   }, [fetchProfile, session?.user?.id]);
+
+  const updateAvatar = useCallback(async (avatarId) => {
+    const updated = await saveProfileAvatar(avatarId, session?.user?.id);
+    if (currentUser.current !== updated.id) {
+      throw new Error("Your signed-in account changed. Reload before updating your avatar.");
+    }
+    invalidateProfile();
+    setProfile(updated);
+  }, [session?.user?.id, invalidateProfile]);
 
   const value = useMemo(
     () => ({
@@ -215,6 +231,7 @@ export function AuthProvider({ children }) {
       updatePassword,
       signOut,
       refreshProfile,
+      updateAvatar,
     }),
     [
       session,
@@ -227,6 +244,7 @@ export function AuthProvider({ children }) {
       updatePassword,
       signOut,
       refreshProfile,
+      updateAvatar,
     ]
   );
 

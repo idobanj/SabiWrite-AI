@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  User,
   Edit3,
   Compass,
   LogOut,
@@ -15,6 +14,8 @@ import { IconBadge } from "../components/IconBadge";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../components/Toast";
 import { supabase } from "../lib/supabase";
+import { UserAvatar } from "../components/UserAvatar";
+import { AvatarPicker } from "../components/AvatarPicker";
 
 /**
  * Phase 1: shows real auth profile, lets user edit full_name,
@@ -31,7 +32,7 @@ export function ProfilePage() {
     session?.user?.email?.split("@")[0] ||
     "You";
   const email = session?.user?.email ?? "";
-  const initials = fullName.slice(0, 1).toUpperCase();
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
 
   const blankForm = {
     full_name: profile?.full_name || "",
@@ -90,14 +91,12 @@ export function ProfilePage() {
     <div className="py-6 px-6 max-w-4xl mx-auto space-y-8">
       <Card>
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full border border-slate-100 dark:border-slate-700 bg-brand-500 flex items-center justify-center text-white text-3xl font-bold">
-              {initials}
-            </div>
+          <button type="button" onClick={() => setAvatarPickerOpen(true)} aria-label="Change profile avatar" className="relative rounded-full group focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/40">
+            <UserAvatar avatarId={profile?.avatar_id} className="w-24 h-24 ring-4 ring-slate-50 dark:ring-slate-700 group-hover:ring-brand-100 dark:group-hover:ring-brand-500/30 transition" label={`${fullName}'s avatar`} />
             <span className="absolute bottom-0 right-0 p-1.5 bg-brand-500 rounded-full border-2 border-white dark:border-slate-800 text-white">
-              <User className="w-3 h-3" />
+              <Edit3 className="w-3 h-3" />
             </span>
-          </div>
+          </button>
           <div className="flex-1 text-center sm:text-left space-y-2">
             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
               {fullName}
@@ -213,6 +212,7 @@ export function ProfilePage() {
           </div>
         </Card>
       </form>
+      <AvatarPicker open={avatarPickerOpen} onClose={() => setAvatarPickerOpen(false)} />
     </div>
   );
 }

@@ -10,6 +10,7 @@
     "test:analysis": "node --experimental-vm-modules --test tests/analysis-endpoint.test.mjs tests/analysis-client.test.mjs",
     "test:practice": "node --experimental-vm-modules --test tests/practice-lifecycle.test.mjs",
     "test:auth": "node --experimental-vm-modules --test tests/auth-session.test.mjs",
+    "test:avatars": "node --experimental-vm-modules --test tests/avatars.test.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
