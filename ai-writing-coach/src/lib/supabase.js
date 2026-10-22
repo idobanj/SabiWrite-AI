@@ -58,6 +58,14 @@ export async function invokeFunction(functionName, body, { signal } = {}) {
       if (failure?.code === "QUIZ_QUALITY_CHECK_FAILED") {
         throw new Error("We couldn't verify enough practice questions. Please try again in a moment.");
       }
+      if (failure?.code === "AI_RATE_LIMITED") {
+        const delay = Number(failure.retry_after_seconds);
+        const seconds = Number.isFinite(delay) && delay > 0 ? Math.ceil(delay) : 30;
+        throw new Error(`Practice is temporarily busy. Please wait ${seconds} seconds before trying again.`);
+      }
+      if (failure?.code === "AI_UNAVAILABLE") {
+        throw new Error("Practice is temporarily unavailable. Please try again in a moment.");
+      }
     }
 
     const message = error.message ?? String(error);

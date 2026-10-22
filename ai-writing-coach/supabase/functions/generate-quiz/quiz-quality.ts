@@ -1,3 +1,5 @@
+import {ProviderError} from "../_shared/ai/errors.ts";
+
 export interface QuizQuestion {
   id: string;
   prompt: string;
@@ -120,9 +122,9 @@ export function acceptReviewedQuestions(questions: QuizQuestion[], rawReviews: u
 interface ReviewPipeline {
   count: number;
   topic: string;
-  generateCandidates: (count: number, attempt: number) => Promise<string>;
+  generateCandidates: (count: number, attempt: number, previousQuestions: QuizQuestion[]) => Promise<string>;
   reviewCandidates: (prompt: string) => Promise<string>;
-  onAttempt?: (stats: {attempt: number; candidates: number; approved: number; failed: boolean}) => void;
+  onAttempt?: (stats: {attempt: number; candidates: number; approved: number; failed: boolean; phase?: string; reason?: string}) => void;
 }
 
 export async function generateVerifiedQuestions({
@@ -130,15 +132,17 @@ export async function generateVerifiedQuestions({
 }: ReviewPipeline): Promise<QuizQuestion[]> {
   if (!Number.isInteger(count) || count < 1 || count > 10) throw new Error("Invalid quiz length.");
   const accepted: QuizQuestion[] = [];
-  const acceptedKeys = new Set<string>();
+  const previousQuestions: QuizQuestion[] = [];
 
   // Bound latency and API costs. Unreviewed output is never a fallback.
   for (let attempt = 0; attempt < 2; attempt++) {
+    let phase = "generation";
+    let candidateCount = 0;
     try {
       const requested = count - accepted.length + 2;
-      const parsed = parseModelObject(await generateCandidates(requested, attempt));
+      const parsed = parseModelObject(await generateCandidates(requested, attempt, [...previousQuestions]));
       const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : [];
-      const batchKeys = new Set(acceptedKeys);
+      const batchKeys = new Set(previousQuestions.map(questionKey));
       const candidates = rawQuestions.slice(0, requested).flatMap((raw, index) => {
         const question = normaliseQuestion(raw, `candidate-${attempt + 1}-${index + 1}`);
         if (!question) return [];
@@ -148,20 +152,27 @@ export async function generateVerifiedQuestions({
         return [question];
       });
 
+      candidateCount = candidates.length;
+      previousQuestions.push(...candidates);
+      phase = "review";
       const reviews = candidates.length
         ? parseModelObject(await reviewCandidates(buildReviewPrompt(topic, candidates))).reviews
         : [];
       const approved = acceptReviewedQuestions(candidates, reviews);
       onAttempt?.({attempt: attempt + 1, candidates: candidates.length, approved: approved.length, failed: false});
       for (const question of approved) {
-        acceptedKeys.add(questionKey(question));
         accepted.push({...question, id: `q${accepted.length + 1}`});
         if (accepted.length === count) return accepted;
       }
-    } catch {
-      onAttempt?.({attempt: attempt + 1, candidates: 0, approved: 0, failed: true});
+    } catch (error) {
+      onAttempt?.({attempt: attempt + 1, candidates: candidateCount, approved: 0, failed: true,
+        phase, reason: error instanceof ProviderError ? "provider_unavailable" : "invalid_response"});
+      // Repeating the full pipeline immediately cannot fix an exhausted
+      // provider limit. Preserve its status and retry delay for the caller.
+      if (error instanceof ProviderError) throw error;
     }
   }
 
   throw new QuizQualityError();
 }
+

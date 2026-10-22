@@ -19,7 +19,8 @@
 // ============================================================================
 
 import { generate } from "../_shared/ai/index.ts";
-import { generateVerifiedQuestions, QuizQualityError } from "./quiz-quality.ts";
+import { generateVerifiedQuestions, QuizQualityError, type QuizQuestion } from "./quiz-quality.ts";
+import { ProviderError } from "../_shared/ai/errors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -36,7 +37,7 @@ const TYPE_TO_TOPIC: Record<string, { label: string; guidance: string }> = {
   subject_verb_agreement: {
     label: "Subject-Verb Agreement",
     guidance:
-      "Singular subjects take singular verbs ('he does'), plural subjects take plural verbs ('they do'). Watch out for phrases like 'the team of developers' — 'team' is the head noun and is singular, so the verb is singular too.",
+      "Singular subjects take singular verbs ('he does'), plural subjects take plural verbs ('they do'). Use clear singular or plural subjects. Avoid collective nouns such as 'team', 'staff', and 'family', where standard English can permit either agreement depending on meaning or dialect.",
   },
   tense: {
     label: "Tense Consistency",
@@ -132,7 +133,8 @@ function buildPrompt(
   topic: string,
   guidance: string,
   examples: MistakeRow[],
-  count: number
+  count: number,
+  previousQuestions: QuizQuestion[] = [],
 ): string {
   const exampleBlock = examples.length
     ? examples
@@ -147,6 +149,9 @@ function buildPrompt(
   // Random 6-digit seed so the AI treats every call as unique and doesn't
   // reproduce a cached response when the prompt text happens to be the same.
   const seed = Math.floor(Math.random() * 900000) + 100000;
+  const previousBlock = previousQuestions.length
+    ? `\nQuestions already considered in this request (some failed review):\n${JSON.stringify(previousQuestions.map(({prompt, options}) => ({prompt, options})))}\nUse DIFFERENT sentences, subjects, and contexts. Do not repeat these questions, including rejected ones.\n`
+    : "";
 
   return `You are an expert English writing coach, grammarian, and quiz author. Generate exactly ${count} high-quality, grammatically rigorous multiple-choice quiz questions on the topic: **${topic}**.
 [seed:${seed}]
@@ -180,7 +185,8 @@ CRITICAL RULES FOR GRAMMAR, SYNTAX, AND QUESTION VALIDITY:
    - "answer_index" (0, 1, 2, or 3) MUST match the index of the grammatically correct option.
    - The 3 distractor options must be plausible common errors but clearly grammatically incorrect.
 
-IMPORTANT: Every run of this prompt must produce DIFFERENT questions. Do NOT repeat prompts or option wording from previous quizzes. Vary sentence subjects, contexts, and phrasing each time.
+IMPORTANT: Vary sentence subjects, contexts, and phrasing. Every question must test the requested topic with exactly one answer accepted in standard English.
+${previousBlock}
 
 Return ONLY a JSON object with this exact shape — no markdown, no commentary:
 
@@ -315,8 +321,8 @@ Deno.serve(async (req: Request) => {
     const questions = await generateVerifiedQuestions({
       count,
       topic: label,
-      generateCandidates: (requested, attempt) => generate({
-        prompt: buildPrompt(label, guidance, examples, requested),
+      generateCandidates: (requested, attempt, previousQuestions) => generate({
+        prompt: buildPrompt(label, guidance, examples, requested, previousQuestions),
         temperature: attempt === 0 ? 0.35 : 0,
       }),
       reviewCandidates: (prompt) => generate({prompt, temperature: 0}),
@@ -328,6 +334,24 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    if (err instanceof ProviderError) {
+      const rateLimited = err.statusCode === 429;
+      const retryAfter = Math.max(1, err.retryAfterSeconds ?? 30);
+      console.warn("[generate-quiz] provider unavailable:", {status: err.statusCode, retryAfterSeconds: err.retryAfterSeconds});
+      return new Response(JSON.stringify({
+        error: rateLimited
+          ? `Practice is temporarily busy. Please wait ${retryAfter} seconds before trying again.`
+          : "Practice is temporarily unavailable. Please try again in a moment.",
+        code: rateLimited ? "AI_RATE_LIMITED" : "AI_UNAVAILABLE",
+        retryable: true,
+        ...(rateLimited ? {retry_after_seconds: retryAfter} : {}),
+      }), {
+        status: rateLimited ? 429 : 503,
+        headers: {...corsHeaders, "Content-Type": "application/json",
+          ...(rateLimited ? {"Retry-After": String(retryAfter), "Access-Control-Expose-Headers": "Retry-After"} : {}),
+        },
+      });
+    }
     if (err instanceof QuizQualityError) {
       return new Response(JSON.stringify({error: err.message, code: "QUIZ_QUALITY_CHECK_FAILED"}), {
         status: 503,

@@ -84,6 +84,7 @@ function PracticeFlow() {
 
   const startQuiz = async (t, label, count) => {
     if (quizRequest.current) return;
+    const previousPhase = phase;
     const request = new AbortController();
     quizRequest.current = request;
     setTopic(t);
@@ -91,21 +92,20 @@ function PracticeFlow() {
     setTopicCount(count);
     setPhase("loading");
     setError("");
-    setQuiz(null);
-    setAnswers([]);
     try {
       const q = await generateQuiz(t, QUIZ_LENGTH, { signal: request.signal });
       if (request.signal.aborted) return;
       setQuiz(q);
       setAnswers(new Array(q.questions.length).fill(null));
+      setResult(null);
       setPhase("active");
     } catch (err) {
       if (request.signal.aborted) return;
       // eslint-disable-next-line no-console
       console.error("[practice] generateQuiz failed:", err);
       setError(err?.message ?? "Couldn't generate a quiz.");
-      setPhase("landing");
-      show("Couldn't generate a quiz right now. Try again in a moment.");
+      setPhase(previousPhase === "result" && quiz ? "result" : "landing");
+      show(err?.message ?? "Couldn't generate a quiz right now. Try again in a moment.");
     } finally {
       if (quizRequest.current === request) quizRequest.current = null;
     }
@@ -135,6 +135,7 @@ function PracticeFlow() {
     setQuiz(null);
     setAnswers([]);
     setResult(null);
+    setError("");
   };
 
   if (phase === "active" && quiz) {
@@ -156,6 +157,7 @@ function PracticeFlow() {
         answers={answers}
         result={result}
         topicLabel={topicLabel}
+        error={error}
         onRetry={handleRetry}
         onBack={handleBack}
       />
@@ -481,7 +483,7 @@ function ProgressBar({ value, total }) {
 /*  Result screen                                                     */
 /* ------------------------------------------------------------------ */
 
-function ResultScreen({ quiz, answers, result, topicLabel, onRetry, onBack }) {
+function ResultScreen({ quiz, answers, result, topicLabel, error, onRetry, onBack }) {
   const pct = result.total === 0 ? 0 : Math.round((result.score / result.total) * 100);
   const headline =
     pct === 100
@@ -569,6 +571,11 @@ function ResultScreen({ quiz, answers, result, topicLabel, onRetry, onBack }) {
           </Button>
         </Link>
       </div>
+      {error && (
+        <Card role="alert" className="p-4 border-red-100 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/5">
+          <p className="text-sm text-red-600 dark:text-red-300">{error}</p>
+        </Card>
+      )}
     </>
   );
 }

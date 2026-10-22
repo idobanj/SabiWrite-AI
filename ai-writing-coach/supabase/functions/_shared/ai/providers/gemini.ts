@@ -1,5 +1,5 @@
 // supabase/functions/_shared/ai/providers/gemini.ts
-import { ProviderError } from "../errors.ts";
+import { ProviderError, retryAfterSeconds } from "../errors.ts";
 import { AIProvider, AIRequest, AIResponse } from "../types.ts";
 
 const GEMINI_MODELS = [
@@ -34,14 +34,16 @@ export class GeminiProvider implements AIProvider {
     };
 
     let lastErr: string | null = null;
+    let rateLimited = false;
+    let unavailable = false;
+    let retryAfter = 0;
 
     for (const model of GEMINI_MODELS) {
       // Two attempts per model: one immediate, one after a 300 ms backoff.
       for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 12000);
-
           const res = await fetch(model.url, {
             method: "POST",
             headers: {
@@ -51,8 +53,6 @@ export class GeminiProvider implements AIProvider {
             body: JSON.stringify(geminiReq),
             signal: controller.signal,
           });
-
-          clearTimeout(timeoutId);
 
           if (res.ok) {
             const json = (await res.json()) as GeminiResponse;
@@ -64,8 +64,14 @@ export class GeminiProvider implements AIProvider {
           const errText = await res.text();
           lastErr = `${model.name} (${res.status}): ${errText.slice(0, 200)}`;
 
-          // 503 = overloaded, 429 = rate-limited → retry this model once, then move on.
-          if (res.status === 503 || res.status === 429) {
+          if (res.status === 429) {
+            rateLimited = true;
+            retryAfter = Math.max(retryAfter, retryAfterSeconds(res) ?? 30);
+            break;
+          }
+
+          if ([500, 502, 503, 504].includes(res.status)) {
+            unavailable = true;
             if (attempt === 0) {
               await new Promise((resolve) => setTimeout(resolve, 300));
               continue;
@@ -83,16 +89,21 @@ export class GeminiProvider implements AIProvider {
           );
         } catch (err: any) {
           if (err instanceof ProviderError) throw err;
+          unavailable = true;
           if (err.name === "AbortError" || err.message?.includes("aborted")) {
             lastErr = `${model.name}: request timed out after 12s`;
             console.warn(`[GeminiProvider] ${model.name} timed out after 12s, trying next model`);
             break;
           }
           lastErr = `${model.name}: ${err.message || String(err)}`;
+        } finally {
+          clearTimeout(timeoutId);
         }
       }
     }
 
-    throw new ProviderError(`Gemini unavailable: ${lastErr}`, null);
+    throw new ProviderError(`Gemini unavailable: ${lastErr}`,
+      rateLimited && !unavailable ? 429 : 503,
+      rateLimited && !unavailable ? retryAfter : null);
   }
 }

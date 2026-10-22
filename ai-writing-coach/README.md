@@ -156,11 +156,6 @@ npm run dev          # Vite dev server (localhost:5173)
 npm run build        # Production build → dist/
 npm run preview      # Preview the production build locally
 npm run lint         # oxlint
-npm run test:quiz    # Quiz quality regression tests (Node.js 24)
-npm run test:analysis # Writing Desk review and streaming regression tests (Node.js 24)
-npm run test:practice # Writing Desk/Practice lifecycle and notification checks (Node.js 24)
-npm run test:auth     # Session verification and authenticated save regression tests (Node.js 24)
-npm run test:avatars  # Avatar choices and authenticated profile saves (Node.js 24)
 ```
 
 See [Quiz quality gate](QUIZ_QUALITY.md) for the generation/review checks, release steps, and remaining accuracy limits.

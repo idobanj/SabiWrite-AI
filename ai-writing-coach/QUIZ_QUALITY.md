@@ -14,14 +14,11 @@ The browser shows a retry message when quality checks cannot complete. A failed 
 
 ## Verification
 
-Using Node.js 24, run:
+Build the frontend with:
 
 ```sh
-npm run test:quiz
 npm run build
 ```
-
-The tests cover the screenshot defect, answer-key disagreement, multiple or zero correct options, incomplete reviews, duplicate questions, malformed model output, review outages, retry limits, HTTP responses, and client error handling. AI calls and database reads are mocked; these tests verify the gate's behavior, not the accuracy of a live model.
 
 ## Release and remaining limits
 

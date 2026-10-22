@@ -1,7 +1,7 @@
 /** @format */
 
 // supabase/functions/_shared/ai/providers/groq.ts
-import {ProviderError} from '../errors.ts';
+import {ProviderError, retryAfterSeconds} from '../errors.ts';
 import {AIProvider, AIRequest, AIResponse} from '../types.ts';
 
 // ---------------------------------------------------------------------------
@@ -67,6 +67,9 @@ export class GroqProvider implements AIProvider {
 
     async generate(request: AIRequest): Promise<AIResponse> {
         let lastErr: string | null = null;
+        let rateLimited = false;
+        let unavailable = false;
+        let retryAfter = 0;
 
         for (const model of GROQ_MODELS) {
             const groqReq: GroqRequest = {
@@ -79,13 +82,9 @@ export class GroqProvider implements AIProvider {
 
             // Two attempts per model: one immediate, one after a 300 ms backoff.
             for (let attempt = 0; attempt < 2; attempt++) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
                 try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(
-                        () => controller.abort(),
-                        12000,
-                    );
-
                     const res = await fetch(GROQ_API_URL, {
                         method: 'POST',
                         headers: {
@@ -95,8 +94,6 @@ export class GroqProvider implements AIProvider {
                         body: JSON.stringify(groqReq),
                         signal: controller.signal,
                     });
-
-                    clearTimeout(timeoutId);
 
                     if (res.ok) {
                         const json = (await res.json()) as GroqResponse;
@@ -112,13 +109,22 @@ export class GroqProvider implements AIProvider {
                     const errText = await res.text();
                     lastErr = `${model} (${res.status}): ${errText.slice(0, 200)}`;
 
-                    // 429 = rate-limited, 500 = internal error, 503 = overloaded.
-                    // Retry once with backoff, then move on to the next model.
+                    // A 300 ms retry does not respect the provider's quota
+                    // reset. Try the next model, retaining the real delay.
+                    if (res.status === 429) {
+                        rateLimited = true;
+                        retryAfter = Math.max(retryAfter, retryAfterSeconds(res) ?? 30);
+                        break;
+                    }
+
+                    // Retry a transient server failure once before fallback.
                     if (
-                        res.status === 429 ||
                         res.status === 500 ||
-                        res.status === 503
+                        res.status === 502 ||
+                        res.status === 503 ||
+                        res.status === 504
                     ) {
+                        unavailable = true;
                         if (attempt === 0) {
                             await new Promise((resolve) =>
                                 setTimeout(resolve, 300),
@@ -143,8 +149,10 @@ export class GroqProvider implements AIProvider {
                             res.status,
                         );
                     }
+                    throw new ProviderError(`Groq API error (${res.status}): ${errText.slice(0, 300)}`, res.status);
                 } catch (err: any) {
                     if (err instanceof ProviderError) throw err;
+                    unavailable = true;
                     if (
                         err.name === 'AbortError' ||
                         err.message?.includes('aborted')
@@ -156,13 +164,16 @@ export class GroqProvider implements AIProvider {
                         break; // skip to next model
                     }
                     lastErr = `${model}: ${err.message || String(err)}`;
+                } finally {
+                    clearTimeout(timeoutId);
                 }
             }
         }
 
         throw new ProviderError(
             `Groq unavailable after all models: ${lastErr}`,
-            null,
+            rateLimited && !unavailable ? 429 : 503,
+            rateLimited && !unavailable ? retryAfter : null,
         );
     }
 }

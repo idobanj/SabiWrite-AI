@@ -4,6 +4,7 @@ import {GeminiProvider} from './providers/gemini.ts';
 import {GroqProvider} from './providers/groq.ts';
 import {loadAIConfig} from './config.ts';
 import {AIProvider, AIRequest} from './types.ts';
+import {ProviderError} from './errors.ts';
 
 /**
  * Creates a provider-agnostic AI service with provider-level fallback.
@@ -22,7 +23,7 @@ export function createAIService() {
                 groq: GroqProvider,
             };
 
-            const errors: Array<{provider: string; message: string}> = [];
+            const errors: Array<{provider: string; message: string; statusCode?: number | null; retryAfterSeconds?: number | null}> = [];
 
             for (const providerName of providerOrder) {
                 console.log(`[AI] Trying provider: ${providerName}`);
@@ -61,7 +62,10 @@ export function createAIService() {
                         message = err.message;
                     }
                     console.warn(`[AI] Provider failed: ${providerName}: ${message}`);
-                    errors.push({provider: providerName, message});
+                    errors.push({provider: providerName, message,
+                        statusCode: err instanceof ProviderError ? err.statusCode : null,
+                        retryAfterSeconds: err instanceof ProviderError ? err.retryAfterSeconds : null,
+                    });
                     // We don't break here; we try the next provider
                 }
             }
@@ -71,7 +75,9 @@ export function createAIService() {
                 ({provider, message}) => `- ${provider} → ${message}`,
             );
             const combinedMessage = `All AI providers failed.\n${errorMessages.join('\n')}`;
-            const error = new Error(combinedMessage);
+            const rateLimited = errors.length > 0 && errors.every(({statusCode}) => statusCode === 429);
+            const retryAfter = Math.max(1, ...errors.map(({retryAfterSeconds}) => retryAfterSeconds ?? 30));
+            const error = new ProviderError(combinedMessage, rateLimited ? 429 : 503, rateLimited ? retryAfter : null);
             console.error(`[AI] ${combinedMessage}`);
             throw error;
         },
