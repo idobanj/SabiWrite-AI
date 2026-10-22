@@ -494,28 +494,43 @@ function parseAIJsonResponse(rawText: string): any {
 }
 
 async function analyzeWithReview(text: string, onReview?: () => void): Promise<AnalysisResponse> {
-  const rawText = await generate({prompt: buildPrompt(text), temperature: 0});
-  let draft: unknown;
-  try {
-    draft = parseAIJsonResponse(rawText);
-  } catch {
-    throw new AnalysisQualityError("initial_analysis_malformed");
+  // Attempt the full analysis + review pipeline up to 2 times.
+  // A "reject" verdict or quality error on the first attempt triggers a fresh
+  // generation rather than surfacing the error to the user immediately.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const rawText = await generate({prompt: buildPrompt(text), temperature: attempt === 0 ? 0 : 0.3});
+    let draft: unknown;
+    try {
+      draft = parseAIJsonResponse(rawText);
+    } catch {
+      if (attempt === 0) continue;
+      throw new AnalysisQualityError("initial_analysis_malformed");
+    }
+    if (attempt === 0) onReview?.();
+    let validationIssue: string | undefined;
+    const normalise = (raw: unknown) => {
+      validationIssue = undefined;
+      return normaliseResponse(raw, text, (reason) => {validationIssue = reason;});
+    };
+    try {
+      return await reviewAnalysis({
+        original: text,
+        draft,
+        candidate: normalise(draft),
+        generateReview: (prompt) => generate({prompt, temperature: 0}),
+        parse: parseAIJsonResponse,
+        normalise,
+        validationIssue: () => validationIssue,
+      });
+    } catch (err) {
+      if (attempt === 0) {
+        console.warn("[analyze-text] First attempt rejected, retrying:", err instanceof Error ? err.message : err);
+        continue;
+      }
+      throw err;
+    }
   }
-  onReview?.();
-  let validationIssue: string | undefined;
-  const normalise = (raw: unknown) => {
-    validationIssue = undefined;
-    return normaliseResponse(raw, text, (reason) => {validationIssue = reason;});
-  };
-  return reviewAnalysis({
-    original: text,
-    draft,
-    candidate: normalise(draft),
-    generateReview: (prompt) => generate({prompt, temperature: 0}),
-    parse: parseAIJsonResponse,
-    normalise,
-    validationIssue: () => validationIssue,
-  });
+  throw new AnalysisQualityError("repair_not_approved");
 }
 
 
