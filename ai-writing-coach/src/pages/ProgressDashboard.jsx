@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BarChart3,
   ChevronDown,
-  Flame,
   GraduationCap,
   PenTool,
   RefreshCcw,
@@ -153,10 +152,9 @@ export function ProgressDashboard() {
         </Card>
       ) : null}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         {loading ? (
           <>
-            <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
             <MetricCardSkeleton />
@@ -182,17 +180,6 @@ export function ProgressDashboard() {
               sublabel={trend.delta ? trend.short : ""}
               icon={<TrendingUp className="w-6 h-6" />}
               tone="emerald"
-            />
-            <MetricCard
-              label="Mastery"
-              value={`${stats?.mastery_score ?? 0}%`}
-              sublabel={
-                (stats?.streak_days ?? 0) > 0
-                  ? `${stats.streak_days}-day streak`
-                  : "no streak yet"
-              }
-              icon={<Flame className="w-6 h-6" />}
-              tone="amber"
             />
           </>
         )}

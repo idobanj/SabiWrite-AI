@@ -1,4 +1,4 @@
-import { Flame, Repeat, Sparkles, Trophy } from "lucide-react";
+import { Flame, Repeat } from "lucide-react";
 import { IconBadge } from "./IconBadge";
 import { fmtRelative } from "../lib/format";
 
@@ -18,16 +18,6 @@ const KIND_VISUALS = {
     tone: "amber",
     label: "Streak at risk",
   },
-  quiz_followup: {
-    icon: Trophy,
-    tone: "emerald",
-    label: "Practice",
-  },
-  mastery_milestone: {
-    icon: Sparkles,
-    tone: "brand",
-    label: "Mastered",
-  },
 };
 
 /**
@@ -40,7 +30,7 @@ const KIND_VISUALS = {
  * @param {{
  *   notification: {
  *     id: string,
- *     kind: "repeat_milestone" | "streak_at_risk" | "quiz_followup",
+ *     kind: "repeat_milestone" | "streak_at_risk",
  *     title: string,
  *     body: string,
  *     link: string | null,

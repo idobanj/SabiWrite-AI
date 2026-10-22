@@ -14,7 +14,6 @@ SabiWrite AI is a pedagogical AI writing coach that:
 - 🧠 **Remembers your mistakes** — builds a personal mistake profile over time
 - 📊 **Tracks your weaknesses** — shows patterns in your recurring errors via a progress dashboard
 - 🎓 **Generates personalized lessons** — turns your weakest areas into interactive micro-lessons and quizzes
-- 🏆 **Tracks your mastery** — rewards improvement with a mastery system
 
 ---
 
@@ -159,7 +158,7 @@ npm run preview      # Preview the production build locally
 npm run lint         # oxlint
 npm run test:quiz    # Quiz quality regression tests (Node.js 24)
 npm run test:analysis # Writing Desk review and streaming regression tests (Node.js 24)
-npm run test:practice # Writing Desk/Practice request isolation and quiz cancellation (Node.js 24)
+npm run test:practice # Writing Desk/Practice lifecycle and notification checks (Node.js 24)
 npm run test:auth     # Session verification and authenticated save regression tests (Node.js 24)
 npm run test:avatars  # Avatar choices and authenticated profile saves (Node.js 24)
 ```

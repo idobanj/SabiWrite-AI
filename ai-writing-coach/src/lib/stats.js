@@ -50,8 +50,6 @@ const VALID_MISTAKE_TYPES = new Set([
  * @property {number} total_mistakes
  * @property {number} accuracy
  * @property {number} streak_days
- * @property {number} mastery_score     0..100 — average fraction to level 5
- * @property {number} mastery_count     count of mistakes at level 5 (resolved)
  * @property {TopMistakeType[]} top_mistake_types
  * @property {AccuracyPoint[]} accuracy_trend
  * @property {RecentActivity[]} recent_activity
@@ -96,7 +94,7 @@ export async function getUserStats(timeframe = "30d") {
     logsQuery,
     supabase
       .from("mistakes")
-      .select("mistake_type,frequency_count,last_seen_at,mastery_level,resolved")
+      .select("mistake_type,frequency_count,last_seen_at")
       .eq("user_id", user.id)
       .order("frequency_count", { ascending: false })
       .limit(500),
@@ -156,21 +154,6 @@ export async function getUserStats(timeframe = "30d") {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // Phase 8: mastery aggregation. mastery_score is the average fraction
-  // of the way each mistake is to level 5; mastery_count is the number
-  // already at level 5 (resolved). If the user has zero logged mistakes,
-  // mastery_score is 0 (nothing to master).
-  const totalRows = mistakes.length;
-  const sumMastery = mistakes.reduce(
-    (sum, m) => sum + Math.min(5, Math.max(0, m.mastery_level ?? 0)),
-    0
-  );
-  const masteryScore =
-    totalRows === 0
-      ? 0
-      : Math.round((sumMastery / (totalRows * 5)) * 100);
-  const masteryCount = mistakes.filter((m) => m.resolved === true).length;
-
   const accuracyTrend = buildAccuracyTrend(logs, days);
   const recentActivity = logs.slice(0, 5).map((row) => ({
     id: row.id,
@@ -192,8 +175,6 @@ export async function getUserStats(timeframe = "30d") {
     streak_days: computeStreak(
       new Set(allLogsForStreak.map((row) => dayKey(row.created_at)))
     ),
-    mastery_score: masteryScore,
-    mastery_count: masteryCount,
     top_mistake_types: topMistakeTypes,
     accuracy_trend: accuracyTrend,
     recent_activity: recentActivity,

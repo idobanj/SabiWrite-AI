@@ -10,9 +10,11 @@ const corrected = {
   mistakes: [{type: "spelling", wrong_text: "aare", correct_text: "are", explanation: "Remove the extra a."}],
   explanation: "Fix the typo and punctuation.", accuracyScore: 80, focusArea: "Spelling",
 };
-const quiz = {topic: "spelling", topic_label: "Spelling", questions: [{id: "q1"}]};
+const quiz = {topic: "spelling", topic_label: "Spelling", questions: [
+  {id: "q1", prompt: "Choose the correct spelling.", options: ["receive", "recieve"], answer_index: 0, explanation: "Receive is the correct spelling."},
+]};
 
-async function createHarness({pendingQuiz = false, failFirstQuiz = false, missingSession = false, accountChanged = false, signOutAfterAnalysis = false} = {}) {
+async function createHarness({pendingQuiz = false, failFirstQuiz = false, missingSession = false, accountChanged = false, signOutAfterAnalysis = false, stateful = false} = {}) {
   const calls = [];
   const notices = [];
   const logs = [];
@@ -21,6 +23,9 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false, missin
   const savedRows = [];
   const saveHeaders = [];
   const functionHeaders = [];
+  const tableReads = [];
+  const states = [];
+  let stateIndex = 0;
   let quizSignal;
   let finishQuiz;
   const sdk = {
@@ -40,7 +45,8 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false, missin
       if (name === "log-mistake") return {data: {upserted: []}, error: null};
       throw new Error(`Unexpected function: ${name}`);
     }},
-    from: () => {
+    from: (table) => {
+      tableReads.push(table);
       const query = {};
       for (const method of ["select", "eq", "order", "limit"]) query[method] = () => query;
       query.insert = (row) => {savedRows.push(row); return query;};
@@ -65,7 +71,15 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false, missin
   const element = (type, props) => ({type, props});
   const mocks = new Map([
     ["react", synthetic({
-      useState: (initial) => [typeof initial === "function" ? initial() : initial, (value) => stateChanges.push(value)],
+      useState: (initial) => {
+        if (!stateful) return [typeof initial === "function" ? initial() : initial, (value) => stateChanges.push(value)];
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = typeof initial === "function" ? initial() : initial;
+        return [states[index], (value) => {
+          states[index] = typeof value === "function" ? value(states[index]) : value;
+          stateChanges.push(states[index]);
+        }];
+      },
       useRef: (current) => ({current}),
       useMemo: (fn) => fn(),
       useEffect: (effect) => {const cleanup = effect(); if (cleanup) cleanups.push(cleanup);},
@@ -118,7 +132,8 @@ async function createHarness({pendingQuiz = false, failFirstQuiz = false, missin
     return mod.namespace[name];
   }
   return {
-    page, calls, notices, logs, stateChanges, savedRows, saveHeaders, functionHeaders,
+    page, calls, notices, logs, stateChanges, savedRows, saveHeaders, functionHeaders, tableReads,
+    render: (component, props) => {stateIndex = 0; return component(props);},
     unmount: () => cleanups.forEach((cleanup) => cleanup()),
     quizSignal: () => quizSignal,
     finishQuiz: () => finishQuiz(),
@@ -215,4 +230,32 @@ test("a failed quiz releases the pending request so the user can retry", async (
   await start("spelling", "Spelling", 1);
   assert.deepEqual(harness.calls, ["generate-quiz", "generate-quiz"]);
   assert.equal(harness.notices.length, 1);
+});
+
+test("finishing a quiz shows the current score without saving history or calling mastery", async () => {
+  const harness = await createHarness({stateful: true});
+  const Practice = await harness.page("PracticeModule");
+  const flow = Practice().props.children;
+  const render = () => harness.render(flow.type, flow.props);
+  const landing = render();
+  await landing.props.onStart("spelling", "Spelling", 1);
+
+  let active = render();
+  active.props.onAnswer(0, 0);
+  active = render();
+  active.props.onFinish();
+  const finished = render();
+  assert.equal(finished.props.result.score, 1);
+  assert.equal(finished.props.result.total, 1);
+  assert.equal(finished.props.result.correct_per_question[0], true);
+  assert.deepEqual(harness.calls, ["generate-quiz"]);
+  assert.deepEqual(harness.tableReads, []);
+  assert.deepEqual(harness.savedRows, []);
+  assert.deepEqual(harness.logs, []);
+
+  finished.props.onBack();
+  const returned = render();
+  const landingTree = returned.type(returned.props);
+  assert.equal(JSON.stringify(landingTree).includes("Last attempt"), false);
+  assert.deepEqual(harness.tableReads, []);
 });

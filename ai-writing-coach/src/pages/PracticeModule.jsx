@@ -23,8 +23,6 @@ import { getUserStats } from "../lib/stats";
 import {
   generateQuiz,
   gradeQuiz,
-  getLastQuizSession,
-  saveQuizSession,
 } from "../lib/practice";
 
 const TYPE_LABELS = {
@@ -121,15 +119,9 @@ function PracticeFlow() {
     });
   };
 
-  const handleFinish = async () => {
+  const handleFinish = () => {
     if (!quiz) return;
     const result = gradeQuiz(quiz.questions, answers);
-    // Fire-and-forget persistence — the user already has the result on screen.
-    try {
-      await saveQuizSession(quiz, answers, result);
-    } catch {
-      /* already warned in the lib */
-    }
     setResult(result);
     setPhase("result");
   };
@@ -187,7 +179,6 @@ function LandingScreen({ loading, error, onStart }) {
   const { show } = useToast();
   const [focus, setFocus] = useState(null);
   const [focusLoading, setFocusLoading] = useState(true);
-  const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,22 +213,6 @@ function LandingScreen({ loading, error, onStart }) {
     };
   }, [show]);
 
-  // When the focus changes, fetch that topic's most recent session
-  useEffect(() => {
-    if (!focus) {
-      setLastSession(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const s = await getLastQuizSession(focus.type);
-      if (!cancelled) setLastSession(s);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [focus]);
-
   const handleStart = () => {
     if (!focus) return;
     onStart(focus.type, focus.label, focus.count);
@@ -269,15 +244,6 @@ function LandingScreen({ loading, error, onStart }) {
                 ? `You've logged ${focus.count} ${focus.count === 1 ? "mistake" : "mistakes"} in this category. A short quiz on it will reinforce the rule.`
                 : "Analyse a few drafts in the Writing Desk and we'll recommend a topic to drill here."}
             </p>
-            {lastSession ? (
-              <div className="flex items-center gap-2 pt-1">
-                <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs text-slate-400 font-semibold">
-                  Last attempt: {lastSession.score} / {lastSession.total} (
-                  {fmtRelative(new Date(lastSession.created_at))})
-                </span>
-              </div>
-            ) : null}
           </div>
 
           <div className="flex-shrink-0">
@@ -668,16 +634,4 @@ function Spinner() {
   return (
     <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
   );
-}
-
-function fmtRelative(date) {
-  const now = new Date();
-  const diffMin = Math.floor((now - date) / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

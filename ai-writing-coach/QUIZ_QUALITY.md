@@ -29,4 +29,4 @@ Deploy the updated `generate-quiz` Supabase Edge Function, including its importe
 
 The review uses the existing configured AI service in a separate call; it is not a human review or a guarantee that every answer is correct. It adds an AI call to a successful quiz and up to four calls across the two attempts, before provider-level fallbacks. Check live accuracy, completion rates, latency, and cost before a broad release.
 
-For higher assurance, maintain a question bank approved by a qualified English reviewer, run a fixed evaluation set when models or prompts change, and review reported items before admitting them to scored practice. This code change does not regrade or remove existing quiz sessions.
+For higher assurance, maintain a question bank approved by a qualified English reviewer, run a fixed evaluation set when models or prompts change, and review reported items before admitting them to scored practice. Quiz questions, answers, and results stay in the current Practice screen and are not saved as attempt history.
