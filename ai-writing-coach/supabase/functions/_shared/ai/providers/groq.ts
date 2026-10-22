@@ -13,9 +13,6 @@ const GROQ_MODELS = [
     'openai/gpt-oss-20b',
     'qwen/qwen3.8-27b',
     'openai/gpt-oss-120b',
-    'qwen/qwen3.6-27b',
-    'groq/compound',
-    'groq/compound-mini',
 ] as const;
 
 // The single endpoint that handles all Groq chat-completion requests.
@@ -76,14 +73,14 @@ export class GroqProvider implements AIProvider {
                 model,
                 messages: [{role: 'user', content: request.prompt}],
                 temperature: request.temperature ?? 0,
-                max_tokens: Math.min(request.maxTokens ?? 4096, 8192),
+                max_tokens: Math.min(request.maxTokens ?? 2048, 8192),
                 response_format: {type: 'json_object'},
             };
 
             // Two attempts per model: one immediate, one after a 300 ms backoff.
             for (let attempt = 0; attempt < 2; attempt++) {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 12000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
                 try {
                     const res = await fetch(GROQ_API_URL, {
                         method: 'POST',

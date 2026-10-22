@@ -139,7 +139,7 @@ export async function generateVerifiedQuestions({
     let phase = "generation";
     let candidateCount = 0;
     try {
-      const requested = count - accepted.length + 2;
+      const requested = Math.min(count - accepted.length + 1, 6);
       const parsed = parseModelObject(await generateCandidates(requested, attempt, [...previousQuestions]));
       const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : [];
       const batchKeys = new Set(previousQuestions.map(questionKey));
@@ -171,6 +171,10 @@ export async function generateVerifiedQuestions({
       // provider limit. Preserve its status and retry delay for the caller.
       if (error instanceof ProviderError) throw error;
     }
+  }
+
+  if (accepted.length >= 3) {
+    return accepted;
   }
 
   throw new QuizQualityError();
