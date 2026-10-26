@@ -4,10 +4,10 @@ import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
 import {useState, useEffect, useRef} from 'react';
 import {
-    PenTool,
-    BarChart2,
-    GraduationCap,
-    Award,
+    FileCheck2,
+    BarChart3,
+    BookOpen,
+    Pencil,
     Sparkles,
     ArrowRight,
     ChevronDown,
@@ -329,65 +329,68 @@ export function LandingPage() {
                     </div>
                 </section>
 
-                <LandingDemo />
-
                 {/* ═══════════════════════════════════════
-                    SECTION 3 — FEATURES / VALUE PROPS
+                    SECTION 2 — WHY SABIWRITE / VALUE PROPS
                 ═══════════════════════════════════════ */}
                 <section
-                    id='features'
-                    aria-labelledby='features-heading'
-                    className='relative overflow-hidden bg-white px-4 py-20 sm:px-12 sm:py-24 lg:py-28'>
+                    id='why-sabiwrite'
+                    aria-labelledby='why-sabiwrite-heading'
+                    className='relative overflow-hidden bg-white px-4 py-20 sm:px-8 sm:py-24 lg:py-28'>
 
-                    <div className='w-full max-w-7xl mx-auto space-y-10 sm:space-y-11'>
+                    <div className='w-full max-w-7xl mx-auto space-y-10 sm:space-y-12'>
 
                         {/* Heading */}
-                        <div className='reveal text-center space-y-3'>
-                            <span className='inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-600 text-xs font-semibold tracking-wide'>
-                                Why SabiWrite AI
+                        <div className='reveal text-center space-y-3.5 max-w-3xl mx-auto'>
+                            <span className='inline-flex items-center px-3.5 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-600 text-xs font-bold tracking-wider uppercase'>
+                                WHY SABIWRITE
                             </span>
                             <h2
-                                id='features-heading'
-                                className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
-                                Built to Make You <span className='text-brand-500'>Actually Improve</span>
+                                id='why-sabiwrite-heading'
+                                className='text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]'>
+                                Built to Help You Become a Better Writer
                             </h2>
-                            <p className='text-[16px] text-slate-600 max-w-xl mx-auto'>
-                                Four pillars that separate a real coach from a spell-checker.
+                            <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed'>
+                                More than corrections: a practical way to understand your writing, learn from your mistakes, and improve over time.
                             </p>
                         </div>
 
                         {/* Cards grid */}
-                        <article className='grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4'>
+                        <article className='grid gap-5 sm:grid-cols-2 lg:grid-cols-4'>
                             <ValueProp
-                                icon={<PenTool aria-hidden='true' className='w-5 h-5' />}
-                                title="Teacher's Desk"
-                                body='Rather than silently correcting, the platform breaks down each correction in simple, understandable, localized mechanics.'
+                                icon={<FileCheck2 aria-hidden='true' className='w-5 h-5' />}
+                                iconBoxClass='bg-blue-50 border border-blue-100/80 text-blue-600'
+                                title='Understand Every Correction'
+                                body='Get clear explanations of writing mistakes so you can understand what needs to change and why.'
                                 delay={1}
                             />
                             <ValueProp
-                                icon={<BarChart2 aria-hidden='true' className='w-5 h-5' />}
-                                title='Weakness Profiler'
-                                body='We record patterns in your typing errors to isolate exactly where your logical understanding is failing.'
+                                icon={<BarChart3 aria-hidden='true' className='w-5 h-5' />}
+                                iconBoxClass='bg-emerald-50 border border-emerald-100/80 text-emerald-600'
+                                title='Discover Your Weaknesses'
+                                body='Identify recurring patterns in your writing and understand which areas need more attention.'
                                 delay={2}
                             />
                             <ValueProp
-                                icon={<GraduationCap aria-hidden='true' className='w-5 h-5' />}
-                                title='Interactive Micro-Lessons'
-                                body='Instantly convert detected weaknesses into specialized modules with quizzes to practice what you got wrong.'
+                                icon={<BookOpen aria-hidden='true' className='w-5 h-5' />}
+                                iconBoxClass='bg-purple-50 border border-purple-100/80 text-purple-600'
+                                title='Learn Through Personalized Lessons'
+                                body='Explore lessons tailored to the writing weaknesses identified by SabiWrite AI.'
                                 delay={3}
                             />
                             <ValueProp
-                                icon={<Award aria-hidden='true' className='w-5 h-5' />}
-                                title='Competition Ready'
-                                body='Built using advanced Gemini API reasoning for robust processing and customized EdTech execution workflows.'
+                                icon={<Pencil aria-hidden='true' className='w-5 h-5' />}
+                                iconBoxClass='bg-amber-50 border border-amber-100/80 text-amber-600'
+                                title='Practise and Reinforce'
+                                body='Use targeted practice exercises to apply what you have learned and strengthen your writing skills.'
                                 delay={4}
                             />
                         </article>
 
-
                     </div>
 
                 </section>
+
+                <LandingDemo />
 
                 <section
                     id='faq'
@@ -464,7 +467,7 @@ export function LandingPage() {
     );
 }
 
-function ValueProp({icon, title, body, delay}) {
+function ValueProp({icon, iconBoxClass, title, body, delay}) {
     const delayClass = {
         1: 'reveal-delay-1',
         2: 'reveal-delay-2',
@@ -473,14 +476,16 @@ function ValueProp({icon, title, body, delay}) {
     }[delay] ?? '';
 
     return (
-        <div className={`reveal ${delayClass} hover-lift h-full rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.32)] sm:p-6`}>
-            <div className='flex items-center gap-3'>
-                <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-100 bg-brand-50 text-brand-600'>
-                    {icon}
-                </div>
-                <h3 className='font-semibold text-slate-900 text-[15px] leading-snug'>{title}</h3>
+        <div className={`reveal ${delayClass} hover-lift flex flex-col h-full rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.06)]`}>
+            <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center ${iconBoxClass}`}>
+                {icon}
             </div>
-            <p className='mt-4 text-sm text-slate-600 leading-relaxed'>{body}</p>
+            <h3 className='font-bold text-slate-900 text-lg sm:text-[1.125rem] leading-snug tracking-tight mt-5'>
+                {title}
+            </h3>
+            <p className='mt-2.5 text-sm sm:text-[14.5px] text-slate-500 leading-relaxed'>
+                {body}
+            </p>
         </div>
     );
 }
