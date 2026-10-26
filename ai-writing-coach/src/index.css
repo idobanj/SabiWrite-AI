@@ -491,8 +491,11 @@
     display: none;
   }
 
-  .landing-hero .hero-correction-example {
-    display: none;
+  .landing-hero .hero-showcase-center,
+  .landing-hero .hero-showcase-left,
+  .landing-hero .hero-showcase-right {
+    animation: none;
+    opacity: 1;
   }
 }
 
@@ -500,20 +503,30 @@
   /* ── Desktop 3-piece hero showcase ── */
   .hero-showcase-center {
     animation-name: heroShowcaseCenterEnter;
-    animation-duration: 1000ms;
-    animation-delay: 450ms;
+    animation-duration: 1200ms;
+    animation-delay: 350ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
   }
 
   .hero-showcase-left {
+    transform: rotate(-11deg);
     animation-name: heroShowcaseLeftEnter;
-    animation-duration: 1100ms;
-    animation-delay: 620ms;
+    animation-duration: 1750ms;
+    animation-delay: 650ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+    transform-origin: center center;
   }
 
   .hero-showcase-right {
+    transform: rotate(11.5deg);
     animation-name: heroShowcaseRightEnter;
-    animation-duration: 1100ms;
-    animation-delay: 750ms;
+    animation-duration: 1750ms;
+    animation-delay: 820ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+    transform-origin: center center;
   }
 
   @keyframes heroShowcaseCenterEnter {
@@ -528,23 +541,39 @@
   }
 
   @keyframes heroShowcaseLeftEnter {
-    from {
+    0% {
       opacity: 0;
-      transform: translateX(-140px);
+      transform: translateX(-160px) translateY(36px) rotate(0deg);
     }
-    to {
+    40% {
+      opacity: 0.75;
+      transform: translateX(-70px) translateY(18px) rotate(-2deg);
+    }
+    72% {
       opacity: 1;
-      transform: translateX(0);
+      transform: translateX(-14px) translateY(4px) rotate(-8.5deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) translateY(0) rotate(-11deg);
     }
   }
 
   @keyframes heroShowcaseRightEnter {
-    from {
+    0% {
       opacity: 0;
-      transform: translateX(140px);
+      transform: translateX(160px) translateY(36px) rotate(0deg);
     }
-    to {
+    40% {
+      opacity: 0.75;
+      transform: translateX(70px) translateY(18px) rotate(2deg);
+    }
+    72% {
       opacity: 1;
-      transform: translateX(0);
+      transform: translateX(14px) translateY(4px) rotate(8.5deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) translateY(0) rotate(11.5deg);
     }
   }

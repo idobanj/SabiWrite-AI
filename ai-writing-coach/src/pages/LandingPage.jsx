@@ -301,7 +301,7 @@ export function LandingPage() {
                                 </div>
 
                                 {/* Left Card: Coach Feedback Dashboard (slides in from the left) */}
-                                <div className='hero-motion hero-showcase-left absolute z-20 left-[-4%] lg:left-[-2%] bottom-[2%] lg:bottom-[4%] w-[42%] max-w-[460px] pointer-events-none select-none'>
+                                <div className='hero-motion hero-showcase-left absolute z-20 left-[-4%] lg:left-[-2%] bottom-[0%] lg:bottom-[2%] w-[42%] max-w-[460px] pointer-events-none select-none'>
                                     <img
                                         src='/hero-coach-feedback.png'
                                         alt='SabiWrite AI Coach Feedback'
@@ -313,7 +313,7 @@ export function LandingPage() {
                                 </div>
 
                                 {/* Right Card: Practice Quiz Interface (slides in from the right) */}
-                                <div className='hero-motion hero-showcase-right absolute z-20 right-[-4%] lg:right-[-2%] bottom-[2%] lg:bottom-[4%] w-[42%] max-w-[460px] pointer-events-none select-none'>
+                                <div className='hero-motion hero-showcase-right absolute z-20 right-[-4%] lg:right-[-2%] bottom-[0%] lg:bottom-[2%] w-[42%] max-w-[460px] pointer-events-none select-none'>
                                     <img
                                         src='/hero-practice-quiz.png'
                                         alt='SabiWrite AI Practice Quiz Interface'
