@@ -80,7 +80,7 @@ function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, e
  */
 export function LandingPage() {
     const {pageRef, heroActive} = useLandingMotion();
-    const typedText = useTypewriter('Writing Coach', {active: heroActive});
+    const typedText = useTypewriter('Improve it.', {active: heroActive});
     const [openFaq, setOpenFaq] = useState(null);
 
     // Landing page is strictly light mode alone
@@ -190,7 +190,7 @@ export function LandingPage() {
                                 <span className='w-4 h-4 shrink-0 rounded-full bg-brand-500 text-white inline-flex items-center justify-center'>
                                     <Sparkles className='w-3 h-3' aria-hidden='true' />
                                 </span>
-                                <span>AI-Powered Coaching</span>
+                                <span>AI-POWERED WRITING COACH</span>
                             </span>
                         </div>
 
@@ -200,15 +200,15 @@ export function LandingPage() {
                             className='text-4xl sm:text-6xl lg:text-[4.5rem] xl:text-[5.2rem] font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto'>
                             <span className='hero-line-mask'>
                                 <span className='hero-motion hero-headline-line hero-headline-first'>
-                                    Your AI-Powered{' '}
-                                    <span className='inline'>English</span>
+                                    Don't just correct your
                                 </span>
                             </span>
                             <span className='hero-line-mask'>
                                 <span className='hero-motion hero-headline-line hero-headline-second'>
-                                    <span className='sr-only'>Writing Coach</span>
+                                    English.{' '}
+                                    <span className='sr-only'>Improve it.</span>
                                     <span className='hero-typewriter' aria-hidden='true'>
-                                        <span className='hero-typewriter-measure'>Writing Coach</span>
+                                        <span className='hero-typewriter-measure'>Improve it.</span>
                                         <span className='hero-typewriter-text'>
                                             <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
                                             <span className='hero-typewriter-cursor' />
@@ -223,11 +223,7 @@ export function LandingPage() {
                             <p
                                 id='hero-description'
                                 className='hero-motion hero-description text-base sm:text-lg text-slate-600 leading-relaxed'>
-                                Stop using software as a crutch. SabiWrite AI
-                                doesn't just fix your typos—it acts as an elite
-                                personal tutor, analyzing your weaknesses and
-                                generating dynamic lessons to elevate your
-                                communication.
+                                SabiWrite AI helps you understand your writing mistakes, discover recurring weaknesses, and improve through personalized lessons and practice.
                             </p>
                         </div>
 
@@ -242,9 +238,9 @@ export function LandingPage() {
                             </Link>
                             <a
                                 href='#demo'
-                                aria-label='Try the SabiWrite AI interactive demo'
+                                aria-label='Explore a sample of SabiWrite AI'
                                 className='inline-flex shrink-0 items-center justify-center min-h-11 rounded-full px-3 py-2.5 sm:px-6 sm:py-3 border border-slate-200 text-slate-700 bg-white hover:bg-slate-100 text-xs min-[375px]:text-sm sm:text-[15px] font-medium shadow-sm transition duration-200 hover:scale-[1.03] active:scale-95 whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
-                                Try the Demo ↓
+                                Explore a Sample
                             </a>
                         </div>
 

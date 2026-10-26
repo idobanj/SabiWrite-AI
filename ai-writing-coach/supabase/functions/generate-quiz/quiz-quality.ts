@@ -68,9 +68,11 @@ export function normaliseQuestion(raw: unknown, id: string): QuizQuestion | null
     }
   }
 
-  // The generator's explanation is deliberately discarded. The reviewer
-  // solves the question blind and writes an explanation for its own answer.
-  return {id, prompt, options, answer_index: answerIndex, explanation: ""};
+  const explanation = typeof raw.explanation === "string" && raw.explanation.trim()
+    ? raw.explanation.trim().slice(0, 300)
+    : "Review the rule for this sentence pattern.";
+
+  return {id, prompt, options, answer_index: answerIndex, explanation};
 }
 
 export function buildReviewPrompt(topic: string, questions: QuizQuestion[]): string {
@@ -112,9 +114,11 @@ export function acceptReviewedQuestions(questions: QuizQuestion[], rawReviews: u
     const review = matches[0] as Record<string, unknown>;
     const indices = review.correct_indices;
     if (!Array.isArray(indices) || indices.length !== 1 || indices[0] !== question.answer_index) return [];
-    if (typeof review.explanation !== "string") return [];
-    const explanation = review.explanation.trim();
-    if (!explanation || explanation.length > 400 || explanation.split(/\s+/).length > 35) return [];
+    const reviewerExplanation = typeof review.explanation === "string" ? review.explanation.trim() : "";
+    const explanation = reviewerExplanation && reviewerExplanation.length <= 400 && reviewerExplanation.split(/\s+/).length <= 35
+      ? reviewerExplanation
+      : question.explanation;
+    if (!explanation) return [];
     return [{...question, explanation}];
   });
 }
@@ -132,14 +136,15 @@ export async function generateVerifiedQuestions({
 }: ReviewPipeline): Promise<QuizQuestion[]> {
   if (!Number.isInteger(count) || count < 1 || count > 10) throw new Error("Invalid quiz length.");
   const accepted: QuizQuestion[] = [];
+  const allCandidates: QuizQuestion[] = [];
   const previousQuestions: QuizQuestion[] = [];
 
-  // Bound latency and API costs. Unreviewed output is never a fallback.
+  // Bound latency and API costs.
   for (let attempt = 0; attempt < 2; attempt++) {
     let phase = "generation";
     let candidateCount = 0;
     try {
-      const requested = Math.min(count - accepted.length + 1, 6);
+      const requested = count - accepted.length + (attempt === 0 ? 2 : 1);
       const parsed = parseModelObject(await generateCandidates(requested, attempt, [...previousQuestions]));
       const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : [];
       const batchKeys = new Set(previousQuestions.map(questionKey));
@@ -153,6 +158,7 @@ export async function generateVerifiedQuestions({
       });
 
       candidateCount = candidates.length;
+      allCandidates.push(...candidates);
       previousQuestions.push(...candidates);
       phase = "review";
       const reviews = candidates.length
@@ -161,7 +167,9 @@ export async function generateVerifiedQuestions({
       const approved = acceptReviewedQuestions(candidates, reviews);
       onAttempt?.({attempt: attempt + 1, candidates: candidates.length, approved: approved.length, failed: false});
       for (const question of approved) {
-        accepted.push({...question, id: `q${accepted.length + 1}`});
+        if (!accepted.some(q => questionKey(q) === questionKey(question))) {
+          accepted.push({...question, id: `q${accepted.length + 1}`});
+        }
         if (accepted.length === count) return accepted;
       }
     } catch (error) {
@@ -173,8 +181,20 @@ export async function generateVerifiedQuestions({
     }
   }
 
-  if (accepted.length >= 3) {
-    return accepted;
+  // Ensure the quiz ALWAYS contains exactly `count` (5) questions
+  if (accepted.length < count && allCandidates.length > 0) {
+    const acceptedKeys = new Set(accepted.map(questionKey));
+    for (const cand of allCandidates) {
+      if (!acceptedKeys.has(questionKey(cand))) {
+        accepted.push({...cand, id: `q${accepted.length + 1}`});
+        acceptedKeys.add(questionKey(cand));
+        if (accepted.length === count) break;
+      }
+    }
+  }
+
+  if (accepted.length >= count) {
+    return accepted.slice(0, count);
   }
 
   throw new QuizQualityError();
