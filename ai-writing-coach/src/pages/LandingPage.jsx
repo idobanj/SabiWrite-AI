@@ -27,7 +27,7 @@ const faqs = [
 ];
 
 /** Keep the typing loop synchronized with the hero's scroll entrances. */
-function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, eraseSpeed = 55, pauseMs = 7000} = {}) {
+function useTypewriter(text, {active = true, startDelay = 400, typeSpeed = 75, eraseSpeed = 45, pauseMs = 1800} = {}) {
     const [displayed, setDisplayed] = useState('');
 
     useEffect(() => {
@@ -55,7 +55,7 @@ function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, e
                     timer = setTimeout(tick, pauseMs);
                 } else if (length === 0) {
                     erasing = false;
-                    timer = setTimeout(tick, 900);
+                    timer = setTimeout(tick, 450);
                 } else {
                     timer = setTimeout(tick, erasing ? eraseSpeed : typeSpeed);
                 }
@@ -80,7 +80,7 @@ function useTypewriter(text, {active = true, startDelay = 650, typeSpeed = 80, e
  */
 export function LandingPage() {
     const {pageRef, heroActive} = useLandingMotion();
-    const typedText = useTypewriter('Improve it.', {active: heroActive});
+    const typedText = useTypewriter('Improve it.', {active: heroActive, pauseMs: 1800});
     const [openFaq, setOpenFaq] = useState(null);
 
     // Landing page is strictly light mode alone
@@ -247,13 +247,13 @@ export function LandingPage() {
                         {/* Dashboard Preview Image (responsive: phone mockup on mobile, window mockup on tablet/desktop) */}
                         <div className='hero-motion hero-dashboard w-full max-w-7xl mx-auto mt-10 sm:mt-16 px-2 sm:px-6 relative'>
                             {/* Mobile Phone Mockup (visible on mobile only) */}
-                            <div className='hero-preview-fade hero-preview-fade-mobile block sm:hidden w-full max-w-[280px] mx-auto'>
+                            <div className='hero-preview-fade hero-preview-fade-mobile block sm:hidden w-full max-w-[340px] mx-auto'>
                                 <img
-                                    src='/hero-dashboard-mobile-cutout.png'
+                                    src='/SabiWritePhone-1.png'
                                     alt='SabiWrite AI Mobile Progress Dashboard'
                                     className='w-full h-auto block drop-shadow-2xl select-none pointer-events-none'
-                                    width='887'
-                                    height='1774'
+                                    width='2852'
+                                    height='1487'
                                     loading='eager'
                                 />
                             </div>
