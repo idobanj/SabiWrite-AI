@@ -41,6 +41,9 @@ export function useLandingMotion() {
     let disposed = false;
 
     // Once visible, stop observing so the animation never replays on scroll-back.
+    // rootMargin: '0px 0px -28% 0px' delays the trigger until elements have scrolled
+    // well into the viewport (near the middle / ~35-40% up from the bottom), matching
+    // the reference video rather than firing immediately at the bottom cut-off edge.
     const entryObserver = new IntersectionObserver(
       (entries) => {
         if (disposed || preference.matches) return;
@@ -54,7 +57,7 @@ export function useLandingMotion() {
           entryObserver.unobserve(entry.target);
         }
       },
-      { root, threshold: 0.1 },
+      { root, rootMargin: "0px 0px -28% 0px", threshold: 0.12 },
     );
 
     const unregister = (target, anchor) => {

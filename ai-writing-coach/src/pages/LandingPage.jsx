@@ -417,19 +417,19 @@ export function LandingPage() {
                                                 <div className='bg-white rounded-xl p-3 border border-slate-200/70 shadow-sm'>
                                                     <div className='flex items-center justify-between text-xs mb-1.5'>
                                                         <span className='font-semibold text-slate-800'>Subject-Verb Agreement</span>
-                                                        <span className='text-amber-600 font-bold'>3x this week</span>
+                                                        <span className='text-amber-600 font-bold'>45 errors logged</span>
                                                     </div>
                                                     <div className='w-full h-2 bg-slate-100 rounded-full overflow-hidden'>
-                                                        <div className='h-full bg-amber-500 rounded-full w-[65%]' />
+                                                        <div className='h-full bg-amber-500 rounded-full w-[45%]' />
                                                     </div>
                                                 </div>
                                                 <div className='bg-white rounded-xl p-3 border border-slate-200/70 shadow-sm'>
                                                     <div className='flex items-center justify-between text-xs mb-1.5'>
                                                         <span className='font-semibold text-slate-800'>Homophones & Confused Words</span>
-                                                        <span className='text-red-600 font-bold'>88% mastery</span>
+                                                        <span className='text-rose-600 font-bold'>118 errors logged</span>
                                                     </div>
                                                     <div className='w-full h-2 bg-slate-100 rounded-full overflow-hidden'>
-                                                        <div className='h-full bg-red-500 rounded-full w-[88%]' />
+                                                        <div className='h-full bg-rose-500 rounded-full w-[82%]' />
                                                     </div>
                                                 </div>
                                             </div>
@@ -447,7 +447,7 @@ export function LandingPage() {
                                     badgeClass='bg-purple-50 text-purple-700 border border-purple-100'
                                     title='Learn Through Personalized Lessons'
                                     body='Explore lessons tailored to the writing weaknesses identified by SabiWrite AI.'
-                                    delay={3}
+                                    delay={1}
                                     preview={
                                         <div className='rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:p-5 text-left'>
                                             <div className='flex items-center justify-between gap-2 text-xs font-semibold text-slate-500 mb-2.5'>
@@ -482,7 +482,7 @@ export function LandingPage() {
                                     badgeClass='bg-amber-50 text-amber-700 border border-amber-100'
                                     title='Practise and Reinforce'
                                     body='Use targeted practice exercises to apply what you have learned and strengthen your writing skills.'
-                                    delay={4}
+                                    delay={2}
                                     preview={
                                         <div className='rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 sm:p-5 text-left'>
                                             <div className='text-xs font-semibold text-slate-500 mb-2.5'>

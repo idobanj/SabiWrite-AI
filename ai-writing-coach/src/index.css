@@ -307,19 +307,19 @@
   /* Scroll-reveal: hidden until JS adds .is-visible */
   .reveal {
     opacity: 0;
-    transform: translateY(48px);
-    transition: opacity 0.85s cubic-bezier(0.2, 0.65, 0.3, 1),
-                transform 0.85s cubic-bezier(0.2, 0.65, 0.3, 1);
+    transform: translateY(54px);
+    transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
     transition-delay: var(--reveal-delay, 0s);
   }
   .reveal.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
-  .reveal-delay-1 { --reveal-delay: 0.14s; }
-  .reveal-delay-2 { --reveal-delay: 0.28s; }
-  .reveal-delay-3 { --reveal-delay: 0.42s; }
-  .reveal-delay-4 { --reveal-delay: 0.56s; }
+  .reveal-delay-1 { --reveal-delay: 0.08s; }
+  .reveal-delay-2 { --reveal-delay: 0.20s; }
+  .reveal-delay-3 { --reveal-delay: 0.32s; }
+  .reveal-delay-4 { --reveal-delay: 0.44s; }
 
   .faq-answer {
     display: grid;
@@ -359,10 +359,16 @@
   }
 
   .reveal.hover-lift {
-    transition: opacity 0.85s cubic-bezier(0.2, 0.65, 0.3, 1),
-                transform 0.85s cubic-bezier(0.2, 0.65, 0.3, 1),
+    transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
                 box-shadow 0.3s ease;
     transition-delay: var(--reveal-delay, 0s);
+  }
+  .reveal.is-visible.hover-lift {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.3s ease;
+    transition-delay: 0s;
   }
 }
 
