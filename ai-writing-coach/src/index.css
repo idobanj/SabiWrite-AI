@@ -507,73 +507,62 @@
     animation-delay: 350ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
+    will-change: transform, opacity;
   }
 
   .hero-showcase-left {
     transform: rotate(-11deg);
     animation-name: heroShowcaseLeftEnter;
-    animation-duration: 1750ms;
-    animation-delay: 650ms;
+    animation-duration: 1700ms;
+    animation-delay: 600ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
     transform-origin: center center;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
   }
 
   .hero-showcase-right {
     transform: rotate(11.5deg);
     animation-name: heroShowcaseRightEnter;
-    animation-duration: 1750ms;
-    animation-delay: 820ms;
+    animation-duration: 1700ms;
+    animation-delay: 750ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
     transform-origin: center center;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
   }
 
   @keyframes heroShowcaseCenterEnter {
     from {
       opacity: 0;
-      transform: translateY(96px);
+      transform: translate3d(0, 96px, 0);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
     }
   }
 
   @keyframes heroShowcaseLeftEnter {
-    0% {
+    from {
       opacity: 0;
-      transform: translateX(-160px) translateY(36px) rotate(0deg);
+      transform: translate3d(-150px, 30px, 0) rotate(0deg);
     }
-    40% {
-      opacity: 0.75;
-      transform: translateX(-70px) translateY(18px) rotate(-2deg);
-    }
-    72% {
+    to {
       opacity: 1;
-      transform: translateX(-14px) translateY(4px) rotate(-8.5deg);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0) translateY(0) rotate(-11deg);
+      transform: translate3d(0, 0, 0) rotate(-11deg);
     }
   }
 
   @keyframes heroShowcaseRightEnter {
-    0% {
+    from {
       opacity: 0;
-      transform: translateX(160px) translateY(36px) rotate(0deg);
+      transform: translate3d(150px, 30px, 0) rotate(0deg);
     }
-    40% {
-      opacity: 0.75;
-      transform: translateX(70px) translateY(18px) rotate(2deg);
-    }
-    72% {
+    to {
       opacity: 1;
-      transform: translateX(14px) translateY(4px) rotate(8.5deg);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0) translateY(0) rotate(11.5deg);
+      transform: translate3d(0, 0, 0) rotate(11.5deg);
     }
   }
