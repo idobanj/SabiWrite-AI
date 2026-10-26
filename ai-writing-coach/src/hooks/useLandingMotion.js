@@ -21,7 +21,10 @@ function getScrollRoot(page) {
   return null;
 }
 
-/** Replay landing motion after its stable anchor leaves the nearby viewport. */
+/**
+ * One-way landing motion: each animation plays the first time its anchor
+ * scrolls into view and is never reset or replayed on scroll-back.
+ */
 export function useLandingMotion() {
   const pageRef = useRef(null);
   const [heroActive, setHeroActive] = useState(false);
@@ -37,14 +40,7 @@ export function useLandingMotion() {
     let headlineAnchor = null;
     let disposed = false;
 
-    const resetTarget = (target) => {
-      const wasVisible = target.classList.contains("is-visible");
-      target.classList.remove("is-visible");
-      if (wasVisible && target.classList.contains("hero-dashboard")) {
-        target.dispatchEvent(new Event("landing:motion-reset"));
-      }
-    };
-
+    // Once visible, stop observing so the animation never replays on scroll-back.
     const entryObserver = new IntersectionObserver(
       (entries) => {
         if (disposed || preference.matches) return;
@@ -54,23 +50,11 @@ export function useLandingMotion() {
             target.classList.add("is-visible");
           }
           if (entry.target === headlineAnchor) setHeroActive(true);
+          // Unobserve immediately — this anchor has played and must not reset.
+          entryObserver.unobserve(entry.target);
         }
       },
       { root, threshold: 0.1 },
-    );
-
-    // Keep animations armed while close to view. Their own transforms must
-    // not immediately cancel an entrance at the viewport's edge.
-    const resetObserver = new IntersectionObserver(
-      (entries) => {
-        if (disposed || preference.matches) return;
-        for (const entry of entries) {
-          if (entry.isIntersecting) continue;
-          for (const target of anchors.get(entry.target) ?? []) resetTarget(target);
-          if (entry.target === headlineAnchor) setHeroActive(false);
-        }
-      },
-      { root, rootMargin: "240px", threshold: 0 },
     );
 
     const unregister = (target, anchor) => {
@@ -80,10 +64,8 @@ export function useLandingMotion() {
       if (group?.size) return;
       anchors.delete(anchor);
       entryObserver.unobserve(anchor);
-      resetObserver.unobserve(anchor);
       if (anchor === headlineAnchor) {
         headlineAnchor = null;
-        setHeroActive(preference.matches);
       }
     };
 
@@ -104,9 +86,8 @@ export function useLandingMotion() {
         if (!group) {
           group = new Set();
           anchors.set(anchor, group);
-          if (!preference.matches) {
+          if (!preference.matches && !anchor.classList.contains("is-visible")) {
             entryObserver.observe(anchor);
-            resetObserver.observe(anchor);
           }
         }
         group.add(target);
@@ -117,16 +98,15 @@ export function useLandingMotion() {
     const onPreferenceChange = () => {
       if (disposed) return;
       entryObserver.disconnect();
-      resetObserver.disconnect();
       setHeroActive(preference.matches);
       for (const target of targets.keys()) {
         if (preference.matches) target.classList.add("is-visible");
-        else resetTarget(target);
       }
       if (!preference.matches) {
         for (const anchor of anchors.keys()) {
-          entryObserver.observe(anchor);
-          resetObserver.observe(anchor);
+          if (!anchor.classList.contains("is-visible")) {
+            entryObserver.observe(anchor);
+          }
         }
       }
     };
@@ -140,7 +120,6 @@ export function useLandingMotion() {
     return () => {
       disposed = true;
       entryObserver.disconnect();
-      resetObserver.disconnect();
       mutations.disconnect();
       preference.removeEventListener("change", onPreferenceChange);
       targets.clear();

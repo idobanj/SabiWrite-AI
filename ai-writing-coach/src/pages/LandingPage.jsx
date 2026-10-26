@@ -1,4 +1,4 @@
-/** @format */
+﻿/** @format */
 
 import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
@@ -161,7 +161,7 @@ export function LandingPage() {
                 <section
                     id='hero'
                     aria-labelledby='hero-heading'
-                    className='landing-hero relative isolate overflow-hidden flex flex-col min-h-screen px-4 sm:px-8 bg-slate-50'>
+                    className='landing-hero relative isolate overflow-hidden flex flex-col min-h-0 sm:min-h-screen px-4 sm:px-8 bg-slate-50'>
 
                     {/* Top Bar: Logo on left, Login button on top right */}
                     <div className='hero-motion hero-nav w-full max-w-7xl mx-auto flex items-center justify-between pt-8 sm:pt-12 pb-4 relative z-20'>
@@ -182,7 +182,7 @@ export function LandingPage() {
                     </div>
 
                     {/* Centered Hero Content */}
-                    <div className='w-full max-w-7xl mx-auto pt-8 sm:pt-14 pb-12 text-center relative z-10 flex flex-col items-center'>
+                    <div className='w-full max-w-7xl mx-auto pt-6 sm:pt-14 pb-2 sm:pb-12 text-center relative z-10 flex flex-col items-center'>
 
                         {/* The badge leads into the headline reveal. */}
                         <div className='hero-motion hero-badge mb-6 sm:mb-8 flex justify-center'>
@@ -245,7 +245,7 @@ export function LandingPage() {
                         </div>
 
                         {/* Dashboard Preview Image (responsive: phone mockup on mobile, window mockup on tablet/desktop) */}
-                        <div className='hero-motion hero-dashboard w-full max-w-7xl mx-auto mt-10 sm:mt-16 px-2 sm:px-6 relative'>
+                        <div className='hero-motion hero-dashboard w-full max-w-7xl mx-auto mt-6 sm:mt-16 px-2 sm:px-6 relative'>
                             {/* Mobile Phone Mockup (visible on mobile only) */}
                             <div className='block sm:hidden w-full max-w-[340px] mx-auto'>
                                 <img
@@ -441,12 +441,8 @@ function HeroCorrectionExample() {
             if (reducedMotion.matches || !dashboardReady || !inView || played) return;
             played = true;
             example.classList.add('is-active');
-        };
-
-        const reset = () => {
-            played = false;
-            dashboardReady = false;
-            example.classList.remove('is-active');
+            // Stop observing once played — the coaching animation is one-way.
+            observer.disconnect();
         };
 
         const onEntranceEnd = (event) => {
@@ -462,14 +458,10 @@ function HeroCorrectionExample() {
         }, {threshold: 0.65});
 
         dashboard.addEventListener('animationend', onEntranceEnd);
-        dashboard.addEventListener('landing:motion-reset', reset);
-        reducedMotion.addEventListener('change', reset);
         observer.observe(example);
         return () => {
             observer.disconnect();
             dashboard.removeEventListener('animationend', onEntranceEnd);
-            dashboard.removeEventListener('landing:motion-reset', reset);
-            reducedMotion.removeEventListener('change', reset);
         };
     }, []);
 
