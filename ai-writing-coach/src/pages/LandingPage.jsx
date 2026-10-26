@@ -125,14 +125,14 @@ export function LandingPage() {
                 <meta property='og:url' content='https://sabiwrite-ai.vercel.app/' />
                 <meta property='og:title' content='SabiWrite AI — Your AI English Writing Coach' />
                 <meta property='og:description' content='Improve your English writing with personalized AI coaching that learns from your recurring mistakes.' />
-                <meta property='og:image' content='https://sabiwrite-ai.vercel.app/og-image.png' />
+                <meta property='og:image' content='https://sabiwrite-ai.vercel.app/og-image.webp' />
                 <meta property='og:site_name' content='SabiWrite AI' />
 
                 {/* Twitter */}
                 <meta name='twitter:card' content='summary_large_image' />
                 <meta name='twitter:title' content='SabiWrite AI' />
                 <meta name='twitter:description' content='Your AI English Writing Coach.' />
-                <meta name='twitter:image' content='https://sabiwrite-ai.vercel.app/og-image.png' />
+                <meta name='twitter:image' content='https://sabiwrite-ai.vercel.app/og-image.webp' />
 
                 {/* JSON-LD */}
                 <script type='application/ld+json'>
@@ -149,7 +149,7 @@ export function LandingPage() {
                                 offers: {'@type': 'Offer', price: '0', priceCurrency: 'USD'},
                             },
                             {'@type': 'WebSite', name: 'SabiWrite AI', url: 'https://sabiwrite-ai.vercel.app/'},
-                            {'@type': 'Organization', name: 'SabiWrite AI', url: 'https://sabiwrite-ai.vercel.app/', logo: 'https://sabiwrite-ai.vercel.app/logo.png'},
+                            {'@type': 'Organization', name: 'SabiWrite AI', url: 'https://sabiwrite-ai.vercel.app/', logo: 'https://sabiwrite-ai.vercel.app/logo.webp'},
                         ],
                     })}
                 </script>
@@ -211,40 +211,42 @@ export function LandingPage() {
                             </span>
 
                             {/* ── Desktop (sm+): "English. Improve it." on one line ── */}
-                            <span className='hero-line-mask hidden sm:block'>
-                                <span className='hero-motion hero-headline-line hero-headline-second'>
-                                    English.{' '}
-                                    <span className='sr-only'>Improve it.</span>
-                                    <span className='hero-typewriter' aria-hidden='true'>
-                                        <span className='hero-typewriter-measure'>Improve it.</span>
-                                        <span className='hero-typewriter-text'>
-                                            <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
-                                            <span className='hero-typewriter-cursor' />
+                            <div className='hidden sm:block'>
+                                <span className='hero-line-mask'>
+                                    <span className='hero-motion hero-headline-line hero-headline-second'>
+                                        English.{' '}
+                                        <span className='sr-only'>Improve it.</span>
+                                        <span className='hero-typewriter' aria-hidden='true'>
+                                            <span className='hero-typewriter-measure'>Improve it.</span>
+                                            <span className='hero-typewriter-text'>
+                                                <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
+                                                <span className='hero-typewriter-cursor' />
+                                            </span>
                                         </span>
                                     </span>
                                 </span>
-                            </span>
+                            </div>
 
-                            {/* ── Mobile (< sm): "English." on its own line ── */}
-                            <span className='hero-line-mask sm:hidden'>
-                                <span className='hero-motion hero-headline-line hero-headline-second'>
-                                    English.
+                            {/* ── Mobile (< sm): "English." and "Improve it." on separate lines ── */}
+                            <div className='block sm:hidden'>
+                                <span className='hero-line-mask'>
+                                    <span className='hero-motion hero-headline-line hero-headline-second'>
+                                        English.
+                                    </span>
                                 </span>
-                            </span>
-
-                            {/* ── Mobile (< sm): "Improve it." on its own third line ── */}
-                            <span className='hero-line-mask sm:hidden'>
-                                <span className='hero-motion hero-headline-line hero-headline-third'>
-                                    <span className='sr-only'>Improve it.</span>
-                                    <span className='hero-typewriter' aria-hidden='true'>
-                                        <span className='hero-typewriter-measure'>Improve it.</span>
-                                        <span className='hero-typewriter-text'>
-                                            <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
-                                            <span className='hero-typewriter-cursor' />
+                                <span className='hero-line-mask'>
+                                    <span className='hero-motion hero-headline-line hero-headline-third'>
+                                        <span className='sr-only'>Improve it.</span>
+                                        <span className='hero-typewriter' aria-hidden='true'>
+                                            <span className='hero-typewriter-measure'>Improve it.</span>
+                                            <span className='hero-typewriter-text'>
+                                                <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
+                                                <span className='hero-typewriter-cursor' />
+                                            </span>
                                         </span>
                                     </span>
                                 </span>
-                            </span>
+                            </div>
 
                         </h1>
 
@@ -279,7 +281,7 @@ export function LandingPage() {
                             {/* Mobile Phone Mockup (visible on mobile only) */}
                             <div className='block sm:hidden w-full max-w-[340px] mx-auto'>
                                 <img
-                                    src='/SabiWritePhone-1.png'
+                                    src='/SabiWritePhone-1.webp'
                                     alt='SabiWrite AI Mobile Progress Dashboard'
                                     className='w-full h-auto block select-none pointer-events-none'
                                     width='2852'
@@ -293,7 +295,7 @@ export function LandingPage() {
                                 {/* Middle / Main Dashboard (slides in from down to up) */}
                                 <div className='hero-motion hero-showcase-center relative z-10 w-[84%] max-w-[960px] mx-auto rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xl bg-white overflow-hidden'>
                                     <img
-                                        src='/hero-progress-dashboard.png'
+                                        src='/hero-progress-dashboard.webp'
                                         alt='SabiWrite AI Progress Dashboard'
                                         className='w-full h-auto block select-none pointer-events-none'
                                         width='4032'
@@ -305,7 +307,7 @@ export function LandingPage() {
                                 {/* Left Card: Coach Feedback Dashboard (slides in from the left) */}
                                 <div className='hero-motion hero-showcase-left absolute z-20 left-[-4%] lg:left-[-2%] bottom-[0%] lg:bottom-[2%] w-[42%] max-w-[460px] pointer-events-none select-none'>
                                     <img
-                                        src='/hero-coach-feedback.png'
+                                        src='/hero-coach-feedback.webp'
                                         alt='SabiWrite AI Coach Feedback'
                                         className='w-full h-auto block drop-shadow-2xl'
                                         width='2400'
@@ -317,7 +319,7 @@ export function LandingPage() {
                                 {/* Right Card: Practice Quiz Interface (slides in from the right) */}
                                 <div className='hero-motion hero-showcase-right absolute z-20 right-[-4%] lg:right-[-2%] bottom-[0%] lg:bottom-[2%] w-[42%] max-w-[460px] pointer-events-none select-none'>
                                     <img
-                                        src='/hero-practice-quiz.png'
+                                        src='/hero-practice-quiz.webp'
                                         alt='SabiWrite AI Practice Quiz Interface'
                                         className='w-full h-auto block drop-shadow-2xl'
                                         width='2400'

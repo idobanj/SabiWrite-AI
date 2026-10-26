@@ -94,6 +94,21 @@
     padding-block: 0.08em;
     margin-block: -0.08em;
   }
+  .hero-line-mask.hidden {
+    display: none !important;
+  }
+  @media (max-width: 639px) {
+    .sm\:block.hero-line-mask,
+    .hero-line-mask.sm\:block {
+      display: none !important;
+    }
+  }
+  @media (min-width: 640px) {
+    .sm\:hidden.hero-line-mask,
+    .hero-line-mask.sm\:hidden {
+      display: none !important;
+    }
+  }
 
   .hero-headline-line {
     display: block;
