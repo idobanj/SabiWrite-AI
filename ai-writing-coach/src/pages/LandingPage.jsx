@@ -251,7 +251,7 @@ export function LandingPage() {
                                 <img
                                     src='/SabiWritePhone-1.png'
                                     alt='SabiWrite AI Mobile Progress Dashboard'
-                                    className='w-full h-auto block drop-shadow-2xl select-none pointer-events-none'
+                                    className='w-full h-auto block select-none pointer-events-none'
                                     width='2852'
                                     height='1487'
                                     loading='eager'
