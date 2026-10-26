@@ -27,7 +27,7 @@ const faqs = [
 ];
 
 /** Keep the typing loop synchronized with the hero's scroll entrances. */
-function useTypewriter(text, {active = true, startDelay = 400, typeSpeed = 75, eraseSpeed = 45, pauseMs = 1800} = {}) {
+function useTypewriter(text, {active = true, startDelay = 400, typeSpeed = 105, eraseSpeed = 60, pauseMs = 1800} = {}) {
     const [displayed, setDisplayed] = useState('');
 
     useEffect(() => {
@@ -194,16 +194,22 @@ export function LandingPage() {
                             </span>
                         </div>
 
-                        {/* Each complete line rises through its own stationary mask. */}
+                        {/* Each complete line rises through its own stationary mask.
+                            Mobile (< sm): 3 lines — "Don't just correct your" | "English." | "Improve it."
+                            Desktop (sm+): 2 lines — "Don't just correct your" | "English. Improve it." */}
                         <h1
                             id='hero-heading'
-                            className='text-4xl sm:text-6xl lg:text-[4.5rem] xl:text-[5.2rem] font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto'>
+                            className='text-[1.85rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5.2rem] font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto'>
+
+                            {/* Line 1 — same on all breakpoints */}
                             <span className='hero-line-mask'>
                                 <span className='hero-motion hero-headline-line hero-headline-first'>
                                     Don't just correct your
                                 </span>
                             </span>
-                            <span className='hero-line-mask'>
+
+                            {/* ── Desktop (sm+): "English. Improve it." on one line ── */}
+                            <span className='hero-line-mask hidden sm:block'>
                                 <span className='hero-motion hero-headline-line hero-headline-second'>
                                     English.{' '}
                                     <span className='sr-only'>Improve it.</span>
@@ -216,6 +222,28 @@ export function LandingPage() {
                                     </span>
                                 </span>
                             </span>
+
+                            {/* ── Mobile (< sm): "English." on its own line ── */}
+                            <span className='hero-line-mask sm:hidden'>
+                                <span className='hero-motion hero-headline-line hero-headline-second'>
+                                    English.
+                                </span>
+                            </span>
+
+                            {/* ── Mobile (< sm): "Improve it." on its own third line ── */}
+                            <span className='hero-line-mask sm:hidden'>
+                                <span className='hero-motion hero-headline-line hero-headline-third'>
+                                    <span className='sr-only'>Improve it.</span>
+                                    <span className='hero-typewriter' aria-hidden='true'>
+                                        <span className='hero-typewriter-measure'>Improve it.</span>
+                                        <span className='hero-typewriter-text'>
+                                            <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
+                                            <span className='hero-typewriter-cursor' />
+                                        </span>
+                                    </span>
+                                </span>
+                            </span>
+
                         </h1>
 
                         {/* Subtitle with masked slide-up */}

@@ -102,6 +102,7 @@
   }
   .hero-headline-first { animation-delay: 220ms; }
   .hero-headline-second { animation-delay: 340ms; }
+  .hero-headline-third { animation-delay: 460ms; }
 
   .hero-typewriter {
     display: inline-grid;
