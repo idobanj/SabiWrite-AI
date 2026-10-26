@@ -280,14 +280,16 @@ export function LandingPage() {
                         <div className='w-full max-w-7xl mx-auto mt-6 sm:mt-14 px-2 sm:px-6 relative'>
                             {/* Mobile Phone Mockup (visible on mobile only) */}
                             <div className='block sm:hidden w-full max-w-[340px] mx-auto'>
-                                <img
-                                    src='/SabiWritePhone-1.webp'
-                                    alt='SabiWrite AI Mobile Progress Dashboard'
-                                    className='w-full h-auto block select-none pointer-events-none'
-                                    width='2852'
-                                    height='1487'
-                                    loading='eager'
-                                />
+                                <div className='hero-motion hero-showcase-mobile'>
+                                    <img
+                                        src='/SabiWritePhone-1.webp'
+                                        alt='SabiWrite AI Mobile Progress Dashboard'
+                                        className='w-full h-auto block select-none pointer-events-none'
+                                        width='2852'
+                                        height='1487'
+                                        loading='eager'
+                                    />
+                                </div>
                             </div>
 
                             {/* Desktop 3-Piece Showcase (visible on tablet and desktop: sm+) */}
@@ -351,7 +353,7 @@ export function LandingPage() {
                             <h2
                                 id='why-sabiwrite-heading'
                                 className='text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]'>
-                                Built to Help You Become a Better Writer
+                                Built to Help You Become a <span className='text-brand-500'>Better Writer</span>
                             </h2>
                             <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed'>
                                 More than corrections: a practical way to understand your writing, learn from your mistakes, and improve over time.
@@ -414,7 +416,7 @@ export function LandingPage() {
                             <h2
                                 id='how-it-works-heading'
                                 className='text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]'>
-                                From Corrections to Real Improvement
+                                From Corrections to <span className='text-brand-500'>Real Improvement</span>
                             </h2>
                             <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed'>
                                 A simple process that helps you understand your mistakes, strengthen your writing skills, and keep learning.

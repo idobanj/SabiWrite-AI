@@ -506,6 +506,7 @@
     display: none;
   }
 
+  .landing-hero .hero-showcase-mobile,
   .landing-hero .hero-showcase-center,
   .landing-hero .hero-showcase-left,
   .landing-hero .hero-showcase-right {
@@ -514,12 +515,32 @@
   }
 }
 
+  /* ── Mobile phone mockup showcase ── */
+  .hero-showcase-mobile {
+    animation-name: heroShowcaseMobileEnter;
+    animation-duration: 1800ms;
+    animation-delay: 450ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+    will-change: transform, opacity;
+  }
+
+  @keyframes heroShowcaseMobileEnter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 180px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
 
   /* ── Desktop 3-piece hero showcase ── */
   .hero-showcase-center {
     animation-name: heroShowcaseCenterEnter;
-    animation-duration: 1200ms;
-    animation-delay: 350ms;
+    animation-duration: 1800ms;
+    animation-delay: 450ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
     will-change: transform, opacity;
@@ -528,8 +549,8 @@
   .hero-showcase-left {
     transform: rotate(-11deg);
     animation-name: heroShowcaseLeftEnter;
-    animation-duration: 1700ms;
-    animation-delay: 600ms;
+    animation-duration: 2000ms;
+    animation-delay: 650ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
     transform-origin: center center;
@@ -540,8 +561,8 @@
   .hero-showcase-right {
     transform: rotate(11.5deg);
     animation-name: heroShowcaseRightEnter;
-    animation-duration: 1700ms;
-    animation-delay: 750ms;
+    animation-duration: 2000ms;
+    animation-delay: 800ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: both;
     transform-origin: center center;
@@ -552,7 +573,7 @@
   @keyframes heroShowcaseCenterEnter {
     from {
       opacity: 0;
-      transform: translate3d(0, 96px, 0);
+      transform: translate3d(0, 180px, 0);
     }
     to {
       opacity: 1;
@@ -563,7 +584,7 @@
   @keyframes heroShowcaseLeftEnter {
     from {
       opacity: 0;
-      transform: translate3d(-150px, 30px, 0) rotate(0deg);
+      transform: translate3d(-160px, 140px, 0) rotate(0deg);
     }
     to {
       opacity: 1;
@@ -574,7 +595,7 @@
   @keyframes heroShowcaseRightEnter {
     from {
       opacity: 0;
-      transform: translate3d(150px, 30px, 0) rotate(0deg);
+      transform: translate3d(160px, 140px, 0) rotate(0deg);
     }
     to {
       opacity: 1;
