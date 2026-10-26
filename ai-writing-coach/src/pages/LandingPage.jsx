@@ -1,4 +1,4 @@
-﻿/** @format */
+/** @format */
 
 import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
@@ -27,7 +27,7 @@ const faqs = [
 ];
 
 /** Keep the typing loop synchronized with the hero's scroll entrances. */
-function useTypewriter(text, {active = true, startDelay = 400, typeSpeed = 105, eraseSpeed = 60, pauseMs = 1800} = {}) {
+function useTypewriter(text, {active = true, startDelay = 400, typeSpeed = 75, eraseSpeed = 45, pauseMs = 1800} = {}) {
     const [displayed, setDisplayed] = useState('');
 
     useEffect(() => {
@@ -272,8 +272,8 @@ export function LandingPage() {
                             </a>
                         </div>
 
-                        {/* Dashboard Preview Image (responsive: phone mockup on mobile, window mockup on tablet/desktop) */}
-                        <div className='hero-motion hero-dashboard w-full max-w-7xl mx-auto mt-6 sm:mt-16 px-2 sm:px-6 relative'>
+                        {/* Dashboard Preview Section (responsive: phone mockup on mobile, 3-piece showcase on tablet/desktop) */}
+                        <div className='w-full max-w-7xl mx-auto mt-6 sm:mt-14 px-2 sm:px-6 relative'>
                             {/* Mobile Phone Mockup (visible on mobile only) */}
                             <div className='block sm:hidden w-full max-w-[340px] mx-auto'>
                                 <img
@@ -286,29 +286,44 @@ export function LandingPage() {
                                 />
                             </div>
 
-                            {/* Desktop Dashboard Mockup (visible on tablet and desktop) */}
-                            <div className='hero-preview-shadow hidden sm:block'>
-                                <div className='hero-preview-fade rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white overflow-hidden'>
-                                    {/* Window Chrome Header */}
-                                    <div className='flex items-center gap-1.5 px-4 py-2.5 bg-slate-100/90 border-b border-slate-200/80'>
-                                        <span className='w-2.5 h-2.5 rounded-full bg-red-400' />
-                                        <span className='w-2.5 h-2.5 rounded-full bg-amber-400' />
-                                        <span className='w-2.5 h-2.5 rounded-full bg-emerald-400' />
-                                    </div>
-
-                                    {/* Dashboard Image */}
+                            {/* Desktop 3-Piece Showcase (visible on tablet and desktop: sm+) */}
+                            <div className='hidden sm:block relative w-full max-w-6xl mx-auto pt-2 pb-12 sm:pb-16 lg:pb-24'>
+                                {/* Middle / Main Dashboard (slides in from down to up) */}
+                                <div className='hero-motion hero-showcase-center relative z-10 w-[84%] max-w-[960px] mx-auto rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-2xl bg-white overflow-hidden'>
                                     <img
-                                        src='/hero-dashboard.png'
+                                        src='/hero-progress-dashboard.png'
                                         alt='SabiWrite AI Progress Dashboard'
                                         className='w-full h-auto block select-none pointer-events-none'
-                                        width='1024'
-                                        height='516'
+                                        width='4032'
+                                        height='2372'
+                                        loading='eager'
+                                    />
+                                </div>
+
+                                {/* Left Card: Coach Feedback Dashboard (slides in from the left) */}
+                                <div className='hero-motion hero-showcase-left absolute z-20 left-[-4%] lg:left-[-2%] bottom-[2%] lg:bottom-[4%] w-[42%] max-w-[460px] pointer-events-none select-none'>
+                                    <img
+                                        src='/hero-coach-feedback.png'
+                                        alt='SabiWrite AI Coach Feedback'
+                                        className='w-full h-auto block drop-shadow-2xl'
+                                        width='2400'
+                                        height='2400'
+                                        loading='eager'
+                                    />
+                                </div>
+
+                                {/* Right Card: Practice Quiz Interface (slides in from the right) */}
+                                <div className='hero-motion hero-showcase-right absolute z-20 right-[-4%] lg:right-[-2%] bottom-[2%] lg:bottom-[4%] w-[42%] max-w-[460px] pointer-events-none select-none'>
+                                    <img
+                                        src='/hero-practice-quiz.png'
+                                        alt='SabiWrite AI Practice Quiz Interface'
+                                        className='w-full h-auto block drop-shadow-2xl'
+                                        width='2400'
+                                        height='2300'
                                         loading='eager'
                                     />
                                 </div>
                             </div>
-
-                            <HeroCorrectionExample />
                         </div>
 
                     </div>
@@ -446,71 +461,6 @@ export function LandingPage() {
 
             </main>
         </>
-    );
-}
-
-/** Play the illustrative correction after each scroll entrance. */
-function HeroCorrectionExample() {
-    const exampleRef = useRef(null);
-
-    useEffect(() => {
-        const example = exampleRef.current;
-        if (!example) return;
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-        const dashboard = example.closest('.hero-dashboard');
-        if (!dashboard) return;
-        const entrance = dashboard.getAnimations().find((animation) => animation.animationName === 'heroDashboardEnter');
-        let dashboardReady = entrance ? entrance.playState === 'finished' : dashboard.classList.contains('is-visible');
-        let inView = false;
-        let played = false;
-
-        const play = () => {
-            if (reducedMotion.matches || !dashboardReady || !inView || played) return;
-            played = true;
-            example.classList.add('is-active');
-            // Stop observing once played — the coaching animation is one-way.
-            observer.disconnect();
-        };
-
-        const onEntranceEnd = (event) => {
-            if (event.target === dashboard && event.animationName === 'heroDashboardEnter') {
-                dashboardReady = true;
-                play();
-            }
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            inView = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.65);
-            play();
-        }, {threshold: 0.65});
-
-        dashboard.addEventListener('animationend', onEntranceEnd);
-        observer.observe(example);
-        return () => {
-            observer.disconnect();
-            dashboard.removeEventListener('animationend', onEntranceEnd);
-        };
-    }, []);
-
-    return (
-        <div ref={exampleRef} className='hero-correction-example' aria-hidden='true'>
-            <div className='hero-example-label'>
-                <Sparkles className='w-3.5 h-3.5' />
-                <span>Coaching example</span>
-            </div>
-            <p className='hero-example-sentence'>
-                They{' '}
-                <span className='hero-example-word'>
-                    <span className='hero-example-wrong'>has</span>
-                    <span className='hero-example-correct'>have</span>
-                </span>{' '}
-                finished the report.
-            </p>
-            <p className='hero-example-explanation'>
-                Use “have” with “they”.
-            </p>
-        </div>
     );
 }
 
