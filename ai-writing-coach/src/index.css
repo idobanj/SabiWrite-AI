@@ -370,6 +370,28 @@
                 opacity 0.3s ease;
     transition-delay: 0s;
   }
+
+  /* Why SabiWrite cards: pronounced slide distance and slower, graceful entrance */
+  #why-sabiwrite .reveal.hover-lift {
+    transform: translateY(88px);
+    opacity: 0;
+    transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.3s ease;
+    transition-delay: var(--reveal-delay, 0s);
+  }
+  #why-sabiwrite .reveal.is-visible.hover-lift {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  #why-sabiwrite .reveal.is-visible.hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -12px rgba(91, 91, 247, 0.18);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #why-sabiwrite .reveal-delay-1 { --reveal-delay: 0.05s; }
+  #why-sabiwrite .reveal-delay-2 { --reveal-delay: 0.24s; }
 }
 
 @keyframes fadeIn {
