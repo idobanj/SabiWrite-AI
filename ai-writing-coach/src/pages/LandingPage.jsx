@@ -247,7 +247,7 @@ export function LandingPage() {
                         {/* Dashboard Preview Image (responsive: phone mockup on mobile, window mockup on tablet/desktop) */}
                         <div className='hero-motion hero-dashboard w-full max-w-7xl mx-auto mt-10 sm:mt-16 px-2 sm:px-6 relative'>
                             {/* Mobile Phone Mockup (visible on mobile only) */}
-                            <div className='hero-preview-fade hero-preview-fade-mobile block sm:hidden w-full max-w-[340px] mx-auto'>
+                            <div className='block sm:hidden w-full max-w-[340px] mx-auto'>
                                 <img
                                     src='/SabiWritePhone-1.png'
                                     alt='SabiWrite AI Mobile Progress Dashboard'
