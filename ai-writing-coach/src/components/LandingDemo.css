@@ -123,3 +123,20 @@
   .landing-demo .reveal { opacity: 1; transform: none; transition: none; }
   .landing-demo *, .landing-demo *::before, .landing-demo *::after { animation: none !important; transition: none !important; }
 }
+
+@media (max-width: 639px) {
+  .landing-demo {
+    padding: 28px 16px 44px;
+  }
+  .demo-intro {
+    margin: 0 auto 20px;
+  }
+  .demo-intro h2 {
+    font-size: 26px;
+    margin-top: 12px;
+  }
+  .demo-intro > p {
+    font-size: 15px;
+    margin-top: 8px;
+  }
+}
