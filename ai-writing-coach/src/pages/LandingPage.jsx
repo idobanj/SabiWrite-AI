@@ -640,6 +640,49 @@ export function LandingPage() {
                     </div>
                 </section>
 
+                {/* ═══════════════════════════════════════
+                    SECTION 5 — CALL TO ACTION / READY TO IMPROVE
+                ═══════════════════════════════════════ */}
+                <section
+                    id='cta'
+                    aria-labelledby='cta-heading'
+                    className='relative w-full overflow-hidden bg-gradient-to-b from-[#f8faff] via-[#f3f5ff] to-[#edf1fe] border-t border-slate-200/80 py-20 sm:py-28 lg:py-32 px-4 sm:px-6 lg:px-8'>
+
+                    {/* Decorative concentric background arcs spanning the full section width */}
+                    <div
+                        aria-hidden='true'
+                        className='absolute -bottom-28 -left-20 sm:-bottom-32 sm:-left-16 w-80 h-80 sm:w-[420px] sm:h-[420px] lg:w-[520px] lg:h-[520px] rounded-full border-[36px] sm:border-[48px] lg:border-[58px] border-brand-500/[0.08] pointer-events-none'
+                    />
+                    <div
+                        aria-hidden='true'
+                        className='absolute -bottom-28 -right-20 sm:-bottom-32 sm:-right-16 w-80 h-80 sm:w-[420px] sm:h-[420px] lg:w-[520px] lg:h-[520px] rounded-full border-[36px] sm:border-[48px] lg:border-[58px] border-brand-500/[0.08] pointer-events-none'
+                    />
+
+                    <div className='reveal relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center'>
+                        <span className='inline-flex items-center px-4 py-1.5 rounded-full bg-brand-50/90 border border-brand-100 text-brand-600 text-xs sm:text-[13px] font-bold tracking-wider uppercase mb-5 sm:mb-6 shadow-sm'>
+                            READY TO IMPROVE?
+                        </span>
+
+                        <h2
+                            id='cta-heading'
+                            className='text-3xl sm:text-4xl lg:text-[2.75rem] font-black sm:font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4 sm:mb-5'>
+                            Your Next Sentence Can Be Better.
+                        </h2>
+
+                        <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-8 sm:mb-9'>
+                            Understand your mistakes, practise what you learn, and take the next step towards stronger English writing with SabiWrite AI.
+                        </p>
+
+                        <Link
+                            to='/login'
+                            aria-label='Start improving with SabiWrite AI'
+                            className='inline-flex items-center justify-center gap-2 px-7 py-3.5 sm:px-8 sm:py-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm sm:text-base shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/35 transition-all duration-200 hover:scale-[1.03] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
+                            Start Improving
+                            <ArrowRight aria-hidden='true' className='w-4 h-4' />
+                        </Link>
+                    </div>
+                </section>
+
                 <footer
                     role='contentinfo'
                     className='border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-400'>
