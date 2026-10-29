@@ -94,11 +94,11 @@ export function WhoIsItForCarousel() {
     const prevSlide = useCallback(() => goTo(activeIndex - 1, 'prev'), [goTo, activeIndex]);
     const nextSlide = useCallback(() => goTo(activeIndex + 1, 'next'), [goTo, activeIndex]);
 
-    // Autoplay timer — runs every 3 seconds consistently on all devices
+    // Autoplay timer — runs every 4 seconds consistently on all devices
     useEffect(() => {
         const timer = setInterval(() => {
             goTo(activeIndex + 1, 'next');
-        }, 3000);
+        }, 4000);
         return () => clearInterval(timer);
     }, [activeIndex, goTo]);
 
