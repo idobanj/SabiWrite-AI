@@ -61,7 +61,6 @@ export function WhoIsItForCarousel() {
     const [prevIndex, setPrevIndex] = useState(null);
     const [direction, setDirection] = useState('next'); // 'next' (right-to-left) or 'prev' (left-to-right)
     const [isTransitioning, setIsTransitioning] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
     const transitionTimer = useRef(null);
     const touchStartX = useRef(null);
     const touchEndX = useRef(null);
@@ -95,14 +94,13 @@ export function WhoIsItForCarousel() {
     const prevSlide = useCallback(() => goTo(activeIndex - 1, 'prev'), [goTo, activeIndex]);
     const nextSlide = useCallback(() => goTo(activeIndex + 1, 'next'), [goTo, activeIndex]);
 
-    // Autoplay timer — pauses when user hovers or focuses
+    // Autoplay timer — runs every 3 seconds consistently on all devices
     useEffect(() => {
-        if (isPaused) return;
         const timer = setInterval(() => {
             goTo(activeIndex + 1, 'next');
-        }, 6000);
+        }, 3000);
         return () => clearInterval(timer);
-    }, [activeIndex, isPaused, goTo]);
+    }, [activeIndex, goTo]);
 
     // Clean up timer on unmount
     useEffect(() => {
@@ -161,10 +159,6 @@ export function WhoIsItForCarousel() {
     return (
         <div
             className='relative w-full'
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onFocus={() => setIsPaused(true)}
-            onBlur={() => setIsPaused(false)}
             tabIndex={0}
             onKeyDown={handleKeyDown}
             aria-roledescription='carousel'
