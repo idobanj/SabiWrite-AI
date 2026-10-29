@@ -2,7 +2,7 @@
 
 import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
-import {useState, useEffect, useRef} from 'react';
+import {useState, useEffect} from 'react';
 import {
     FileCheck2,
     BarChart3,
@@ -16,6 +16,7 @@ import {
     Check,
 } from 'lucide-react';
 import {LandingDemo} from '../components/LandingDemo';
+import {WhoIsItForCarousel} from '../components/WhoIsItForCarousel';
 import {useLandingMotion} from '../hooks/useLandingMotion';
 
 const faqs = [
@@ -573,6 +574,40 @@ export function LandingPage() {
                                 body='Use personalized lessons and practice exercises to work on the areas that need improvement.'
                                 delay={3}
                             />
+                        </div>
+
+                    </div>
+
+                </section>
+
+                {/* ═══════════════════════════════════════
+                    SECTION 4 — WHO IS IT FOR
+                ═══════════════════════════════════════ */}
+                <section
+                    id='who-is-it-for'
+                    aria-labelledby='who-is-it-for-heading'
+                    className='relative overflow-hidden bg-gradient-to-b from-white via-slate-50/70 to-slate-50 px-2 sm:px-4 lg:px-6 py-20 sm:py-24 lg:py-28'>
+
+                    <div className='w-full max-w-[1440px] mx-auto space-y-10 sm:space-y-12'>
+
+                        {/* Heading */}
+                        <div className='reveal text-center space-y-3.5 max-w-3xl mx-auto'>
+                            <span className='inline-flex items-center px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-100/80 text-brand-500 text-xs font-bold tracking-wider uppercase'>
+                                Who Is SabiWrite AI For?
+                            </span>
+                            <h2
+                                id='who-is-it-for-heading'
+                                className='text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]'>
+                                Better Writing for <span className='text-brand-500'>Everyday Life</span>
+                            </h2>
+                            <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed'>
+                                Whether you're studying, building your career, or communicating at work, clearer writing can help you express your ideas with confidence.
+                            </p>
+                        </div>
+
+                        {/* Carousel Component */}
+                        <div className='reveal'>
+                            <WhoIsItForCarousel />
                         </div>
 
                     </div>
