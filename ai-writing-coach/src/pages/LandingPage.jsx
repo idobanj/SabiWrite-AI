@@ -3,6 +3,7 @@
 import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
 import Modal from '../components/Modal';
+import {TermsContent, PrivacyContent} from '../components/LegalContent';
 import {useState, useEffect} from 'react';
 import {FileCheck2, BarChart3, BookOpen, Pencil, Search, GraduationCap, Sparkles, ArrowRight, ChevronDown, Check} from 'lucide-react';
 import {LandingDemo} from '../components/LandingDemo';
@@ -178,27 +179,6 @@ export function LandingPage() {
     setModalContent(null);
   };
 
-  const termsContent = `
-    <h2>SabiWrite AI — Terms and Conditions</h2>
-    <p><strong>1. Introduction</strong> Welcome to SabiWrite AI. These Terms and Conditions govern your access to and use of the SabiWrite AI website, application, and related services. SabiWrite AI is an AI-powered English writing coach designed to help users improve their writing through corrections, explanations, feedback, lessons, and practice activities. By accessing or using SabiWrite AI, you agree to these Terms and Conditions. If you do not agree with them, you should discontinue using the service.</p>
-    <p><strong>2. Use of the Service</strong> SabiWrite AI provides tools intended to support English writing improvement and learning. Depending on the features available, these may include writing analysis, grammar and vocabulary feedback, personalised learning recommendations, lessons, and practice exercises. You agree to use SabiWrite AI only for lawful purposes and in a manner that does not violate the rights of others or interfere with the operation of the service. You must not: use the service for unlawful, fraudulent, abusive, or harmful activities; attempt to gain unauthorised access to user accounts, systems, or data; interfere with, disrupt, or compromise the security or functionality of the platform; exploit vulnerabilities or attempt to bypass security measures; use automated methods to access or extract data from the service in ways that are not authorised; use the service in a manner that infringes intellectual property, privacy, or other legal rights. We reserve the right to take appropriate action against misuse of the service.</p>
-    <p><strong>3. User Accounts</strong> Some features of SabiWrite AI may require you to create an account. When registering, you agree to provide accurate information and keep your account details reasonably up to date. You are responsible for maintaining the confidentiality of your login credentials and for activities carried out through your account, subject to applicable law. You should notify us promptly if you suspect unauthorised access to your account. We may restrict, suspend, or terminate accounts that violate these Terms, compromise platform security, or misuse the service. Where appropriate, we will provide notice or an opportunity to address the issue, subject to legal and security requirements.</p>
-    <p><strong>4. AI-Generated Content and Writing Feedback</strong> SabiWrite AI uses artificial intelligence to provide writing feedback, explanations, suggestions, and learning support. Although we aim to make our feedback useful and accurate, AI-generated responses may occasionally contain errors, omit important context, or provide suggestions that are unsuitable for your intended meaning. You are responsible for reviewing AI-generated suggestions and deciding whether to use them. SabiWrite AI does not guarantee that every correction, explanation, or recommendation will be accurate, complete, or appropriate for every situation. The service is intended to support your writing and learning, not replace your own judgement, professional advice, or independent review where these are necessary. You should not rely on SabiWrite AI as the sole authority for high-stakes legal, medical, academic, professional, or other consequential decisions.</p>
-    <p><strong>5. User Content and Ownership</strong> You retain ownership of the original text and other content you submit to SabiWrite AI, to the extent that you own the relevant rights. You are responsible for ensuring that you have the necessary rights or permissions to submit any content you provide. By submitting content, you grant SabiWrite AI permission to process that content as reasonably necessary to provide the requested features, generate writing feedback, maintain the service, and perform related technical operations, in accordance with our Privacy Policy and applicable law. Submitting content does not transfer ownership of that content to SabiWrite AI. You should avoid submitting passwords, financial details, confidential business information, or sensitive personal information unless necessary and appropriate for your intended use.</p>
-    <p><strong>6. Intellectual Property</strong> The SabiWrite AI name, logo, branding, website design, software, and other platform materials are owned by or licensed to SabiWrite AI and are protected by applicable intellectual property laws. Except where permitted by law or expressly authorised by us, you may not copy, reproduce, distribute, modify, sell, or commercially exploit our protected materials without prior permission. These Terms do not prevent you from using your own submitted writing or AI-assisted writing outputs where you have the necessary rights, subject to applicable law and any relevant third-party rights.</p>
-    <p><strong>7. Privacy and Data Handling</strong> Your use of SabiWrite AI is also subject to our Privacy Policy, which explains how we collect, use, store, and protect personal information. When you submit text for analysis, that text may be processed by third-party AI or technical service providers to deliver the requested functionality. You should review our Privacy Policy to understand how your information is handled. By using features that process personal information, you acknowledge that such processing is subject to the applicable privacy requirements and notices.</p>
-    <p><strong>8. Service Availability and Changes</strong> We aim to keep SabiWrite AI available and functioning reliably, but we do not guarantee uninterrupted access or that every feature will always be available, error-free, or compatible with every device. We may modify, improve, restrict, suspend, or discontinue features when reasonably necessary, including for maintenance, security, technical improvements, or business reasons. Where appropriate, we will provide notice of significant changes that materially affect users.</p>
-    <p><strong>9. Limitation of Liability</strong> SabiWrite AI is provided on an “as is” and “as available” basis to the extent permitted by applicable law. We do not guarantee that the service will meet every user's requirements, produce error-free results, or remain continuously available. To the extent permitted by law, SabiWrite AI and its operators will not be liable for indirect, incidental, special, or consequential losses arising from your use of, or inability to use, the service. Nothing in these Terms excludes or limits liability that cannot lawfully be excluded or limited, including any rights or remedies that applicable consumer protection law provides.</p>
-    <p><strong>10. Suspension and Termination</strong> You may stop using SabiWrite AI at any time. We may suspend or terminate your access if you materially breach these Terms, engage in unlawful activity, threaten the security or stability of the platform, or otherwise misuse the service. Where appropriate and legally permitted, we will provide notice explaining the reason for the action. Termination does not remove obligations or rights that arose before termination. The handling or deletion of personal information following account closure will be governed by our Privacy Policy and applicable law.</p>
-    <p><strong>11. Changes to These Terms</strong> We may revise these Terms and Conditions as SabiWrite AI develops, our services change, or legal requirements evolve. Updated terms will be published on our website with a revised effective date. Where required by law, we will provide additional notice or obtain consent. Your continued use of SabiWrite AI after revised terms take effect will be subject to the updated terms, to the extent permitted by applicable law.</p>
-    <p><strong>12. Governing Law</strong> These Terms and Conditions are subject to applicable laws and regulations. Any governing law and dispute-resolution provisions will be interpreted in accordance with the laws identified in the final version of these Terms, subject to any mandatory legal protections that apply to users.</p>
-    <p><strong>13. Contact Information</strong> If you have questions about these Terms and Conditions or need assistance with your account, please contact SabiWrite AI through the contact details provided on our website. Last Updated: 27/10/26</p>
-  `;
-
-  const privacyContent = `
-    <h2>Privacy Policy</h2>
-    <p>Placeholder privacy policy content.</p>
-  `;
 
     const {pageRef, heroActive} = useLandingMotion();
     const typedText = useTypewriter('Improve it.', {active: heroActive, pauseMs: 1800});
@@ -934,14 +914,14 @@ export function LandingPage() {
                                 <ul className='space-y-2.5'>
                                     <li>
                                         <button
-                                             onClick={() => openModal('Privacy Policy', privacyContent)}
+                                             onClick={() => openModal('Privacy Policy', <PrivacyContent />)}
                                              className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150 text-left bg-transparent border-none p-0 cursor-pointer'>
                                              Privacy Policy
                                          </button>
                                     </li>
                                     <li>
                                         <button
-                                             onClick={() => openModal('Terms and Conditions', termsContent)}
+                                             onClick={() => openModal('Terms and Conditions', <TermsContent />)}
                                              className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150 text-left bg-transparent border-none p-0 cursor-pointer'>
                                              Terms and Conditions
                                          </button>
@@ -958,7 +938,7 @@ export function LandingPage() {
                 </footer>
             </main>
             <Modal isOpen={isModalOpen} onClose={closeModal} title={modalTitle}>
-                <div className='overflow-y-auto max-h-[60vh] pr-2 space-y-4' dangerouslySetInnerHTML={{ __html: modalContent }} />
+                {modalContent}
             </Modal>
         </>
     );

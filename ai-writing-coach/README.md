@@ -44,7 +44,6 @@ ai-writing-coach/
 │   │   ├── Card.jsx
 │   │   ├── IconBadge.jsx
 │   │   ├── Pill.jsx
-│   │   ├── StatCard.jsx
 │   │   └── Toast.jsx
 │   ├── pages/              # Route-level page components
 │   │   ├── LandingPage.jsx

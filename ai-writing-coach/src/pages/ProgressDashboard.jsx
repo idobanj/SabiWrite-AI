@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BarChart3,
   ChevronDown,
-  GraduationCap,
   PenTool,
   RefreshCcw,
   Target,
@@ -345,12 +344,4 @@ function getTrend(points = []) {
     label: `${sign}${delta}% accuracy ${delta >= 0 ? "gain" : "shift"}`,
     short: `${delta >= 0 ? "▲" : "▼"} ${sign}${delta}%`,
   };
-}
-
-function RecentRow({ row }) {
-  return null;
-}
-
-function RecentSkeleton() {
-  return null;
 }

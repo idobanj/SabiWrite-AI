@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Lock, ArrowRight } from "lucide-react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
