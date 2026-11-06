@@ -718,10 +718,146 @@ export function LandingPage() {
                     </div>
                 </section>
 
+                {/* ═══════════════════════════════════════
+                    FOOTER SECTION — 4 COLUMNS
+                ═══════════════════════════════════════ */}
                 <footer
                     role='contentinfo'
-                    className='border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-400'>
-                    © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
+                    className='w-full border-t border-slate-200/80 bg-white'>
+                    <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-10'>
+                        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-10 lg:gap-8'>
+                            {/* Column 1 / Segment 1: Brand & Description (Matches Screenshot) */}
+                            <div className='space-y-3.5'>
+                                <a
+                                    href='#hero'
+                                    aria-label='SabiWrite AI home'
+                                    className='inline-flex items-center gap-2.5 group transition-opacity hover:opacity-90'>
+                                    <svg
+                                        className='w-7 h-7 text-brand-500 shrink-0 transition-transform duration-200 group-hover:scale-105'
+                                        viewBox='0 0 24 24'
+                                        fill='none'
+                                        xmlns='http://www.w3.org/2000/svg'
+                                        aria-hidden='true'>
+                                        <path
+                                            d='M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z'
+                                            fill='currentColor'
+                                        />
+                                        <path
+                                            d='M16 8L2 22'
+                                            stroke='currentColor'
+                                            strokeWidth='2.2'
+                                            strokeLinecap='round'
+                                        />
+                                        <path
+                                            d='M15.5 8.5L6.5 17.5M17 14.5H10'
+                                            stroke='#ffffff'
+                                            strokeWidth='1.6'
+                                            strokeLinecap='round'
+                                        />
+                                    </svg>
+                                    <span className='text-xl font-bold tracking-tight text-slate-900'>
+                                        SabiWrite AI
+                                    </span>
+                                </a>
+                                <p className='text-sm text-slate-500 leading-relaxed max-w-sm'>
+                                    An AI-powered English writing coach designed to help you learn from your writing.
+                                </p>
+                            </div>
+
+                            {/* Column 2: Quick Links */}
+                            <div className='space-y-3.5'>
+                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>
+                                    Quick Links
+                                </h3>
+                                <ul className='space-y-2.5'>
+                                    <li>
+                                        <a
+                                            href='#demo'
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            Live playground
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href='#how-it-works'
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            How it works
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href='#faq'
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            FAQ
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Column 3: Contact */}
+                            <div className='space-y-3.5'>
+                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>
+                                    Contact
+                                </h3>
+                                <ul className='space-y-2.5'>
+                                    <li>
+                                        <a
+                                            href='https://mail.google.com/mail/?view=cm&fs=1&to=idowuolabanji181@gmail.com'
+                                            target='_blank'
+                                            rel='noopener noreferrer'
+                                            aria-label='Send email to SabiWrite AI via Gmail'
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            Email
+                                        </a>
+                                    </li>
+                                    <li>
+                                        {/* Plug your Facebook account URL here e.g href="https://facebook.com/sabiwrite" */}
+                                        <a
+                                            href='#'
+                                            onClick={(e) => e.preventDefault()}
+                                            aria-label='Follow us on Facebook (coming soon)'
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            Facebook
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Column 4: Legal */}
+                            <div className='space-y-3.5'>
+                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>
+                                    Legal
+                                </h3>
+                                <ul className='space-y-2.5'>
+                                    <li>
+                                        {/* Privacy Policy - ready to link to page/modal once content is provided */}
+                                        <a
+                                            href='#'
+                                            onClick={(e) => e.preventDefault()}
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            Privacy Policy
+                                        </a>
+                                    </li>
+                                    <li>
+                                        {/* Terms and Services - ready to link to page/modal once content is provided */}
+                                        <a
+                                            href='#'
+                                            onClick={(e) => e.preventDefault()}
+                                            className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
+                                            Terms and Services
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {/* Bottom Bar: Copyright notice */}
+                        <div className='mt-12 sm:mt-16 pt-8 border-t border-slate-100 text-center'>
+                            <p className='text-xs sm:text-sm text-slate-400'>
+                                © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
+                            </p>
+                        </div>
+                    </div>
                 </footer>
 
             </main>
