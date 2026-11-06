@@ -1,14 +1,22 @@
 import {useEffect, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {ArrowRight, Check, ChevronDown, Lightbulb, PenLine, Sparkles} from 'lucide-react';
+import {ArrowRight, Check, ChevronDown, Lightbulb, Loader2, PenLine, Sparkles} from 'lucide-react';
 import {useAuth} from '../hooks/useAuth';
 import {DEMO_SAMPLES} from '../lib/landingDemoSamples';
 import {savePendingDraft} from '../lib/pendingDraft';
 import './LandingDemo.css';
 
+const ANALYSIS_STAGES = [
+    { text: 'Reading draft…', subtext: 'Reviewing sentence flow and structure' },
+    { text: 'Detecting mistake patterns…', subtext: 'Spotting grammar, spelling, and phrasing slips' },
+    { text: 'Formulating explanations…', subtext: 'Drafting personalized coaching insights' },
+];
+
 export function LandingDemo() {
     const [draft, setDraft] = useState(DEMO_SAMPLES[0].draft);
     const [result, setResult] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisStage, setAnalysisStage] = useState(0);
     const [practiceOpen, setPracticeOpen] = useState(false);
     const [answer, setAnswer] = useState(null);
     const [checked, setChecked] = useState(false);
@@ -16,10 +24,23 @@ export function LandingDemo() {
     const sectionRef = useRef(null);
     const editorRef = useRef(null);
     const feedbackRef = useRef(null);
+    const analysisTimerRef = useRef(null);
+    const stageTimersRef = useRef([]);
     const {session} = useAuth();
     const navigate = useNavigate();
     const activeSample = DEMO_SAMPLES.find((sample) => sample.draft.trim() === draft.trim());
     const words = draft.trim() ? draft.trim().split(/\s+/).length : 0;
+
+    const clearAnalysisTimers = () => {
+        if (analysisTimerRef.current) {
+            clearTimeout(analysisTimerRef.current);
+            analysisTimerRef.current = null;
+        }
+        if (stageTimersRef.current.length > 0) {
+            stageTimersRef.current.forEach(clearTimeout);
+            stageTimersRef.current = [];
+        }
+    };
 
     useEffect(() => {
         const visitDemo = () => {
@@ -35,10 +56,14 @@ export function LandingDemo() {
         return () => {
             cancelAnimationFrame(frame);
             window.removeEventListener('hashchange', visitDemo);
+            clearAnalysisTimers();
         };
     }, []);
 
     const clearFeedback = () => {
+        clearAnalysisTimers();
+        setIsAnalyzing(false);
+        setAnalysisStage(0);
         setResult(null);
         setPracticeOpen(false);
         setAnswer(null);
@@ -47,12 +72,13 @@ export function LandingDemo() {
     };
 
     const chooseSample = (sample) => {
+        if (isAnalyzing) return;
         setDraft(sample.draft);
         clearFeedback();
     };
 
     const showFeedback = () => {
-        if (!draft.trim()) return;
+        if (!draft.trim() || isAnalyzing) return;
         if (!activeSample) {
             if (!savePendingDraft(draft)) {
                 setHandoffError('Your browser could not keep this draft. Please copy it before opening your account.');
@@ -61,16 +87,31 @@ export function LandingDemo() {
             navigate(session ? '/app/workspace' : '/signup');
             return;
         }
-        setResult(activeSample);
+
+        clearAnalysisTimers();
+        setIsAnalyzing(true);
+        setAnalysisStage(0);
+        setResult(null);
         setPracticeOpen(false);
         setAnswer(null);
         setChecked(false);
+
         if (window.matchMedia('(max-width: 899px)').matches) {
             requestAnimationFrame(() => feedbackRef.current?.scrollIntoView({
                 behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
                 block: 'start',
             }));
         }
+
+        const t1 = setTimeout(() => setAnalysisStage(1), 1000);
+        const t2 = setTimeout(() => setAnalysisStage(2), 2000);
+        stageTimersRef.current = [t1, t2];
+
+        analysisTimerRef.current = setTimeout(() => {
+            setResult(activeSample);
+            setIsAnalyzing(false);
+            analysisTimerRef.current = null;
+        }, 3000);
     };
 
     const editDraft = () => {
@@ -93,7 +134,8 @@ export function LandingDemo() {
                         <div className='demo-samples' role='group' aria-label='Choose a writing sample'>
                             {DEMO_SAMPLES.map((sample) => (
                                 <button key={sample.id} type='button' aria-pressed={activeSample?.id === sample.id}
-                                    className='demo-sample' onClick={() => chooseSample(sample)}>
+                                    className='demo-sample' onClick={() => chooseSample(sample)}
+                                    disabled={isAnalyzing}>
                                     {activeSample?.id === sample.id && <Check size={14} aria-hidden='true' />}
                                     {sample.label}
                                 </button>
@@ -117,13 +159,19 @@ export function LandingDemo() {
                                 <textarea ref={editorRef} id='demo-draft' aria-labelledby='demo-draft-label'
                                     aria-describedby='demo-draft-help' className='demo-editor' rows={7} maxLength={4000}
                                     spellCheck={false} value={draft} placeholder='Type or paste your writing here…'
+                                    disabled={isAnalyzing}
                                     onChange={(event) => { setDraft(event.target.value); clearFeedback(); }} />
                             )}
                             <div className='demo-draft-actions'>
                                 <span className='demo-word-count'>{words} {words === 1 ? 'word' : 'words'}</span>
-                                <button type='button' className='demo-primary' onClick={showFeedback} disabled={!draft.trim() || !!result}>
-                                    {result ? <><Check size={16} aria-hidden='true' /> Feedback shown</> :
-                                        <>{activeSample ? 'Show sample feedback' : session ? 'Open in Writing Desk' : 'Continue with my draft'}<ArrowRight size={16} aria-hidden='true' /></>}
+                                <button type='button' className='demo-primary' onClick={showFeedback} disabled={!draft.trim() || !!result || isAnalyzing}>
+                                    {isAnalyzing ? (
+                                        <><Loader2 size={16} className='animate-spin' aria-hidden='true' /> Analysing draft…</>
+                                    ) : result ? (
+                                        <><Check size={16} aria-hidden='true' /> Feedback shown</>
+                                    ) : (
+                                        <>{activeSample ? 'Show sample feedback' : session ? 'Open in Writing Desk' : 'Continue with my draft'}<ArrowRight size={16} aria-hidden='true' /></>
+                                    )}
                                 </button>
                             </div>
                             <p id='demo-draft-help' className='demo-help'>
@@ -139,9 +187,27 @@ export function LandingDemo() {
                                 <h3 id='demo-feedback-heading'><span className='demo-step' aria-hidden='true'>02</span> Your coach’s feedback</h3>
                             </div>
                             <p className='sr-only' role='status' aria-live='polite'>
-                                {result ? `Sample feedback ready. ${result.mistakes.length} ${result.mistakes.length === 1 ? 'correction' : 'corrections'} explained below.` : ''}
+                                {isAnalyzing
+                                    ? 'Analysing draft, please wait…'
+                                    : result
+                                    ? `Sample feedback ready. ${result.mistakes.length} ${result.mistakes.length === 1 ? 'correction' : 'corrections'} explained below.`
+                                    : ''}
                             </p>
-                            {!result ? (
+                            {isAnalyzing ? (
+                                <div className='demo-feedback-placeholder demo-feedback-loading' role='status'>
+                                    <div className='demo-feedback-loading-spinner'>
+                                        <div className='demo-feedback-loading-ring' />
+                                        <div className='demo-feedback-loading-icon'>
+                                            <Sparkles size={20} className='animate-pulse' aria-hidden='true' />
+                                        </div>
+                                    </div>
+                                    <h4 className='demo-loading-stage-title'>{ANALYSIS_STAGES[analysisStage].text}</h4>
+                                    <p className='demo-loading-stage-desc'>{ANALYSIS_STAGES[analysisStage].subtext}</p>
+                                    <div className='demo-loading-progress-track' aria-hidden='true'>
+                                        <div className='demo-loading-progress-bar' />
+                                    </div>
+                                </div>
+                            ) : !result ? (
                                 <div className='demo-feedback-placeholder'>
                                     <span className='demo-feedback-icon'><Lightbulb size={24} aria-hidden='true' /></span>
                                     <h4>A correction is just the beginning.</h4>
