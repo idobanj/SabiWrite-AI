@@ -3,31 +3,44 @@
 import {Helmet} from 'react-helmet-async';
 import {Link} from 'react-router-dom';
 import {useState, useEffect} from 'react';
-import {
-    FileCheck2,
-    BarChart3,
-    BookOpen,
-    Pencil,
-    Search,
-    GraduationCap,
-    Sparkles,
-    ArrowRight,
-    ChevronDown,
-    Check,
-} from 'lucide-react';
+import {FileCheck2, BarChart3, BookOpen, Pencil, Search, GraduationCap, Sparkles, ArrowRight, ChevronDown, Check} from 'lucide-react';
 import {LandingDemo} from '../components/LandingDemo';
 import {WhoIsItForCarousel} from '../components/WhoIsItForCarousel';
 import {useLandingMotion} from '../hooks/useLandingMotion';
 
 const faqs = [
-    {question: 'What is SabiWrite AI, and how does it work?', answer: 'SabiWrite AI is an AI-powered English writing coach designed to help you write better and learn from your mistakes. It analyses your writing, provides corrections and explanations, identifies recurring weaknesses, and offers personalized lessons and practice exercises to help you improve over time.'},
-    {question: 'How is SabiWrite AI different from a regular grammar checker?', answer: 'A regular grammar checker primarily focuses on correcting errors in your text. SabiWrite AI goes further by helping you understand why mistakes occur, recognize recurring weaknesses, and practise the skills you need to improve. The goal is not just to correct your writing but to help you become a better writer.'},
-    {question: 'Can SabiWrite AI identify mistakes I repeatedly make?', answer: 'Yes. SabiWrite AI can identify and track recurring weaknesses in your writing, helping you recognize patterns you might otherwise overlook. This allows you to understand which areas need more attention and focus your learning on them.'},
-    {question: 'How do the personalized lessons and practice exercises work?', answer: 'SabiWrite AI uses identified writing weaknesses to guide your learning. It provides relevant lessons to help you understand specific concepts and practice exercises that allow you to apply what you\'ve learned. This helps you focus on the areas where you need the most improvement.'},
-    {question: 'Can beginners use SabiWrite AI?', answer: 'Yes. SabiWrite AI is designed for people who want to improve their English writing, regardless of their current confidence level. Whether you\'re learning the basics or refining your writing skills, it can help you understand mistakes and learn from them.'},
-    {question: 'What types of writing can I improve with it?', answer: 'SabiWrite AI can help you improve everyday written English, including messages, essays, emails, reports, and other forms of writing. You can use it to review your text, understand corrections, and learn ways to communicate more clearly and naturally.'},
-    {question: 'Is SabiWrite AI free?', answer: 'Yes! You can currently use SabiWrite AI for free. We\'re continually improving the platform to provide a better writing and learning experience.'},
-    {question: 'Is my writing data safe?', answer: 'Your privacy matters to us. SabiWrite AI collects your name and email address for account-related purposes. When you submit text for analysis, it is processed by our AI-powered writing system to generate feedback and corrections.\n\nWe aim to handle your information responsibly. For more information about how your information is handled, please read our Privacy Policy.'},
+    {
+        question: 'What is SabiWrite AI, and how does it work?',
+        answer: 'SabiWrite AI is an AI-powered English writing coach designed to help you write better and learn from your mistakes. It analyses your writing, provides corrections and explanations, identifies recurring weaknesses, and offers personalized lessons and practice exercises to help you improve over time.',
+    },
+    {
+        question: 'How is SabiWrite AI different from a regular grammar checker?',
+        answer: 'A regular grammar checker primarily focuses on correcting errors in your text. SabiWrite AI goes further by helping you understand why mistakes occur, recognize recurring weaknesses, and practise the skills you need to improve. The goal is not just to correct your writing but to help you become a better writer.',
+    },
+    {
+        question: 'Can SabiWrite AI identify mistakes I repeatedly make?',
+        answer: 'Yes. SabiWrite AI can identify and track recurring weaknesses in your writing, helping you recognize patterns you might otherwise overlook. This allows you to understand which areas need more attention and focus your learning on them.',
+    },
+    {
+        question: 'How do the personalized lessons and practice exercises work?',
+        answer: "SabiWrite AI uses identified writing weaknesses to guide your learning. It provides relevant lessons to help you understand specific concepts and practice exercises that allow you to apply what you've learned. This helps you focus on the areas where you need the most improvement.",
+    },
+    {
+        question: 'Can beginners use SabiWrite AI?',
+        answer: "Yes. SabiWrite AI is designed for people who want to improve their English writing, regardless of their current confidence level. Whether you're learning the basics or refining your writing skills, it can help you understand mistakes and learn from them.",
+    },
+    {
+        question: 'What types of writing can I improve with it?',
+        answer: 'SabiWrite AI can help you improve everyday written English, including messages, essays, emails, reports, and other forms of writing. You can use it to review your text, understand corrections, and learn ways to communicate more clearly and naturally.',
+    },
+    {
+        question: 'Is SabiWrite AI free?',
+        answer: "Yes! You can currently use SabiWrite AI for free. We're continually improving the platform to provide a better writing and learning experience.",
+    },
+    {
+        question: 'Is my writing data safe?',
+        answer: 'Your privacy matters to us. SabiWrite AI collects your name and email address for account-related purposes. When you submit text for analysis, it is processed by our AI-powered writing system to generate feedback and corrections.\n\nWe aim to handle your information responsibly. For more information about how your information is handled, please read our Privacy Policy.',
+    },
 ];
 
 /** Keep the typing loop synchronized with the hero's scroll entrances. */
@@ -92,10 +105,7 @@ function fastScrollTo(targetId, duration = 450) {
         return;
     }
 
-    const scrollContainer =
-        document.querySelector('main.overflow-y-auto') ||
-        document.querySelector('main') ||
-        document.documentElement;
+    const scrollContainer = document.querySelector('main.overflow-y-auto') || document.querySelector('main') || document.documentElement;
 
     const isWindow = scrollContainer === document.documentElement || scrollContainer === document.body;
     const startY = isWindow ? window.scrollY : scrollContainer.scrollTop;
@@ -194,7 +204,10 @@ export function LandingPage() {
                 <meta property='og:type' content='website' />
                 <meta property='og:url' content='https://sabiwrite-ai.vercel.app/' />
                 <meta property='og:title' content='SabiWrite AI — Your AI English Writing Coach' />
-                <meta property='og:description' content='Improve your English writing with personalized AI coaching that learns from your recurring mistakes.' />
+                <meta
+                    property='og:description'
+                    content='Improve your English writing with personalized AI coaching that learns from your recurring mistakes.'
+                />
                 <meta property='og:image' content='https://sabiwrite-ai.vercel.app/og-image.webp' />
                 <meta property='og:site_name' content='SabiWrite AI' />
 
@@ -215,18 +228,23 @@ export function LandingPage() {
                                 applicationCategory: 'EducationalApplication',
                                 operatingSystem: 'Web',
                                 url: 'https://sabiwrite-ai.vercel.app/',
-                                description: 'An AI-powered English writing coach that helps users improve by identifying recurring mistakes and generating personalized lessons.',
+                                description:
+                                    'An AI-powered English writing coach that helps users improve by identifying recurring mistakes and generating personalized lessons.',
                                 offers: {'@type': 'Offer', price: '0', priceCurrency: 'USD'},
                             },
                             {'@type': 'WebSite', name: 'SabiWrite AI', url: 'https://sabiwrite-ai.vercel.app/'},
-                            {'@type': 'Organization', name: 'SabiWrite AI', url: 'https://sabiwrite-ai.vercel.app/', logo: 'https://sabiwrite-ai.vercel.app/logo.webp'},
+                            {
+                                '@type': 'Organization',
+                                name: 'SabiWrite AI',
+                                url: 'https://sabiwrite-ai.vercel.app/',
+                                logo: 'https://sabiwrite-ai.vercel.app/logo.webp',
+                            },
                         ],
                     })}
                 </script>
             </Helmet>
 
             <main ref={pageRef} className='landing-page bg-slate-50 text-slate-800'>
-
                 {/* ═══════════════════════════════════════
                     SECTION 1 — HERO
                 ═══════════════════════════════════════ */}
@@ -234,7 +252,6 @@ export function LandingPage() {
                     id='hero'
                     aria-labelledby='hero-heading'
                     className='landing-hero relative isolate overflow-hidden flex flex-col min-h-0 sm:min-h-screen px-4 sm:px-8 bg-slate-50'>
-
                     {/* Top Bar: Logo on left, Login button on top right */}
                     <div className='hero-motion hero-nav w-full max-w-7xl mx-auto flex items-center justify-between pt-8 sm:pt-12 pb-4 relative z-20'>
                         <div className='flex items-center gap-2.5 sm:gap-3 text-slate-800 font-extrabold text-lg sm:text-xl tracking-tight'>
@@ -255,7 +272,6 @@ export function LandingPage() {
 
                     {/* Centered Hero Content */}
                     <div className='w-full max-w-7xl mx-auto pt-6 sm:pt-14 pb-2 sm:pb-12 text-center relative z-10 flex flex-col items-center'>
-
                         {/* The badge leads into the headline reveal. */}
                         <div className='hero-motion hero-badge mb-6 sm:mb-8 flex justify-center'>
                             <span className='inline-flex flex-nowrap items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold leading-none tracking-wide whitespace-nowrap shadow-sm'>
@@ -272,24 +288,22 @@ export function LandingPage() {
                         <h1
                             id='hero-heading'
                             className='text-[1.85rem] sm:text-6xl lg:text-[4.5rem] xl:text-[5.2rem] font-extrabold text-slate-900 tracking-tight leading-[1.08] max-w-5xl mx-auto'>
-
                             {/* Line 1 — same on all breakpoints */}
                             <span className='hero-line-mask'>
-                                <span className='hero-motion hero-headline-line hero-headline-first'>
-                                    Don't just correct your
-                                </span>
+                                <span className='hero-motion hero-headline-line hero-headline-first'>Don't just correct your</span>
                             </span>
 
                             {/* ── Desktop (sm+): "English. Improve it." on one line ── */}
                             <div className='hidden sm:block'>
                                 <span className='hero-line-mask'>
                                     <span className='hero-motion hero-headline-line hero-headline-second'>
-                                        English.{' '}
-                                        <span className='sr-only'>Improve it.</span>
+                                        English. <span className='sr-only'>Improve it.</span>
                                         <span className='hero-typewriter' aria-hidden='true'>
                                             <span className='hero-typewriter-measure'>Improve it.</span>
                                             <span className='hero-typewriter-text'>
-                                                <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
+                                                <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>
+                                                    {typedText}
+                                                </span>
                                                 <span className='hero-typewriter-cursor' />
                                             </span>
                                         </span>
@@ -300,9 +314,7 @@ export function LandingPage() {
                             {/* ── Mobile (< sm): "English." and "Improve it." on separate lines ── */}
                             <div className='block sm:hidden'>
                                 <span className='hero-line-mask'>
-                                    <span className='hero-motion hero-headline-line hero-headline-second'>
-                                        English.
-                                    </span>
+                                    <span className='hero-motion hero-headline-line hero-headline-second'>English.</span>
                                 </span>
                                 <span className='hero-line-mask'>
                                     <span className='hero-motion hero-headline-line hero-headline-third'>
@@ -310,22 +322,22 @@ export function LandingPage() {
                                         <span className='hero-typewriter' aria-hidden='true'>
                                             <span className='hero-typewriter-measure'>Improve it.</span>
                                             <span className='hero-typewriter-text'>
-                                                <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>{typedText}</span>
+                                                <span className='bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-500 bg-clip-text text-transparent'>
+                                                    {typedText}
+                                                </span>
                                                 <span className='hero-typewriter-cursor' />
                                             </span>
                                         </span>
                                     </span>
                                 </span>
                             </div>
-
                         </h1>
 
                         {/* Subtitle with masked slide-up */}
                         <div className='overflow-hidden mt-5 max-w-xl mx-auto'>
-                            <p
-                                id='hero-description'
-                                className='hero-motion hero-description text-base sm:text-lg text-slate-600 leading-relaxed'>
-                                SabiWrite AI helps you understand your writing mistakes, discover recurring weaknesses, and improve through personalized lessons and practice.
+                            <p id='hero-description' className='hero-motion hero-description text-base sm:text-lg text-slate-600 leading-relaxed'>
+                                SabiWrite AI helps you understand your writing mistakes, discover recurring weaknesses, and improve through
+                                personalized lessons and practice.
                             </p>
                         </div>
 
@@ -405,7 +417,6 @@ export function LandingPage() {
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </section>
 
@@ -416,9 +427,7 @@ export function LandingPage() {
                     id='why-sabiwrite'
                     aria-labelledby='why-sabiwrite-heading'
                     className='relative overflow-hidden bg-white px-4 py-20 sm:px-8 sm:py-24 lg:py-28'>
-
                     <div className='w-full max-w-7xl mx-auto space-y-10 sm:space-y-12'>
-
                         {/* Heading */}
                         <div className='reveal text-center space-y-3.5 max-w-3xl mx-auto'>
                             <span className='inline-flex items-center px-3.5 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-600 text-xs font-bold tracking-wider uppercase'>
@@ -465,7 +474,8 @@ export function LandingPage() {
                                                 quarterly review on time.
                                             </div>
                                             <p className='mt-2.5 text-xs text-slate-600 leading-relaxed bg-blue-50/70 border border-blue-100 rounded-lg p-2.5'>
-                                                <strong className='text-blue-900'>Rule explanation:</strong> Use <em>&ldquo;their&rdquo;</em> for possession. <em>&ldquo;They&apos;re&rdquo;</em> is a contraction of <em>&ldquo;they are&rdquo;</em>.
+                                                <strong className='text-blue-900'>Rule explanation:</strong> Use <em>&ldquo;their&rdquo;</em> for
+                                                possession. <em>&ldquo;They&apos;re&rdquo;</em> is a contraction of <em>&ldquo;they are&rdquo;</em>.
                                             </p>
                                         </div>
                                     }
@@ -562,7 +572,9 @@ export function LandingPage() {
                                                 <span>Interactive Quiz</span>
                                             </div>
                                             <p className='text-xs sm:text-sm font-semibold text-slate-800 mb-2.5'>
-                                                Neither of the candidates <span className='underline decoration-brand-400 underline-offset-2'>_____</span> available for interview.
+                                                Neither of the candidates{' '}
+                                                <span className='underline decoration-brand-400 underline-offset-2'>_____</span> available for
+                                                interview.
                                             </p>
                                             <div className='space-y-1.5'>
                                                 <div className='flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium bg-emerald-50 border border-emerald-300 text-emerald-900 shadow-sm'>
@@ -583,9 +595,7 @@ export function LandingPage() {
                                 />
                             </div>
                         </div>
-
                     </div>
-
                 </section>
 
                 <LandingDemo />
@@ -597,9 +607,7 @@ export function LandingPage() {
                     id='how-it-works'
                     aria-labelledby='how-it-works-heading'
                     className='relative overflow-hidden bg-white px-4 py-20 sm:px-8 sm:py-24 lg:py-28'>
-
                     <div className='w-full max-w-7xl mx-auto space-y-12 sm:space-y-14'>
-
                         {/* Heading */}
                         <div className='reveal text-center space-y-3.5 max-w-3xl mx-auto'>
                             <span className='inline-flex items-center px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-100/80 text-indigo-600 text-xs font-bold tracking-wider'>
@@ -647,9 +655,7 @@ export function LandingPage() {
                                 delay={3}
                             />
                         </div>
-
                     </div>
-
                 </section>
 
                 {/* ═══════════════════════════════════════
@@ -659,9 +665,7 @@ export function LandingPage() {
                     id='who-is-it-for'
                     aria-labelledby='who-is-it-for-heading'
                     className='relative overflow-hidden bg-gradient-to-b from-white via-slate-50/70 to-slate-50 px-2 sm:px-4 lg:px-6 py-20 sm:py-24 lg:py-28'>
-
                     <div className='w-full max-w-[1440px] mx-auto space-y-10 sm:space-y-12'>
-
                         {/* Heading */}
                         <div className='reveal text-center space-y-3.5 max-w-3xl mx-auto'>
                             <span className='inline-flex items-center px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-100/80 text-brand-500 text-xs font-bold tracking-wider uppercase'>
@@ -673,7 +677,8 @@ export function LandingPage() {
                                 Better Writing for <span className='text-brand-500'>Everyday Life</span>
                             </h2>
                             <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed'>
-                                Whether you're studying, building your career, or communicating at work, clearer writing can help you express your ideas with confidence.
+                                Whether you're studying, building your career, or communicating at work, clearer writing can help you express your
+                                ideas with confidence.
                             </p>
                         </div>
 
@@ -681,20 +686,13 @@ export function LandingPage() {
                         <div className='reveal'>
                             <WhoIsItForCarousel />
                         </div>
-
                     </div>
-
                 </section>
 
-                <section
-                    id='faq'
-                    aria-labelledby='faq-heading'
-                    className='bg-slate-50 px-4 py-20 sm:px-12 sm:py-24 lg:py-28'>
+                <section id='faq' aria-labelledby='faq-heading' className='bg-slate-50 px-4 py-20 sm:px-12 sm:py-24 lg:py-28'>
                     <div className='w-full max-w-3xl mx-auto space-y-12 sm:space-y-14'>
                         <div className='reveal text-center space-y-3'>
-                            <h2
-                                id='faq-heading'
-                                className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
+                            <h2 id='faq-heading' className='text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight'>
                                 <span className='text-brand-500'>Frequently</span> Asked Questions
                             </h2>
                             <p className='mx-auto max-w-xl text-base leading-relaxed text-slate-600'>
@@ -717,11 +715,15 @@ export function LandingPage() {
                                                 id={`faq-question-${index}`}
                                                 aria-expanded={isOpen}
                                                 aria-controls={`faq-answer-${index}`}
-                                                onClick={() => setOpenFaq((current) => current === index ? null : index)}
+                                                onClick={() => setOpenFaq((current) => (current === index ? null : index))}
                                                 className={`group flex w-full min-h-16 cursor-pointer items-center justify-between gap-4 px-5 py-5 text-left text-sm sm:px-6 sm:text-base font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500 ${isOpen ? 'text-brand-700' : 'text-slate-800 hover:text-brand-600'}`}>
                                                 <span>{question}</span>
-                                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-300 ${isOpen ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-100 group-hover:text-brand-600'}`}>
-                                                    <ChevronDown aria-hidden='true' className={`h-4 w-4 transition-transform duration-300 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
+                                                <span
+                                                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-300 ${isOpen ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-brand-100 group-hover:text-brand-600'}`}>
+                                                    <ChevronDown
+                                                        aria-hidden='true'
+                                                        className={`h-4 w-4 transition-transform duration-300 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`}
+                                                    />
                                                 </span>
                                             </button>
                                         </h3>
@@ -743,7 +745,6 @@ export function LandingPage() {
                                 );
                             })}
                         </div>
-
                     </div>
                 </section>
 
@@ -754,7 +755,6 @@ export function LandingPage() {
                     id='cta'
                     aria-labelledby='cta-heading'
                     className='relative w-full overflow-hidden bg-gradient-to-b from-[#f8faff] via-[#f3f5ff] to-[#edf1fe] border-t border-slate-200/80 py-20 sm:py-28 lg:py-32 px-4 sm:px-6 lg:px-8'>
-
                     {/* Decorative concentric background arcs spanning the full section width */}
                     <div
                         aria-hidden='true'
@@ -777,7 +777,8 @@ export function LandingPage() {
                         </h2>
 
                         <p className='text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-8 sm:mb-9'>
-                            Understand your mistakes, practise what you learn, and take the next step towards stronger English writing with SabiWrite AI.
+                            Understand your mistakes, practise what you learn, and take the next step towards stronger English writing with SabiWrite
+                            AI.
                         </p>
 
                         <Link
@@ -793,9 +794,7 @@ export function LandingPage() {
                 {/* ═══════════════════════════════════════
                     FOOTER SECTION — 4 COLUMNS
                 ═══════════════════════════════════════ */}
-                <footer
-                    role='contentinfo'
-                    className='w-full border-t border-slate-200/80 bg-white'>
+                <footer role='contentinfo' className='w-full border-t border-slate-200/80 bg-white'>
                     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-10'>
                         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-10 lg:gap-8'>
                             {/* Column 1 / Segment 1: Brand & Description (Matches Screenshot) */}
@@ -814,26 +813,11 @@ export function LandingPage() {
                                         fill='none'
                                         xmlns='http://www.w3.org/2000/svg'
                                         aria-hidden='true'>
-                                        <path
-                                            d='M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z'
-                                            fill='currentColor'
-                                        />
-                                        <path
-                                            d='M16 8L2 22'
-                                            stroke='currentColor'
-                                            strokeWidth='2.2'
-                                            strokeLinecap='round'
-                                        />
-                                        <path
-                                            d='M15.5 8.5L6.5 17.5M17 14.5H10'
-                                            stroke='#ffffff'
-                                            strokeWidth='1.6'
-                                            strokeLinecap='round'
-                                        />
+                                        <path d='M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z' fill='currentColor' />
+                                        <path d='M16 8L2 22' stroke='currentColor' strokeWidth='2.2' strokeLinecap='round' />
+                                        <path d='M15.5 8.5L6.5 17.5M17 14.5H10' stroke='#ffffff' strokeWidth='1.6' strokeLinecap='round' />
                                     </svg>
-                                    <span className='text-xl font-bold tracking-tight text-slate-900'>
-                                        SabiWrite AI
-                                    </span>
+                                    <span className='text-xl font-bold tracking-tight text-slate-900'>SabiWrite AI</span>
                                 </a>
                                 <p className='text-sm text-slate-500 leading-relaxed max-w-sm'>
                                     An AI-powered English writing coach designed to help you learn from your writing.
@@ -842,9 +826,7 @@ export function LandingPage() {
 
                             {/* Column 2: Quick Links */}
                             <div className='space-y-3.5'>
-                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>
-                                    Quick Links
-                                </h3>
+                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>Quick Links</h3>
                                 <ul className='space-y-2.5'>
                                     <li>
                                         <a
@@ -884,14 +866,11 @@ export function LandingPage() {
 
                             {/* Column 3: Contact */}
                             <div className='space-y-3.5'>
-                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>
-                                    Contact
-                                </h3>
+                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>Contact</h3>
                                 <ul className='space-y-2.5'>
                                     <li>
                                         <a
-                                            href='mailto:idowuolabanji181@gmail.com'
-                                            
+                                            href='mailto:sabi wrie email'
                                             aria-label='Send email to SabiWrite AI via Gmail'
                                             className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
                                             Email
@@ -912,9 +891,7 @@ export function LandingPage() {
 
                             {/* Column 4: Legal */}
                             <div className='space-y-3.5'>
-                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>
-                                    Legal
-                                </h3>
+                                <h3 className='text-xs font-bold uppercase tracking-wider text-slate-400'>Legal</h3>
                                 <ul className='space-y-2.5'>
                                     <li>
                                         {/* Privacy Policy - ready to link to page/modal once content is provided */}
@@ -940,78 +917,64 @@ export function LandingPage() {
 
                         {/* Bottom Bar: Copyright notice */}
                         <div className='mt-12 sm:mt-16 pt-8 border-t border-slate-100 text-center'>
-                            <p className='text-xs sm:text-sm text-slate-400'>
-                                © {new Date().getFullYear()} SabiWrite AI. All rights reserved.
-                            </p>
+                            <p className='text-xs sm:text-sm text-slate-400'>© {new Date().getFullYear()} SabiWrite AI. All rights reserved.</p>
                         </div>
                     </div>
                 </footer>
-
             </main>
         </>
     );
 }
 
 function ValueProp({icon, iconBoxClass, badge, badgeClass, title, body, preview, delay}) {
-    const delayClass = {
-        1: 'reveal-delay-1',
-        2: 'reveal-delay-2',
-        3: 'reveal-delay-3',
-        4: 'reveal-delay-4',
-    }[delay] ?? '';
+    const delayClass =
+        {
+            1: 'reveal-delay-1',
+            2: 'reveal-delay-2',
+            3: 'reveal-delay-3',
+            4: 'reveal-delay-4',
+        }[delay] ?? '';
 
     return (
-        <div className={`reveal ${delayClass} hover-lift flex flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 lg:p-9 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(91,91,247,0.14)] transition-all duration-300`}>
+        <div
+            className={`reveal ${delayClass} hover-lift flex flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 lg:p-9 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(91,91,247,0.14)] transition-all duration-300`}>
             <div>
                 <div className='flex items-center justify-between gap-3'>
-                    <div className={`w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center ${iconBoxClass}`}>
-                        {icon}
-                    </div>
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl flex items-center justify-center ${iconBoxClass}`}>{icon}</div>
                     {badge && (
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase ${badgeClass}`}>
+                        <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase ${badgeClass}`}>
                             {badge}
                         </span>
                     )}
                 </div>
-                <h3 className='font-bold text-slate-900 text-xl sm:text-2xl leading-snug tracking-tight mt-5'>
-                    {title}
-                </h3>
-                <p className='mt-2.5 text-sm sm:text-base text-slate-600 leading-relaxed'>
-                    {body}
-                </p>
+                <h3 className='font-bold text-slate-900 text-xl sm:text-2xl leading-snug tracking-tight mt-5'>{title}</h3>
+                <p className='mt-2.5 text-sm sm:text-base text-slate-600 leading-relaxed'>{body}</p>
             </div>
-            {preview && (
-                <div className='mt-6 pt-1'>
-                    {preview}
-                </div>
-            )}
+            {preview && <div className='mt-6 pt-1'>{preview}</div>}
         </div>
     );
 }
 
 function StepCard({icon, iconBoxClass, stepTag, stepTagClass, title, body, delay}) {
-    const delayClass = {
-        1: 'reveal-delay-1',
-        2: 'reveal-delay-2',
-        3: 'reveal-delay-3',
-    }[delay] ?? '';
+    const delayClass =
+        {
+            1: 'reveal-delay-1',
+            2: 'reveal-delay-2',
+            3: 'reveal-delay-3',
+        }[delay] ?? '';
 
     return (
-        <div className={`reveal ${delayClass} hover-lift flex-1 flex flex-col h-full rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.06)]`}>
-            <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center ${iconBoxClass}`}>
-                {icon}
-            </div>
+        <div
+            className={`reveal ${delayClass} hover-lift flex-1 flex flex-col h-full rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.06)]`}>
+            <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center ${iconBoxClass}`}>{icon}</div>
             <div className='mt-5'>
                 <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold tracking-wider uppercase ${stepTagClass}`}>
                     {stepTag}
                 </span>
             </div>
-            <h3 className='font-bold text-slate-900 text-lg sm:text-[1.125rem] leading-snug tracking-tight mt-3'>
-                {title}
-            </h3>
-            <p className='mt-2 text-sm sm:text-[14.5px] text-slate-500 leading-relaxed'>
-                {body}
-            </p>
+            <h3 className='font-bold text-slate-900 text-lg sm:text-[1.125rem] leading-snug tracking-tight mt-3'>{title}</h3>
+            <p className='mt-2 text-sm sm:text-[14.5px] text-slate-500 leading-relaxed'>{body}</p>
         </div>
     );
 }
