@@ -802,9 +802,8 @@ export function LandingPage() {
                                 <ul className='space-y-2.5'>
                                     <li>
                                         <a
-                                            href='https://mail.google.com/mail/?view=cm&fs=1&to=idowuolabanji181@gmail.com'
-                                            target='_blank'
-                                            rel='noopener noreferrer'
+                                            href='mailto:idowuolabanji181@gmail.com'
+                                            
                                             aria-label='Send email to SabiWrite AI via Gmail'
                                             className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
                                             Email
