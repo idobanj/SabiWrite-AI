@@ -80,6 +80,74 @@ function useTypewriter(text, {active = true, startDelay = 400, typeSpeed = 75, e
 }
 
 /**
+ * Fast, buttery-smooth animated slide scroll to a target element id.
+ * Handles both window scroll and inner overflow containers (such as AppShell's <main>).
+ */
+function fastScrollTo(targetId, duration = 450) {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        target.scrollIntoView({behavior: 'auto'});
+        return;
+    }
+
+    const scrollContainer =
+        document.querySelector('main.overflow-y-auto') ||
+        document.querySelector('main') ||
+        document.documentElement;
+
+    const isWindow = scrollContainer === document.documentElement || scrollContainer === document.body;
+    const startY = isWindow ? window.scrollY : scrollContainer.scrollTop;
+
+    let targetY = 0;
+    if (isWindow) {
+        const rect = target.getBoundingClientRect();
+        targetY = rect.top + window.scrollY;
+    } else {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        targetY = scrollContainer.scrollTop + (targetRect.top - containerRect.top);
+    }
+
+    if (targetId === 'hero') {
+        targetY = 0;
+    } else {
+        targetY = Math.max(0, targetY - 16);
+    }
+
+    const distance = targetY - startY;
+    if (Math.abs(distance) < 2) return;
+
+    const startTime = performance.now();
+    // Fast cubic deceleration curve: rapid initial slide with smooth deceleration
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+    const step = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = easeOutCubic(progress);
+        const currentY = startY + distance * ease;
+
+        if (isWindow) {
+            window.scrollTo(0, currentY);
+        } else {
+            scrollContainer.scrollTop = currentY;
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            if (window.history?.pushState) {
+                window.history.pushState(null, '', `#${targetId}`);
+            }
+        }
+    };
+
+    requestAnimationFrame(step);
+}
+
+/**
  * Landing page with prepared coaching examples and authenticated draft handoff.
  */
 export function LandingPage() {
@@ -272,6 +340,10 @@ export function LandingPage() {
                             </Link>
                             <a
                                 href='#demo'
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    fastScrollTo('demo', 450);
+                                }}
                                 aria-label='Explore a sample of SabiWrite AI'
                                 className='inline-flex shrink-0 items-center justify-center min-h-11 rounded-full px-3 py-2.5 sm:px-6 sm:py-3 border border-slate-200 text-slate-700 bg-white hover:bg-slate-100 text-xs min-[375px]:text-sm sm:text-[15px] font-medium shadow-sm transition duration-200 hover:scale-[1.03] active:scale-95 whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500'>
                                 Explore a Sample
@@ -730,6 +802,10 @@ export function LandingPage() {
                             <div className='space-y-3.5'>
                                 <a
                                     href='#hero'
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        fastScrollTo('hero', 450);
+                                    }}
                                     aria-label='SabiWrite AI home'
                                     className='inline-flex items-center gap-2.5 group transition-opacity hover:opacity-90'>
                                     <svg
@@ -773,6 +849,10 @@ export function LandingPage() {
                                     <li>
                                         <a
                                             href='#demo'
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                fastScrollTo('demo', 450);
+                                            }}
                                             className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
                                             Live playground
                                         </a>
@@ -780,6 +860,10 @@ export function LandingPage() {
                                     <li>
                                         <a
                                             href='#how-it-works'
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                fastScrollTo('how-it-works', 450);
+                                            }}
                                             className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
                                             How it works
                                         </a>
@@ -787,6 +871,10 @@ export function LandingPage() {
                                     <li>
                                         <a
                                             href='#faq'
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                fastScrollTo('faq', 450);
+                                            }}
                                             className='text-sm text-slate-600 hover:text-brand-600 transition-colors duration-150'>
                                             FAQ
                                         </a>
